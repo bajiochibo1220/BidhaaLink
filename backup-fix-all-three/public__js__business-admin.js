@@ -2226,11 +2226,8 @@ function filterOrdersByStatus(status) {
         link.classList.toggle('active', link.dataset.status === status);
     });
 
-    document.querySelectorAll('.order-status-tab').forEach(btn => {
-        const isActive = btn.dataset.status === status;
-        btn.classList.toggle('is-active', isActive);
-        btn.toggleAttribute('aria-current', isActive);
-    });
+    const dropdown = document.getElementById('orderFilterStatus');
+    if (dropdown) dropdown.value = status;
 
     navigateTo('orders');
     loadOrders();
@@ -2247,22 +2244,25 @@ async function loadOrders() {
     if (container) container.innerHTML = '<p class="empty-msg">Loading orders...</p>';
 
     try {
-        const status = currentFilterStatus || 'all';
+        const status = document.getElementById('orderFilterStatus')?.value || 'all';
         const search = document.getElementById('orderFilterSearch')?.value || '';
 
-        // One unfiltered response keeps every tab count accurate; the
-        // selected status is applied below when rendering the list.
-        let url = '/api/business-admin/orders?limit=10000&';
+        let finalStatus = status;
+        if (currentFilterStatus && currentFilterStatus !== 'all') {
+            finalStatus = currentFilterStatus;
+            const dropdown = document.getElementById('orderFilterStatus');
+            if (dropdown) dropdown.value = currentFilterStatus;
+        }
+
+        let url = '/api/business-admin/orders?';
+        if (finalStatus !== 'all') url += `status=${finalStatus}&`;
         if (search) url += `search=${encodeURIComponent(search)}&`;
 
         const res = await fetch(url, { headers: { 'Authorization': `Bearer ${token}` } });
         if (!res.ok) throw new Error('Failed to load orders');
-        const allOrders = await res.json();
-        updateOrderStatusTabCounts(allOrders);
-        const orders = status === 'all'
-            ? allOrders
-            : allOrders.filter(order => order.status === status);
+        const orders = await res.json();
         ordersData = orders;
+        updateOrderStatusTabCounts(orders);
 
         if (!orders || orders.length === 0) {
             const statusDisplay = currentFilterStatus ? currentFilterStatus.replace('_', ' ').toUpperCase() : 'All';
@@ -2432,6 +2432,7 @@ function filterOrders() {
         currentFilterStatus = status;
     }
 
+    // Update the tab bar's active state.
     document.querySelectorAll('.order-status-tab').forEach(btn => {
         const isActive = (btn.dataset.status || 'all') === status;
         btn.classList.toggle('is-active', isActive);
@@ -2442,6 +2443,7 @@ function filterOrders() {
         }
     });
 
+    // Update the dashboard stat pills (if visible) to match.
     document.querySelectorAll('#statsGrid .stat-link').forEach(link => {
         link.classList.toggle('active', link.dataset.status === status);
     });
@@ -2449,6 +2451,10 @@ function filterOrders() {
     loadOrders();
 }
 
+/**
+ * Compute per-status counts from the loaded orders and paint them
+ * into the tab bar.
+ */
 function updateOrderStatusTabCounts(orders) {
     const counts = {
         all: 0,
@@ -2483,6 +2489,9 @@ function updateOrderStatusTabCounts(orders) {
     });
 }
 
+/**
+ * Wire the tab bar once.
+ */
 function wireOrderStatusTabs() {
     const bar = document.getElementById('orderStatusTabs');
     if (!bar || bar.dataset.wired === 'true') return;
@@ -2539,6 +2548,7 @@ async function loadProducts() {
                         <span class="name">${escapeHtml(p.name)}</span>
                         ${categoryLabel}
                         <span class="price">Ksh ${p.price}</span>
+                        ${p.rating ? `<span style="margin-left:8px;">⭐(${p.rating})</span>` : ''}
                         ${p.isFlashSale ? ' <span style="color:#ef4444;">🔥</span>' : ''}
                         ${p.isNewArrival ? ' <span style="color:#48dbfb;">🆕</span>' : ''}
                         <span style="font-size:0.55rem; color:#64748b; margin-left:8px;">Stock: ${p.stock || 0}</span>
@@ -2602,6 +2612,8 @@ document.getElementById('productForm')?.addEventListener('submit', async functio
             formData.append('variants', JSON.stringify(rawVariants));
         }
     }
+    }
+
     submitBtn.disabled = true;
     submitBtn.textContent = '⏳ Saving...';
 
@@ -2952,15 +2964,16 @@ document.getElementById('profileForm')?.addEventListener('submit', async functio
 // ============================================================
 
 function updateMpesaFields() {
-    const paybillCb = document.getElementById('mpesaPaybillEnabled');
-    const tillCb    = document.getElementById('mpesaTillEnabled');
-    const pochiCb   = document.getElementById('mpesaPochiEnabled');
+    const selected = document.querySelector('input[name="mpesa_payment_type"]:checked');
+    const type = selected ? selected.value : '';
+
     const paybillFields = document.getElementById('mpesaPaybillFields');
-    const tillFields    = document.getElementById('mpesaTillFields');
-    const pochiFields   = document.getElementById('mpesaPochiFields');
-    if (paybillFields) paybillFields.style.display = (paybillCb && paybillCb.checked) ? 'block' : 'none';
-    if (tillFields)    tillFields.style.display    = (tillCb && tillCb.checked) ? 'block' : 'none';
-    if (pochiFields)   pochiFields.style.display   = (pochiCb && pochiCb.checked) ? 'block' : 'none';
+    const tillFields = document.getElementById('mpesaTillFields');
+    const pochiFields = document.getElementById('mpesaPochiFields');
+
+    if (paybillFields) paybillFields.style.display = type === 'paybill' ? 'block' : 'none';
+    if (tillFields) tillFields.style.display = type === 'till' ? 'block' : 'none';
+    if (pochiFields) pochiFields.style.display = type === 'pochi' ? 'block' : 'none';
 }
 
 function renderMpesaEnvironmentLabel(environment) {
@@ -2980,22 +2993,34 @@ function renderMpesaEnvironmentLabel(environment) {
 function validateMpesaSettings() {
     const enabled = document.getElementById('pMpesaEnabled')?.checked === true;
     if (!enabled) return { ok: true };
-    const paybillCb = document.getElementById('mpesaPaybillEnabled');
-    const tillCb    = document.getElementById('mpesaTillEnabled');
-    const pochiCb   = document.getElementById('mpesaPochiEnabled');
-    const anyType = (paybillCb && paybillCb.checked) || (tillCb && tillCb.checked) || (pochiCb && pochiCb.checked);
-    if (!anyType) return { ok: false, message: 'Please tick at least one M-Pesa type (Paybill, Till, or Pochi).' };
-    if (paybillCb && paybillCb.checked) {
+
+    const selected = document.querySelector('input[name="mpesa_payment_type"]:checked');
+    if (!selected) {
+        return { ok: false, message: 'Please choose an M-Pesa type (Paybill, Till, or Pochi).' };
+    }
+
+    const type = selected.value;
+
+    if (type === 'paybill') {
         const number = document.getElementById('pMpesaPaybillNumber')?.value.trim() || '';
         const account = document.getElementById('pMpesaPaybillAccount')?.value.trim() || '';
-        if (!number || !account) return { ok: false, message: 'Paybill requires both the Paybill number and an account number.' };
+        if (!number || !account) {
+            return { ok: false, message: 'Paybill requires both the Paybill number and an account number.' };
+        }
+    } else if (type === 'till') {
+        const till = document.getElementById('pMpesaTillNumber')?.value.trim() || '';
+        if (!till) {
+            return { ok: false, message: 'Till requires the Till number.' };
+        }
+    } else if (type === 'pochi') {
+        const pochi = document.getElementById('pPochiNumber')?.value.trim() || '';
+        if (!pochi) {
+            return { ok: false, message: 'Pochi la Biashara requires the Pochi number.' };
+        }
+    } else {
+        return { ok: false, message: 'Unknown M-Pesa type. Please pick Paybill, Till, or Pochi.' };
     }
-    if (tillCb && tillCb.checked) {
-        if (!(document.getElementById('pMpesaTillNumber')?.value.trim() || '')) return { ok: false, message: 'Till requires the Till number.' };
-    }
-    if (pochiCb && pochiCb.checked) {
-        if (!(document.getElementById('pPochiNumber')?.value.trim() || '')) return { ok: false, message: 'Pochi la Biashara requires the Pochi number.' };
-    }
+
     return { ok: true };
 }
 
@@ -3008,83 +3033,90 @@ async function loadPaymentSettings() {
         if (!res.ok) throw new Error('Failed to load payment settings');
         const settings = await res.json();
 
-        const setChecked = (id, v) => { const el = document.getElementById(id); if (el) el.checked = v === true; };
-        const setValue   = (id, v) => { const el = document.getElementById(id); if (el) el.value = v || ''; };
+        document.getElementById('pMpesaEnabled').checked = settings.mpesa_enabled || false;
+        document.getElementById('pAirtelEnabled').checked = settings.airtel_enabled || false;
+        document.getElementById('pAirtelNumber').value = settings.airtel_number || '';
+        document.getElementById('pBankEnabled').checked = settings.bank_enabled || false;
+        document.getElementById('pBankName').value = settings.bank_name || '';
+        document.getElementById('pBankAccount').value = settings.bank_account || '';
+        document.getElementById('pBankHolder').value = settings.bank_account_name || '';
+        document.getElementById('pPaypalEnabled').checked = settings.paypal_enabled || false;
+        document.getElementById('pPaypalEmail').value = settings.paypal_email || '';
 
-        setChecked('pMpesaEnabled', settings.mpesa_enabled);
-        setChecked('mpesaPaybillEnabled', settings.mpesa_paybill_enabled);
-        setChecked('mpesaTillEnabled',    settings.mpesa_till_enabled);
-        setChecked('mpesaPochiEnabled',   settings.mpesa_pochi_enabled);
+        const paymentType = settings.mpesa_payment_type || 'paybill';
+        document.querySelectorAll('input[name="mpesa_payment_type"]').forEach(r => {
+            r.checked = r.value === paymentType;
+        });
 
-        setValue('pMpesaPaybillNumber',  settings.mpesa_paybill_number);
-        setValue('pMpesaPaybillAccount', settings.mpesa_paybill_account);
-        setValue('pMpesaTillNumber',     settings.mpesa_till_number);
-        setValue('pPochiNumber',         settings.pochi_la_biashara_number);
-        setValue('pMpesaNumber',         settings.mpesa_number);
+        const paybillNumber = document.getElementById('pMpesaPaybillNumber');
+        const paybillAccount = document.getElementById('pMpesaPaybillAccount');
+        const tillNumber = document.getElementById('pMpesaTillNumber');
+        const pochiNumber = document.getElementById('pPochiNumber');
 
-        setChecked('pAirtelEnabled', settings.airtel_enabled);
-        setValue('pAirtelNumber', settings.airtel_number);
-        setChecked('pBankEnabled', settings.bank_enabled);
-        setValue('pBankName', settings.bank_name);
-        setValue('pBankAccount', settings.bank_account);
-        setValue('pBankHolder', settings.bank_account_name);
-        setChecked('pPaypalEnabled', settings.paypal_enabled);
-        setValue('pPaypalEmail', settings.paypal_email);
+        if (paybillNumber) paybillNumber.value = settings.mpesa_paybill_number || '';
+        if (paybillAccount) paybillAccount.value = settings.mpesa_paybill_account || '';
+        if (tillNumber) tillNumber.value = settings.mpesa_till_number || '';
+        if (pochiNumber) pochiNumber.value = settings.pochi_la_biashara_number || '';
 
         updateMpesaFields();
 
-        if (settings.mpesa_environment) currentMpesaEnvironment = settings.mpesa_environment;
+        if (settings.mpesa_environment) {
+            currentMpesaEnvironment = settings.mpesa_environment;
+        }
         renderMpesaEnvironmentLabel(currentMpesaEnvironment);
+
     } catch (err) {
         console.error('❌ Payment settings error:', err);
+        alert('Error loading payment settings');
     }
 }
 
 document.getElementById('paymentSettingsForm')?.addEventListener('submit', async function(e) {
     e.preventDefault();
+
     const mpesaCheck = validateMpesaSettings();
     if (!mpesaCheck.ok) {
         const status = document.getElementById('paymentStatus');
         if (status) { status.textContent = '❌ ' + mpesaCheck.message; status.style.color = '#ef4444'; }
-        if (typeof showToast === 'function') showToast('❌ ' + mpesaCheck.message, 'error');
+        showToast('❌ ' + mpesaCheck.message, 'error');
         return;
     }
-    const get = id => document.getElementById(id);
-    const val = id => { const el = get(id); return el ? el.value.trim() : ''; };
-    const chk = id => { const el = get(id); return el ? el.checked : false; };
-    const payload = {
-        mpesa_enabled: chk('pMpesaEnabled'),
-        mpesa_paybill_enabled: chk('mpesaPaybillEnabled'),
-        mpesa_till_enabled: chk('mpesaTillEnabled'),
-        mpesa_pochi_enabled: chk('mpesaPochiEnabled'),
-        mpesa_paybill_number: val('pMpesaPaybillNumber') || null,
-        mpesa_paybill_account: val('pMpesaPaybillAccount') || null,
-        mpesa_till_number: val('pMpesaTillNumber') || null,
-        pochi_la_biashara_number: val('pPochiNumber') || null,
-        mpesa_number: val('pMpesaNumber') || null,
-        airtel_enabled: chk('pAirtelEnabled'),
-        airtel_number: val('pAirtelNumber') || null,
-        bank_enabled: chk('pBankEnabled'),
-        bank_name: val('pBankName') || null,
-        bank_account: val('pBankAccount') || null,
-        bank_account_name: val('pBankHolder') || null,
-        paypal_enabled: chk('pPaypalEnabled'),
-        paypal_email: val('pPaypalEmail') || null
+
+    const selectedType = document.querySelector('input[name="mpesa_payment_type"]:checked');
+
+    const data = {
+        mpesa_enabled: document.getElementById('pMpesaEnabled').checked,
+        mpesa_payment_type: selectedType ? selectedType.value : null,
+        mpesa_paybill_number: document.getElementById('pMpesaPaybillNumber')?.value.trim() || null,
+        mpesa_paybill_account: document.getElementById('pMpesaPaybillAccount')?.value.trim() || null,
+        mpesa_till_number: document.getElementById('pMpesaTillNumber')?.value.trim() || null,
+        pochi_la_biashara_number: document.getElementById('pPochiNumber')?.value.trim() || null,
+
+        airtel_enabled: document.getElementById('pAirtelEnabled').checked,
+        airtel_number: document.getElementById('pAirtelNumber').value,
+        bank_enabled: document.getElementById('pBankEnabled').checked,
+        bank_name: document.getElementById('pBankName').value,
+        bank_account: document.getElementById('pBankAccount').value,
+        bank_account_name: document.getElementById('pBankHolder').value,
+        paypal_enabled: document.getElementById('pPaypalEnabled').checked,
+        paypal_email: document.getElementById('pPaypalEmail').value
     };
+
     const status = document.getElementById('paymentStatus');
     if (status) status.textContent = '⏳ Saving...';
+
     try {
         const res = await fetch('/api/business-admin/payment-settings', {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-            body: JSON.stringify(payload)
+            body: JSON.stringify(data)
         });
         const result = await res.json();
         if (result.success) {
             if (status) { status.textContent = '✅ Payment settings updated!'; status.style.color = '#16a34a'; }
-            if (typeof showToast === 'function') showToast('✅ Payment settings updated!', 'success');
+            alert('✅ Payment settings updated!');
         } else {
-            if (status) { status.textContent = '❌ ' + (result.error || 'Failed'); status.style.color = '#ef4444'; }
+            if (status) { status.textContent = '❌ ' + (result.error || 'Failed to update'); status.style.color = '#ef4444'; }
         }
     } catch (err) {
         if (status) { status.textContent = '❌ Network error'; status.style.color = '#ef4444'; }

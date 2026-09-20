@@ -153,13 +153,6 @@ class Product {
    * B.8 — returns the joined category name
    */
   static async create(data) {
-    const {
-      name, price, old_price, category, color, product_category_id, badge1, badge2,
-      isFlashSale, isNewArrival, image, description, shipping_fee,
-      free_shipping_eligible, return_enabled, return_window_days,
-      restocking_fee_percent, return_shipping_paid_by, return_condition,
-      stock, is_featured, business_id
-    } = data;
 
     if (product_category_id === undefined || product_category_id === null || product_category_id === '') {
       throw new Error('product_category_id is required');
@@ -167,18 +160,20 @@ class Product {
 
     const result = await pool.query(`
       INSERT INTO products (
-        name, price, old_price, category, color, product_category_id,
-        badge1, badge2, isFlashSale, isNewArrival, image, description,
+        name, price, old_price, discount_percent, category, product_category_id,
+        contact, rating,
+        badge1, badge2, shipping, isFlashSale, isNewArrival, image, description,
         shipping_fee, free_shipping_eligible, return_enabled, return_window_days,
         restocking_fee_percent, return_shipping_paid_by, return_condition,
         stock, is_featured, business_id
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25)
       RETURNING *
     `, [
-      name, price, old_price || null, category || null, color || null,
+      name, price, old_price || null, discount_percent || null, category || null,
       parseInt(product_category_id, 10),
-      badge1 || null, badge2 || null,
+      contact || null, rating || null,
+      badge1 || null, badge2 || null, shipping || null,
       isFlashSale || false, isNewArrival || false,
       image || null, description || null,
       shipping_fee || null, free_shipping_eligible || false, return_enabled !== false,
@@ -202,7 +197,7 @@ class Product {
     let paramIndex = 1;
 
     const allowedFields = [
-      'name', 'price', 'old_price', 'category', 'color', 'product_category_id',
+      'name', 'price', 'old_price', 'category', 'product_category_id',
       'badge1', 'badge2', 'isFlashSale', 'isNewArrival',
       'image', 'description', 'shipping_fee', 'free_shipping_eligible',
       'return_enabled', 'return_window_days', 'restocking_fee_percent',
@@ -333,12 +328,12 @@ class Product {
   /**
    * Add review to product
    */
-  static async addReview(productId, customerId, reviewText) {
+  static async addReview(productId, customerId, rating, reviewText) {
     const result = await pool.query(`
-      INSERT INTO product_reviews (product_id, customer_id, review_text)
+      INSERT INTO product_reviews (product_id, customer_id, rating, review_text)
       VALUES ($1, $2, $3, $4)
       RETURNING *
-    `, [productId, customerId, reviewText]);
+    `, [productId, customerId, rating, reviewText]);
     return result.rows[0];
   }
 

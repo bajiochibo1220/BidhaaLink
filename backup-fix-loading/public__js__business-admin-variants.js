@@ -549,7 +549,7 @@
             (tone ? ' ba-variants-status--' + tone : '');
     }
 
-            function readPayload() {
+        function readPayload() {
         if (!container) return [];
         var rows = container.querySelectorAll('.ba-variant-row');
         var payload = [];
@@ -573,6 +573,7 @@
             var video = existingVideo ? existingVideo.value : '';
             var poster = existingPoster ? existingPoster.value : '';
 
+            // Skip rows that are completely blank on every field.
             var hasAny = Boolean(id || name || price || oldPrice || stock || image || video || poster);
             if (!hasAny) return;
 

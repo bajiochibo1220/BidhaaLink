@@ -549,7 +549,7 @@
             (tone ? ' ba-variants-status--' + tone : '');
     }
 
-            function readPayload() {
+    function readPayload() {
         if (!container) return [];
         var rows = container.querySelectorAll('.ba-variant-row');
         var payload = [];
@@ -564,29 +564,17 @@
             var existingVideo = row.querySelector('.ba-variant-existing-video');
             var existingPoster = row.querySelector('.ba-variant-existing-poster');
 
-            var id = idInput && idInput.value ? Number(idInput.value) : null;
-            var name = nameInput ? nameInput.value.trim() : '';
-            var price = priceInput ? priceInput.value.trim() : '';
-            var oldPrice = oldPriceInput ? oldPriceInput.value.trim() : '';
-            var stock = stockInput ? stockInput.value.trim() : '';
-            var image = existingImage ? existingImage.value : '';
-            var video = existingVideo ? existingVideo.value : '';
-            var poster = existingPoster ? existingPoster.value : '';
-
-            var hasAny = Boolean(id || name || price || oldPrice || stock || image || video || poster);
-            if (!hasAny) return;
-
             payload.push({
-                id: id,
-                name: name,
+                id: idInput && idInput.value ? Number(idInput.value) : null,
+                name: nameInput ? nameInput.value.trim() : '',
                 color_code: '',
-                price: price,
-                old_price: oldPrice,
+                price: priceInput ? priceInput.value.trim() : '',
+                old_price: oldPriceInput ? oldPriceInput.value.trim() : '',
                 discount_percent: '',
-                stock: stock,
-                image: image,
-                video: video,
-                video_poster_url: poster
+                stock: stockInput ? stockInput.value.trim() : '',
+                image: existingImage ? existingImage.value : '',
+                video: existingVideo ? existingVideo.value : '',
+                video_poster_url: existingPoster ? existingPoster.value : ''
             });
         });
 

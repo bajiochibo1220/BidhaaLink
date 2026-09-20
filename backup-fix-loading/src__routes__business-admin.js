@@ -2075,21 +2075,21 @@ router.post('/products', authMiddleware, businessAdminOnly, getBusinessIdFromTok
             }
 
             const {
-                name, price, old_price, category, color,
-                badge1, badge2, isFlashSale, isNewArrival,
+                name, price, old_price, discount_percent, category, contact, rating,
+                badge1, badge2, shipping, isFlashSale, isNewArrival,
                 description, stock = 0, is_featured
             } = req.body;
 
             const result = await pool.query(`
                 INSERT INTO products (
-                    name, price, old_price, category, color, product_category_id,
+                    name, price, old_price, category, product_category_id,
                     badge1, badge2, isFlashSale, isNewArrival, image, video,
                     description, stock, business_id, is_active, images, videos
                 )
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
                 RETURNING *
             `, [
-                name, price, old_price || null, category || null, color || null,
+                name, price, old_price || null, category || null,
                 productCategoryId,
                 badge1 || null, badge2 || null,
                 isFlashSale === 'true' || isFlashSale === true,
@@ -2244,7 +2244,7 @@ router.put('/products/:id', authMiddleware, businessAdminOnly, getBusinessIdFrom
             }
 
             const {
-                name, price, old_price, category, color, product_category_id,
+                name, price, old_price, category, product_category_id,
                 badge1, badge2, isFlashSale, isNewArrival,
                 description, stock, is_active, is_featured
             } = req.body;
@@ -2269,28 +2269,26 @@ router.put('/products/:id', authMiddleware, businessAdminOnly, getBusinessIdFrom
                     price = COALESCE($2, price),
                     old_price = COALESCE($3, old_price),
                     category = COALESCE($4, category),
-                    color = COALESCE($5, color),
-                    product_category_id = COALESCE($6, product_category_id),
-                    badge1 = COALESCE($7, badge1),
-                    badge2 = COALESCE($8, badge2),
-                    isFlashSale = COALESCE($9, isFlashSale),
-                    isNewArrival = COALESCE($10, isNewArrival),
-                    image = COALESCE($11, image),
-                    video = COALESCE($12, video),
-                    description = COALESCE($13, description),
-                    stock = COALESCE($14, stock),
-                    is_active = COALESCE($15, is_active),
-                    is_featured = COALESCE($16, is_featured),
-                    images = $17,
-                    videos = $18
-                WHERE id = $19 AND business_id = $20
+                    product_category_id = COALESCE($5, product_category_id),
+                    badge1 = COALESCE($6, badge1),
+                    badge2 = COALESCE($7, badge2),
+                    isFlashSale = COALESCE($8, isFlashSale),
+                    isNewArrival = COALESCE($9, isNewArrival),
+                    image = COALESCE($10, image),
+                    video = COALESCE($11, video),
+                    description = COALESCE($12, description),
+                    stock = COALESCE($13, stock),
+                    is_active = COALESCE($14, is_active),
+                    is_featured = COALESCE($15, is_featured),
+                    images = $16,
+                    videos = $17
+                WHERE id = $18 AND business_id = $19
                 RETURNING *
             `, [
                 name || null,
                 price || null,
                 old_price || null,
                 category || null,
-                color || null,
                 productCategoryId,
                 badge1 || null,
                 badge2 || null,
@@ -2667,10 +2665,9 @@ router.get('/payment-settings', authMiddleware, businessAdminOnly, getBusinessId
     try {
         const result = await pool.query(`
             SELECT
-                mpesa_enabled, mpesa_number,
-                mpesa_till_number, mpesa_paybill_number, mpesa_paybill_account,
+                mpesa_enabled, mpesa_number, mpesa_till_number, mpesa_paybill_number,
                 mpesa_paybill_enabled, mpesa_till_enabled, mpesa_pochi_enabled,
-                pochi_la_biashara_enabled, pochi_la_biashara_number,
+                mpesa_paybill_account, mpesa_payment_type, pochi_la_biashara_enabled, pochi_la_biashara_number,
                 airtel_enabled, airtel_number,
                 bank_enabled, bank_name, bank_account, bank_account_name,
                 paypal_enabled, paypal_email
@@ -2683,6 +2680,11 @@ router.get('/payment-settings', authMiddleware, businessAdminOnly, getBusinessId
         }
 
         const settings = result.rows[0];
+
+        // I.6 — read-only environment label. It is a platform-wide
+        // value (process.env.MPESA_ENVIRONMENT), not a per-business
+        // setting, so it is returned here as a display hint only and
+        // is never writable through /payment-settings.
         settings.mpesa_environment = (process.env.MPESA_ENVIRONMENT || 'sandbox').toLowerCase();
 
         res.json(settings);
@@ -2700,19 +2702,16 @@ router.get('/payment-settings', authMiddleware, businessAdminOnly, getBusinessId
 router.put('/payment-settings', authMiddleware, businessAdminOnly, getBusinessIdFromToken, async (req, res) => {
     try {
         const {
-            mpesa_enabled, mpesa_number,
-            mpesa_till_number, mpesa_paybill_number, mpesa_paybill_account,
-            mpesa_paybill_enabled, mpesa_till_enabled, mpesa_pochi_enabled,
-            pochi_la_biashara_enabled, pochi_la_biashara_number,
+            mpesa_enabled, mpesa_number, mpesa_till_number, mpesa_paybill_number,
+                mpesa_paybill_enabled, mpesa_till_enabled, mpesa_pochi_enabled,
+            mpesa_paybill_account, mpesa_payment_type, pochi_la_biashara_enabled, pochi_la_biashara_number,
             airtel_enabled, airtel_number,
             bank_enabled, bank_name, bank_account, bank_account_name,
             paypal_enabled, paypal_email
         } = req.body;
 
-        if (mpesa_enabled === true
-            && !mpesa_paybill_enabled
-            && !mpesa_till_enabled
-            && !mpesa_pochi_enabled) {
+        // Multi-type: at least one type must be enabled when mpesa_enabled is true.
+        if (mpesa_enabled === true && !mpesa_paybill_enabled && !mpesa_till_enabled && !mpesa_pochi_enabled) {
             return res.status(400).json({ error: 'Please tick at least one M-Pesa type.' });
         }
         if (mpesa_paybill_enabled && (!mpesa_paybill_number || !mpesa_paybill_account)) {
@@ -2724,43 +2723,37 @@ router.put('/payment-settings', authMiddleware, businessAdminOnly, getBusinessId
         if (mpesa_pochi_enabled && !pochi_la_biashara_number) {
             return res.status(400).json({ error: 'Pochi number is required when Pochi la Biashara is enabled.' });
         }
-
+        if (false) {
+            return res.status(400).json({ error: 'M-Pesa payment type must be paybill, till, or pochi' });
+        }
+        const selectedNumber = mpesa_payment_type === 'paybill' ? mpesa_paybill_number : mpesa_payment_type === 'till' ? mpesa_till_number : mpesa_payment_type === 'pochi' ? pochi_la_biashara_number : mpesa_number;
+        if (mpesa_enabled && mpesa_payment_type === 'paybill' && (!mpesa_paybill_number || !mpesa_paybill_account)) return res.status(400).json({ error: 'Paybill number and account number are required' });
+        if (mpesa_enabled && mpesa_payment_type === 'till' && !mpesa_till_number) return res.status(400).json({ error: 'Till number is required' });
+        if (mpesa_enabled && mpesa_payment_type === 'pochi' && !pochi_la_biashara_number) return res.status(400).json({ error: 'Pochi number is required' });
         const result = await pool.query(`
             UPDATE businesses
             SET
                 mpesa_enabled = COALESCE($1, mpesa_enabled),
                 mpesa_number = COALESCE($2, mpesa_number),
-                mpesa_till_number = COALESCE($3, mpesa_till_number),
-                mpesa_paybill_number = COALESCE($4, mpesa_paybill_number),
-                mpesa_paybill_account = COALESCE($5, mpesa_paybill_account),
-                mpesa_paybill_enabled = COALESCE($6, mpesa_paybill_enabled),
-                mpesa_till_enabled = COALESCE($7, mpesa_till_enabled),
-                mpesa_pochi_enabled = COALESCE($8, mpesa_pochi_enabled),
-                pochi_la_biashara_enabled = COALESCE($9, pochi_la_biashara_enabled),
-                pochi_la_biashara_number = COALESCE($10, pochi_la_biashara_number),
-                airtel_enabled = COALESCE($11, airtel_enabled),
-                airtel_number = COALESCE($12, airtel_number),
-                bank_enabled = COALESCE($13, bank_enabled),
-                bank_name = COALESCE($14, bank_name),
-                bank_account = COALESCE($15, bank_account),
-                bank_account_name = COALESCE($16, bank_account_name),
-                paypal_enabled = COALESCE($17, paypal_enabled),
-                paypal_email = COALESCE($18, paypal_email),
+                mpesa_till_number = COALESCE($3, mpesa_till_number), mpesa_paybill_number = COALESCE($4, mpesa_paybill_number),
+                mpesa_paybill_account = COALESCE($5, mpesa_paybill_account), mpesa_payment_type = COALESCE($6, mpesa_payment_type),
+                pochi_la_biashara_enabled = COALESCE($7, pochi_la_biashara_enabled), pochi_la_biashara_number = COALESCE($8, pochi_la_biashara_number),
+                airtel_enabled = COALESCE($9, airtel_enabled), airtel_number = COALESCE($10, airtel_number),
+                bank_enabled = COALESCE($11, bank_enabled), bank_name = COALESCE($12, bank_name), bank_account = COALESCE($13, bank_account), bank_account_name = COALESCE($14, bank_account_name),
+                paypal_enabled = COALESCE($15, paypal_enabled), paypal_email = COALESCE($16, paypal_email),
                 updated_at = NOW()
-            WHERE id = $19
+            WHERE id = $17
             RETURNING *
         `, [
-            mpesa_enabled, mpesa_number,
-            mpesa_till_number, mpesa_paybill_number, mpesa_paybill_account,
-            mpesa_paybill_enabled, mpesa_till_enabled, mpesa_pochi_enabled,
+            mpesa_enabled, selectedNumber || mpesa_number, mpesa_till_number, mpesa_paybill_number, mpesa_paybill_account, mpesa_payment_type,
             pochi_la_biashara_enabled, pochi_la_biashara_number,
-            airtel_enabled, airtel_number,
-            bank_enabled, bank_name, bank_account, bank_account_name,
-            paypal_enabled, paypal_email,
+            airtel_enabled, airtel_number, bank_enabled, bank_name, bank_account, bank_account_name, paypal_enabled, paypal_email,
+            mpesa_paybill_enabled, mpesa_till_enabled, mpesa_pochi_enabled,
             req.businessId
         ]);
 
         await logAdminActivity(req.userId, 'UPDATE_PAYMENT_SETTINGS', { businessId: req.businessId });
+
         res.json({ success: true, settings: result.rows[0] });
     } catch (err) {
         console.error('❌ Update payment settings error:', err);

@@ -1,15 +1,15 @@
-// ============================================================
-//  BUSINESS PROFILE JAVASCRIPT � PHASE 2 (PART A)
+﻿// ============================================================
+//  BUSINESS PROFILE JAVASCRIPT — PHASE 2 (PART A)
 //  Location: public/js/business-profile.js
 //
 //  This file is written in two parts. Command A writes this
 //  half. Command B appends the rest. Do not run the browser
-//  between the two commands � the file is intentionally
+//  between the two commands — the file is intentionally
 //  incomplete until Command B finishes.
 // ============================================================
 
 // ============================================================
-//  TILE PROVIDER � single source of truth
+//  TILE PROVIDER — single source of truth
 // ============================================================
 
 const CARTO_TILE_URL = 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
@@ -60,7 +60,7 @@ if (typeof window.isOwnBusiness === 'undefined') {
     window.isOwnBusiness = false;
 }
 
-// Phase 2 � current tab. Read from the URL on load and updated
+// Phase 2 — current tab. Read from the URL on load and updated
 // whenever the customer clicks a tab.
 if (typeof window.businessProductTab === 'undefined') {
     window.businessProductTab = 'all';
@@ -83,7 +83,7 @@ let customerLocation = window.customerLocation;
 let isOwnBusiness = window.isOwnBusiness;
 
 // ============================================================
-//  PHASE 2 � TAB HELPERS
+//  PHASE 2 — TAB HELPERS
 // ============================================================
 
 const VALID_PRODUCT_TABS = ['all', 'image', 'video'];
@@ -132,7 +132,7 @@ function switchShopTab(tab) {
     window.businessProductList = [];
     businessProductList = window.businessProductList;
     const grid = document.getElementById('productGrid');
-    if (grid) grid.innerHTML = '<p style="text-align:center;padding:40px;color:#94a3b8;">Loading products�</p>';
+    if (grid) grid.innerHTML = '<p style="text-align:center;padding:40px;color:#94a3b8;">Loading products…</p>';
     loadBusinessProducts();
 }
 
@@ -388,8 +388,8 @@ function renderBusinessProfile() {
     const heroLogo = document.getElementById('heroLogo');
 
     if (heroTitle) heroTitle.textContent = business.business_name || 'Welcome';
-    if (heroLocation) heroLocation.textContent = business.location ? '?? ' + business.location : '';
-    if (heroAddress) heroAddress.textContent = business.address ? '?? ' + business.address : '';
+    if (heroLocation) heroLocation.textContent = business.location ? '📍 ' + business.location : '';
+    if (heroAddress) heroAddress.textContent = business.address ? '🏠 ' + business.address : '';
 
     const productCountEl = document.getElementById('productCount');
     const followerCountEl = document.getElementById('followerCount');
@@ -566,11 +566,11 @@ function renderHeroDescriptionOverlay(business) {
         return div.innerHTML;
     };
 
-    track.innerHTML = '<span class="hero-desc-title">??? ' + safe(name) + ' � Quality for Every Home</span>'
+    track.innerHTML = '<span class="hero-desc-title">🏡✨ ' + safe(name) + ' – Quality for Every Home</span>'
         + (tagline ? '<span class="hero-desc-tagline">' + safe(tagline) + '</span>' : '')
-        + '<ul class="hero-desc-bullets"><li>? Quality &amp; Affordable</li><li>?? Wide Variety</li><li>?? Retail &amp; Wholesale</li><li>?? Delivery Across Kenya</li></ul>'
-        + '<span class="hero-desc-meta">?? ' + safe(locationText) + '</span>'
-        + '<span class="hero-desc-meta">?? Contact us today!</span>';
+        + '<ul class="hero-desc-bullets"><li>✅ Quality &amp; Affordable</li><li>🌈 Wide Variety</li><li>📦 Retail &amp; Wholesale</li><li>🚚 Delivery Across Kenya</li></ul>'
+        + '<span class="hero-desc-meta">📍 ' + safe(locationText) + '</span>'
+        + '<span class="hero-desc-meta">📞 Contact us today!</span>';
 
     overlay.style.display = '';
 
@@ -708,7 +708,7 @@ function renderMap(business) {
             L.marker([lat, lng]).addTo(businessMap)
                 .bindPopup('<strong>' + business.business_name + '</strong><br>' + (address || business.location || ''));
             const mapAddressEl = document.getElementById('mapAddress');
-            if (mapAddressEl) mapAddressEl.textContent = address ? '?? ' + address : '';
+            if (mapAddressEl) mapAddressEl.textContent = address ? '📍 ' + address : '';
             const staticMapSection = document.getElementById('staticMapSection');
             if (staticMapSection) staticMapSection.style.display = 'block';
         }
@@ -735,12 +735,12 @@ function buildBusinessSlider() {
     });
 
     if (images.length === 0) {
-        wrapper.innerHTML = '<div class="slide">?? No images available</div>';
+        wrapper.innerHTML = '<div class="slide">📸 No images available</div>';
         return;
     }
 
     wrapper.innerHTML = images.map(img =>
-        '<div class="slide"><img src="' + img + '" alt="Business image" onerror="this.parentElement.innerHTML=\'<div>???</div>\'"></div>'
+        '<div class="slide"><img src="' + img + '" alt="Business image" onerror="this.parentElement.innerHTML=\'<div>🖼️</div>\'"></div>'
     ).join('');
 
     window.businessSlideIndex = 0;
@@ -768,56 +768,30 @@ function changeBusinessSlide(direction) {
 }
 
 // ============================================================
-//  LOAD BUSINESS PRODUCTS � PHASE 2: forwards the active tab
+//  LOAD BUSINESS PRODUCTS — PHASE 2: forwards the active tab
 // ============================================================
 
 async function loadBusinessProducts() {
     try {
-        if (!businessSlug) {
-            window.businessProductList = [];
-            businessProductList = window.businessProductList;
-            renderBusinessGrid();
-            return;
-        }
-
         const tab = getActiveProductTab();
         const url = '/api/businesses/' + encodeURIComponent(businessSlug) + '/products?limit=100&page=1&tab=' + encodeURIComponent(tab);
         console.log('Fetching products from:', url);
 
-        let res;
-        try {
-            res = await fetch(url);
-        } catch (netErr) {
-            console.warn('Products fetch failed (network):', netErr.message);
-            window.businessProductList = [];
-            businessProductList = window.businessProductList;
-            renderBusinessGrid();
-            return;
-        }
-
+        const res = await fetch(url);
         if (!res.ok) {
-            console.warn('Products API returned:', res.status);
-            window.businessProductList = [];
-            businessProductList = window.businessProductList;
-            renderBusinessGrid();
-            return;
+            console.error('Products API error:', res.status);
+            throw new Error('Failed to load products');
         }
-
         const data = await res.json();
         const allProducts = Array.isArray(data.products) ? data.products : [];
         const totalPages = data.pagination?.pages || 1;
 
         for (let page = 2; page <= totalPages; page += 1) {
-            try {
-                const nextRes = await fetch('/api/businesses/' + encodeURIComponent(businessSlug) + '/products?limit=100&page=' + page + '&tab=' + encodeURIComponent(tab));
-                if (!nextRes.ok) break;
-                const nextData = await nextRes.json();
-                if (Array.isArray(nextData.products)) {
-                    allProducts.push(...nextData.products);
-                }
-            } catch (pageErr) {
-                console.warn('Page ' + page + ' fetch failed:', pageErr.message);
-                break;
+            const nextRes = await fetch('/api/businesses/' + encodeURIComponent(businessSlug) + '/products?limit=100&page=' + page + '&tab=' + encodeURIComponent(tab));
+            if (!nextRes.ok) throw new Error('Failed to load products (' + nextRes.status + ')');
+            const nextData = await nextRes.json();
+            if (Array.isArray(nextData.products)) {
+                allProducts.push(...nextData.products);
             }
         }
 
@@ -889,7 +863,7 @@ function populateDefinedProductCategories() {
             map.set(id, {
                 id,
                 name: product.product_category_name || 'Uncategorised',
-                icon: product.product_category_icon || '??'
+                icon: product.product_category_icon || '📦'
             });
         }
     });
@@ -908,7 +882,7 @@ function populateDefinedProductCategories() {
 }
 
 // ============================================================
-//  GRID � PHASE 2: uses thumbnail_url / thumbnail_kind
+//  GRID — PHASE 2: uses thumbnail_url / thumbnail_kind
 // ============================================================
 
 function renderBusinessGrid() {
@@ -944,26 +918,26 @@ function renderBusinessProductGrid(products) {
 
         const ratingHtml = '';
         const categoryHtml = p.product_category_name
-            ? '<div class="product-category-chip" title="' + p.product_category_name + '">' + (p.product_category_icon || '??') + ' ' + p.product_category_name + '</div>'
+            ? '<div class="product-category-chip" title="' + p.product_category_name + '">' + (p.product_category_icon || '📦') + ' ' + p.product_category_name + '</div>'
             : '';
 
         return '<div class="product-card">'
             + '<div class="media-wrap" onclick="location.href=\'/product-detail.html?id=' + p.id + '&business=' + businessSlug + '\'">'
             + imageHtml
             + '<div class="quick-view-icon"><i class="fas fa-eye"></i></div>'
-            + (p.isFlashSale ? '<div class="flash-badge">??</div>' : '')
-            + (p.isNewArrival ? '<div class="new-badge">??</div>' : '')
+            + (p.isFlashSale ? '<div class="flash-badge">🔥</div>' : '')
+            + (p.isNewArrival ? '<div class="new-badge">🆕</div>' : '')
             + videoPill
             + '<i id="bwishlist-icon-' + p.id + '" class="far fa-heart" onclick="event.stopPropagation(); toggleBusinessWishlist(' + p.id + ')" style="position:absolute; top:8px; left:8px; font-size:1.2rem; background:white; padding:4px; border-radius:50%; cursor:pointer; z-index:10;"></i>'
             + '</div>'
             + '<div class="info">'
-            + '<div class="name">' + p.name + ' ' + (inCart ? '<span class="green-tick">?</span>' : '') + '</div>'
+            + '<div class="name">' + p.name + ' ' + (inCart ? '<span class="green-tick">✔</span>' : '') + '</div>'
             + categoryHtml
             + '<div class="price">' + p.price + '</div>'
             + ratingHtml
             + '<div class="actions">'
             + '<div class="qty-control">'
-            + '<button onclick="changeBusinessCardQty(' + p.id + ', -1)" ' + disabled + '>-</button>'
+            + '<button onclick="changeBusinessCardQty(' + p.id + ', -1)" ' + disabled + '>−</button>'
             + '<span id="' + qtyId + '">1</span>'
             + '<button onclick="changeBusinessCardQty(' + p.id + ', 1)" ' + disabled + '>+</button>'
             + '</div>'
@@ -986,7 +960,7 @@ function changeBusinessCardQty(productId, delta) {
 
 function addBusinessCardToCart(productId) {
     if (businessData && businessData.online_orders_enabled === false) {
-        showToast('? This shop is not taking orders at the moment.', 'error');
+        showToast('❌ This shop is not taking orders at the moment.', 'error');
         return;
     }
     const qtySpan = document.getElementById('bqty-' + productId);
@@ -1062,7 +1036,7 @@ async function toggleBusinessWishlist(productId) {
                 }
             }
             if (typeof showToast === 'function') {
-                showToast(data.action === 'added' ? '?? Added to wishlist' : '?? Removed from wishlist', 'success');
+                showToast(data.action === 'added' ? '❤️ Added to wishlist' : '💔 Removed from wishlist', 'success');
             }
         }
     } catch (err) {
@@ -1115,7 +1089,7 @@ async function toggleFollow() {
             isFollowing = window.isFollowing;
             updateFollowButton();
             if (typeof showToast === 'function') {
-                showToast(isFollowing ? '? Now following this business!' : '? Unfollowed this business', 'success');
+                showToast(isFollowing ? '✅ Now following this business!' : '✅ Unfollowed this business', 'success');
             }
             loadBusinessProfile();
         }
@@ -1166,7 +1140,7 @@ function initBusinessLiveMap() {
     }).addTo(businessLiveMap);
 
     window.businessLiveMarker = L.marker([lat, lng], {
-        icon: L.divIcon({ className: 'admin-live-marker', html: '??', iconSize: [30, 30] })
+        icon: L.divIcon({ className: 'admin-live-marker', html: '📍', iconSize: [30, 30] })
     }).addTo(businessLiveMap);
     businessLiveMarker = window.businessLiveMarker;
 
@@ -1177,7 +1151,7 @@ function initBusinessLiveMap() {
                 const userLng = pos.coords.longitude;
                 const dist = getBusinessDistance(userLat, userLng, lat, lng);
                 const distEl = document.getElementById('liveDistance');
-                if (distEl) distEl.textContent = '?? Distance: ' + formatBusinessDistance(dist);
+                if (distEl) distEl.textContent = '📍 Distance: ' + formatBusinessDistance(dist);
                 if (businessLiveRoute) businessLiveMap.removeLayer(businessLiveRoute);
                 window.businessLiveRoute = L.polyline([[userLat, userLng], [lat, lng]], {
                     color: '#2563eb',
@@ -1190,7 +1164,7 @@ function initBusinessLiveMap() {
             },
             () => {
                 const distEl = document.getElementById('liveDistance');
-                if (distEl) distEl.textContent = '?? Turn on GPS to see distance';
+                if (distEl) distEl.textContent = '📍 Turn on GPS to see distance';
             }
         );
     }
@@ -1254,14 +1228,14 @@ function showToast(message, type) {
 
     const toast = document.createElement('div');
     const typeMap = { success: '#22c55e', error: '#ef4444', warning: '#f59e0b', info: '#2563eb' };
-    const iconMap = { success: '?', error: '?', warning: '??', info: '??' };
+    const iconMap = { success: '✅', error: '❌', warning: '⚠️', info: 'ℹ️' };
     const bgColor = typeMap[type] || '#2563eb';
 
     toast.className = 'toast ' + type;
     toast.style.cssText = 'background:' + bgColor + ';color:white;padding:14px 20px;border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,0.15);font-size:0.9rem;font-weight:500;display:flex;align-items:center;gap:12px;animation:slideIn 0.3s ease;margin-bottom:8px;transform:translateX(0);transition:transform 0.3s;word-break:break-word;';
 
     const icon = document.createElement('span');
-    icon.innerHTML = iconMap[type] || '??';
+    icon.innerHTML = iconMap[type] || 'ℹ️';
     icon.style.fontSize = '1.2rem';
     icon.style.flexShrink = '0';
 
@@ -1270,7 +1244,7 @@ function showToast(message, type) {
     text.style.flex = '1';
 
     const closeBtn = document.createElement('button');
-    closeBtn.innerHTML = '?';
+    closeBtn.innerHTML = '✕';
     closeBtn.style.cssText = 'background:none;border:none;color:white;font-size:1rem;cursor:pointer;margin-left:auto;opacity:0.7;transition:opacity 0.2s;flex-shrink:0;';
 
     toast.appendChild(icon);
@@ -1327,7 +1301,7 @@ window.renderHeroDescriptionOverlay = renderHeroDescriptionOverlay;
 window.renderThankYouBand = renderThankYouBand;
 window.renderHeroSearchTagChip = renderHeroSearchTagChip;
 
-console.log('? Business Profile JS loaded successfully (Phase 2 � tabs wired, thumbnail_url used)');
+console.log('✅ Business Profile JS loaded successfully (Phase 2 — tabs wired, thumbnail_url used)');
 
 // ============================================================
 //  OFFSET THE PINNED FOOTER ABOVE THE BOTTOM NAV

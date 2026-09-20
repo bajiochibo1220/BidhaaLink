@@ -2226,11 +2226,8 @@ function filterOrdersByStatus(status) {
         link.classList.toggle('active', link.dataset.status === status);
     });
 
-    document.querySelectorAll('.order-status-tab').forEach(btn => {
-        const isActive = btn.dataset.status === status;
-        btn.classList.toggle('is-active', isActive);
-        btn.toggleAttribute('aria-current', isActive);
-    });
+    const dropdown = document.getElementById('orderFilterStatus');
+    if (dropdown) dropdown.value = status;
 
     navigateTo('orders');
     loadOrders();
@@ -2247,22 +2244,25 @@ async function loadOrders() {
     if (container) container.innerHTML = '<p class="empty-msg">Loading orders...</p>';
 
     try {
-        const status = currentFilterStatus || 'all';
+        const status = document.getElementById('orderFilterStatus')?.value || 'all';
         const search = document.getElementById('orderFilterSearch')?.value || '';
 
-        // One unfiltered response keeps every tab count accurate; the
-        // selected status is applied below when rendering the list.
-        let url = '/api/business-admin/orders?limit=10000&';
+        let finalStatus = status;
+        if (currentFilterStatus && currentFilterStatus !== 'all') {
+            finalStatus = currentFilterStatus;
+            const dropdown = document.getElementById('orderFilterStatus');
+            if (dropdown) dropdown.value = currentFilterStatus;
+        }
+
+        let url = '/api/business-admin/orders?';
+        if (finalStatus !== 'all') url += `status=${finalStatus}&`;
         if (search) url += `search=${encodeURIComponent(search)}&`;
 
         const res = await fetch(url, { headers: { 'Authorization': `Bearer ${token}` } });
         if (!res.ok) throw new Error('Failed to load orders');
-        const allOrders = await res.json();
-        updateOrderStatusTabCounts(allOrders);
-        const orders = status === 'all'
-            ? allOrders
-            : allOrders.filter(order => order.status === status);
+        const orders = await res.json();
         ordersData = orders;
+        updateOrderStatusTabCounts(orders);
 
         if (!orders || orders.length === 0) {
             const statusDisplay = currentFilterStatus ? currentFilterStatus.replace('_', ' ').toUpperCase() : 'All';
@@ -2501,6 +2501,65 @@ function wireOrderStatusTabs() {
     });
 }
 
+/**
+ * Compute per-status counts from the loaded orders and paint them
+ * into the tab bar.
+ */
+function updateOrderStatusTabCounts(orders) {
+    const counts = {
+        all: 0,
+        pending_payment: 0,
+        pending: 0,
+        confirmed: 0,
+        shipped: 0,
+        delivered: 0,
+        awaiting_payment: 0,
+        paid_on_delivery: 0,
+        received: 0,
+        completed: 0,
+        cancelled: 0
+    };
+
+    if (Array.isArray(orders)) {
+        orders.forEach(o => {
+            counts.all++;
+            const s = String(o && o.status || '').toLowerCase();
+            if (Object.prototype.hasOwnProperty.call(counts, s)) {
+                counts[s]++;
+            }
+        });
+    }
+
+    document.querySelectorAll('.order-status-tab').forEach(btn => {
+        const key = btn.dataset.status || 'all';
+        const countEl = btn.querySelector('.count');
+        if (countEl) {
+            countEl.textContent = counts[key] !== undefined ? String(counts[key]) : '0';
+        }
+    });
+}
+
+/**
+ * Wire the tab bar once.
+ */
+function wireOrderStatusTabs() {
+    const bar = document.getElementById('orderStatusTabs');
+    if (!bar || bar.dataset.wired === 'true') return;
+    bar.dataset.wired = 'true';
+
+    bar.addEventListener('click', (event) => {
+        const btn = event.target.closest('.order-status-tab');
+        if (!btn) return;
+        bar.querySelectorAll('.order-status-tab').forEach(b => {
+            b.classList.remove('is-active');
+            b.removeAttribute('aria-current');
+        });
+        btn.classList.add('is-active');
+        btn.setAttribute('aria-current', 'true');
+        filterOrders();
+    });
+}
+
 // ============================================================
 //  PRODUCTS
 // ============================================================
@@ -2539,6 +2598,7 @@ async function loadProducts() {
                         <span class="name">${escapeHtml(p.name)}</span>
                         ${categoryLabel}
                         <span class="price">Ksh ${p.price}</span>
+                        ${p.rating ? `<span style="margin-left:8px;">⭐(${p.rating})</span>` : ''}
                         ${p.isFlashSale ? ' <span style="color:#ef4444;">🔥</span>' : ''}
                         ${p.isNewArrival ? ' <span style="color:#48dbfb;">🆕</span>' : ''}
                         <span style="font-size:0.55rem; color:#64748b; margin-left:8px;">Stock: ${p.stock || 0}</span>
@@ -2602,6 +2662,8 @@ document.getElementById('productForm')?.addEventListener('submit', async functio
             formData.append('variants', JSON.stringify(rawVariants));
         }
     }
+    }
+
     submitBtn.disabled = true;
     submitBtn.textContent = '⏳ Saving...';
 

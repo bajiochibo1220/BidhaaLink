@@ -1149,9 +1149,7 @@ function selectPaymentMethod(method, mpesaType) {
         selectedMpesaType = '';
     }
     document.querySelectorAll('.method').forEach(el => el.classList.remove('selected'));
-    const selectedEl = method === 'mpesa'
-        ? document.querySelector(`.method[onclick="selectPaymentMethod('mpesa', '${selectedMpesaType}')"]`)
-        : document.querySelector(`.method[onclick="selectPaymentMethod('${method}')"]`);
+    const selectedEl = document.querySelector(`.method[onclick="selectPaymentMethod('${method}')"]`);
     if (selectedEl) selectedEl.classList.add('selected');
 
     document.getElementById('paymentDetails').style.display = 'block';
@@ -1162,9 +1160,8 @@ function selectPaymentMethod(method, mpesaType) {
     const payBtn = document.getElementById('payNowBtn');
     if (payBtn) {
         if (method === 'mpesa') {
-            const entry = getMpesaEntries(businessPaymentSettings)
-                .find(item => item.type === selectedMpesaType);
-            payBtn.textContent = entry ? `📱 Pay with ${entry.title}` : '📱 Pay with M-Pesa';
+            const label = getMpesaLabel(businessPaymentSettings);
+            payBtn.textContent = label ? `📱 Pay with ${label.title}` : '📱 Pay with M-Pesa';
             payBtn.onclick = processPayment;
             payBtn.disabled = false;
         } else if (method === 'airtel') {
@@ -1202,12 +1199,11 @@ function openPaymentModal(amount, orderId) {
     const payBtn = document.getElementById('payNowBtn');
     if (payBtn) {
         payBtn.disabled = false;
-        const entry = getMpesaEntries(businessPaymentSettings)[0];
-        payBtn.innerHTML = entry ? `📱 Pay with ${entry.title}` : '📱 Pay with M-Pesa';
+        const label = getMpesaLabel(businessPaymentSettings);
+        payBtn.innerHTML = label ? `📱 Pay with ${label.title}` : '📱 Pay with M-Pesa';
         payBtn.onclick = processPayment;
     }
-    const firstEntry = getMpesaEntries(businessPaymentSettings)[0];
-    if (firstEntry) selectPaymentMethod('mpesa', firstEntry.type);
+    selectPaymentMethod('mpesa');
 }
 
 function closePaymentModal() {

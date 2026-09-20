@@ -1893,3 +1893,59 @@ html.embedded .sidebar { display: none !important; }
     justify-content: center;
   }
 }
+/* ============================================================
+   Orders status tabs (horizontal, with counts)
+   ============================================================ */
+.order-status-tabs {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  padding: 8px 0 12px;
+  border-bottom: 1px solid #e2e8f0;
+  margin-bottom: 12px;
+}
+
+.order-status-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 20px;
+  border: 1.5px solid #e2e8f0;
+  background: #ffffff;
+  color: #475569;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.order-status-tab:hover {
+  border-color: #2563eb;
+  color: #1e40af;
+}
+
+.order-status-tab.is-active {
+  background: #2563eb;
+  color: #ffffff;
+  border-color: #2563eb;
+}
+
+.order-status-tab .count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 18px;
+  padding: 0 6px;
+  border-radius: 10px;
+  background: #e2e8f0;
+  color: #334155;
+  font-size: 0.65rem;
+  font-weight: 800;
+}
+
+.order-status-tab.is-active .count {
+  background: rgba(255, 255, 255, 0.25);
+  color: #ffffff;
+}

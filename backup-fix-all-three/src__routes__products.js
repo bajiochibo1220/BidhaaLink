@@ -594,11 +594,11 @@ router.put('/:id', authMiddleware, businessAdminOnly, getBusinessIdFromToken,
     const oldProduct = existing.rows[0];
 
     const {
-      name, price, category, product_category_id, badge1, badge2,
+      name, price, category, product_category_id, contact, rating, badge1, badge2, shipping,
       isFlashSale, isNewArrival, description, shipping_fee, free_shipping_eligible,
       return_enabled, return_window_days, restocking_fee_percent,
       return_shipping_paid_by, return_condition, variants, old_price,
-      stock, is_featured
+      discount_percent, stock, is_featured
     } = req.body;
 
     let productCategoryId = null;

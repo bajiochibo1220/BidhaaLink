@@ -1625,6 +1625,7 @@ router.get('/:slug/payment-settings', async (req, res) => {
             `SELECT
                 mpesa_enabled,
                 mpesa_number,
+                mpesa_payment_type,
                 mpesa_paybill_number,
                 mpesa_paybill_account,
                 mpesa_till_number,

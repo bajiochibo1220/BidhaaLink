@@ -1625,12 +1625,10 @@ router.get('/:slug/payment-settings', async (req, res) => {
             `SELECT
                 mpesa_enabled,
                 mpesa_number,
+                mpesa_payment_type,
                 mpesa_paybill_number,
                 mpesa_paybill_account,
                 mpesa_till_number,
-                mpesa_paybill_enabled,
-                mpesa_till_enabled,
-                mpesa_pochi_enabled,
                 pochi_la_biashara_enabled,
                 pochi_la_biashara_number,
                 airtel_enabled, airtel_number,

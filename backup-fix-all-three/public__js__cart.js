@@ -60,7 +60,6 @@ let reservationTime = 15 * 60;
 let pendingOrderId = null;
 let paymentTotal = 0;
 let selectedPaymentMethod = '';
-let selectedMpesaType = '';
 let allProductsForPreview = [];
 let mpesaPollingInterval = null;
 let airtelPollingInterval = null;
@@ -299,41 +298,52 @@ function renderCartPausedBanner(paused) {
  * entry for the customer. The label reflects the business's chosen
  * type (Paybill / Till / Pochi) and the matching shortcode.
  */
-function getMpesaEntries(settings) {
-    if (!settings || !settings.mpesa_enabled) return [];
-    const entries = [];
+function getMpesaLabel(settings) {
+    if (!settings || !settings.mpesa_enabled) return null;
 
-    if (settings.mpesa_paybill_enabled) {
-        entries.push({
+    const type = (settings.mpesa_payment_type || 'paybill').toLowerCase();
+
+    if (type === 'paybill') {
+        const number = settings.mpesa_paybill_number || '';
+        const account = settings.mpesa_paybill_account || '';
+        return {
             type: 'paybill',
             title: 'M-Pesa (Paybill)',
-            shortcode: settings.mpesa_paybill_number || '',
-            accountReference: settings.mpesa_paybill_account || '',
-            subtitle: settings.mpesa_paybill_number
-                ? `Paybill: ${settings.mpesa_paybill_number}${settings.mpesa_paybill_account ? ' · A/C: ' + settings.mpesa_paybill_account : ''}`
-                : ''
-        });
-    }
-    if (settings.mpesa_till_enabled) {
-        entries.push({
-            type: 'till',
-            title: 'M-Pesa (Till)',
-            shortcode: settings.mpesa_till_number || '',
-            accountReference: '',
-            subtitle: settings.mpesa_till_number ? `Till: ${settings.mpesa_till_number}` : ''
-        });
-    }
-    if (settings.mpesa_pochi_enabled) {
-        entries.push({
-            type: 'pochi',
-            title: 'M-Pesa (Pochi la Biashara)',
-            shortcode: settings.pochi_la_biashara_number || '',
-            accountReference: '',
-            subtitle: settings.pochi_la_biashara_number ? `Pochi: ${settings.pochi_la_biashara_number}` : ''
-        });
+            shortcode: number,
+            accountReference: account,
+            subtitle: number ? `Paybill: ${number}${account ? ' · A/C: ' + account : ''}` : ''
+        };
     }
 
-    return entries;
+    if (type === 'till') {
+        const number = settings.mpesa_till_number || '';
+        return {
+            type: 'till',
+            title: 'M-Pesa (Till)',
+            shortcode: number,
+            accountReference: '',
+            subtitle: number ? `Till: ${number}` : ''
+        };
+    }
+
+    if (type === 'pochi') {
+        const number = settings.pochi_la_biashara_number || '';
+        return {
+            type: 'pochi',
+            title: 'M-Pesa (Pochi la Biashara)',
+            shortcode: number,
+            accountReference: '',
+            subtitle: number ? `Pochi: ${number}` : ''
+        };
+    }
+
+    return {
+        type,
+        title: 'M-Pesa',
+        shortcode: '',
+        accountReference: '',
+        subtitle: ''
+    };
 }
 
 /**
@@ -348,9 +358,11 @@ function getMpesaFallbackMessage(settings) {
             settings.paypal_enabled
         )
     );
+
     if (hasAlternative) {
         return 'M-Pesa is not available for this shop. Please pick another way to pay below.';
     }
+
     return 'This shop has not set up M-Pesa and has no other way to pay online. Please contact the shop directly to arrange payment.';
 }
 
@@ -365,18 +377,17 @@ function updatePaymentMethods() {
     let html = '';
     let hasMethods = false;
 
-    const mpesaEntries = getMpesaEntries(businessPaymentSettings);
+    const mpesaLabel = getMpesaLabel(businessPaymentSettings);
 
-    mpesaEntries.forEach((entry, idx) => {
+    if (mpesaLabel) {
         hasMethods = true;
-        const safeTitle = entry.title;
         html += `
-            <div class="method" onclick="selectPaymentMethod('mpesa', '${entry.type}')">
-                <i class="fas fa-mobile-alt" style="color:#4CAF50;"></i> ${safeTitle}
-                ${entry.subtitle ? `<span style="font-size:0.6rem; color:#64748b; margin-left:4px;">${entry.subtitle}</span>` : ''}
+            <div class="method" onclick="selectPaymentMethod('mpesa')">
+                <i class="fas fa-mobile-alt" style="color:#4CAF50;"></i> ${mpesaLabel.title}
+                ${mpesaLabel.subtitle ? `<span style="font-size:0.6rem; color:#64748b; margin-left:4px;">${mpesaLabel.subtitle}</span>` : ''}
             </div>
         `;
-    });
+    }
 
     if (businessPaymentSettings.airtel_enabled) {
         hasMethods = true;
@@ -386,6 +397,7 @@ function updatePaymentMethods() {
             </div>
         `;
     }
+
     if (businessPaymentSettings.bank_enabled) {
         hasMethods = true;
         html += `
@@ -395,6 +407,7 @@ function updatePaymentMethods() {
             </div>
         `;
     }
+
     if (businessPaymentSettings.paypal_enabled) {
         hasMethods = true;
         html += `
@@ -405,9 +418,13 @@ function updatePaymentMethods() {
     }
 
     if (!hasMethods) {
-        html = `<p style="color:#991b1b; background:#fef2f2; border-left:3px solid #ef4444; padding:10px 12px; border-radius:6px; font-size:0.85rem; margin:0;">This shop has no payment method configured. Please contact the shop directly.</p>`;
-    } else if (mpesaEntries.length === 0) {
-        html = `<p style="color:#92400e; background:#fffbeb; border-left:3px solid #f59e0b; padding:8px 12px; border-radius:6px; font-size:0.75rem; margin:0 0 8px 0;">M-Pesa is not available for this shop. Please pick another method below.</p>` + html;
+        // I.7 — no payment method at all: show the fallback message
+        // so the customer knows exactly what to do next.
+        html = `<p style="color:#991b1b; background:#fef2f2; border-left:3px solid #ef4444; padding:10px 12px; border-radius:6px; font-size:0.85rem; margin:0;">${getMpesaFallbackMessage(businessPaymentSettings)}</p>`;
+    } else if (!mpesaLabel) {
+        // I.7 — M-Pesa is off but there are alternatives: add a soft
+        // notice above the methods so the customer is not surprised.
+        html = `<p style="color:#92400e; background:#fffbeb; border-left:3px solid #f59e0b; padding:8px 12px; border-radius:6px; font-size:0.75rem; margin:0 0 8px 0;">${getMpesaFallbackMessage(businessPaymentSettings)}</p>` + html;
     }
 
     container.innerHTML = html;
@@ -1135,7 +1152,7 @@ async function placeOrder() {
 //  PAYMENT - COMPLETE
 // ============================================================
 
-function selectPaymentMethod(method, mpesaType) {
+function selectPaymentMethod(method) {
     // Section H — refuse to open a payment method when paused.
     if (businessPausedState.onlineOrdersEnabled === false) {
         showToast('⚠️ This shop is not taking orders at the moment.', 'warning');
@@ -1143,15 +1160,8 @@ function selectPaymentMethod(method, mpesaType) {
     }
 
     selectedPaymentMethod = method;
-    if (method === 'mpesa') {
-        selectedMpesaType = mpesaType || '';
-    } else {
-        selectedMpesaType = '';
-    }
     document.querySelectorAll('.method').forEach(el => el.classList.remove('selected'));
-    const selectedEl = method === 'mpesa'
-        ? document.querySelector(`.method[onclick="selectPaymentMethod('mpesa', '${selectedMpesaType}')"]`)
-        : document.querySelector(`.method[onclick="selectPaymentMethod('${method}')"]`);
+    const selectedEl = document.querySelector(`.method[onclick="selectPaymentMethod('${method}')"]`);
     if (selectedEl) selectedEl.classList.add('selected');
 
     document.getElementById('paymentDetails').style.display = 'block';
@@ -1162,9 +1172,8 @@ function selectPaymentMethod(method, mpesaType) {
     const payBtn = document.getElementById('payNowBtn');
     if (payBtn) {
         if (method === 'mpesa') {
-            const entry = getMpesaEntries(businessPaymentSettings)
-                .find(item => item.type === selectedMpesaType);
-            payBtn.textContent = entry ? `📱 Pay with ${entry.title}` : '📱 Pay with M-Pesa';
+            const label = getMpesaLabel(businessPaymentSettings);
+            payBtn.textContent = label ? `📱 Pay with ${label.title}` : '📱 Pay with M-Pesa';
             payBtn.onclick = processPayment;
             payBtn.disabled = false;
         } else if (method === 'airtel') {
@@ -1202,12 +1211,11 @@ function openPaymentModal(amount, orderId) {
     const payBtn = document.getElementById('payNowBtn');
     if (payBtn) {
         payBtn.disabled = false;
-        const entry = getMpesaEntries(businessPaymentSettings)[0];
-        payBtn.innerHTML = entry ? `📱 Pay with ${entry.title}` : '📱 Pay with M-Pesa';
+        const label = getMpesaLabel(businessPaymentSettings);
+        payBtn.innerHTML = label ? `📱 Pay with ${label.title}` : '📱 Pay with M-Pesa';
         payBtn.onclick = processPayment;
     }
-    const firstEntry = getMpesaEntries(businessPaymentSettings)[0];
-    if (firstEntry) selectPaymentMethod('mpesa', firstEntry.type);
+    selectPaymentMethod('mpesa');
 }
 
 function closePaymentModal() {
@@ -1256,9 +1264,8 @@ function processPayment() {
     if (method === 'mpesa') {
         // Section I.7 — refuse to start a payment that cannot be
         // completed, with a clear message.
-        const entries = getMpesaEntries(businessPaymentSettings);
-        const mpesaEntry = entries.find(e => e.type === selectedMpesaType) || entries[0];
-        if (!mpesaEntry) {
+        const mpesaLabel = getMpesaLabel(businessPaymentSettings);
+        if (!mpesaLabel) {
             statusEl.className = 'payment-status error';
             statusEl.textContent = '❌ ' + getMpesaFallbackMessage(businessPaymentSettings);
             payBtn.disabled = false;
@@ -1295,9 +1302,9 @@ function processPayment() {
                 // Section I.5 — forward the business's chosen type and
                 // shortcode so the payment record carries the correct
                 // transaction type, shortcode, and account reference.
-                payment_type: mpesaEntry.type,
-                shortcode: mpesaEntry.shortcode || null,
-                account_reference: mpesaEntry.accountReference || null
+                payment_type: mpesaLabel.type,
+                shortcode: mpesaLabel.shortcode || null,
+                account_reference: mpesaLabel.accountReference || null
             })
         })
         .then(res => res.json())
@@ -1725,7 +1732,7 @@ window.loadBusinessSettings = loadBusinessSettings;
 
 // Section I exposures so any future UI (e.g. tracking page) can
 // reuse the same label and fallback logic without duplicating it.
-window.getMpesaEntries = getMpesaEntries;
+window.getMpesaLabel = getMpesaLabel;
 window.getMpesaFallbackMessage = getMpesaFallbackMessage;
 
 // Section H exposure so other surfaces (e.g. tracking) can reuse

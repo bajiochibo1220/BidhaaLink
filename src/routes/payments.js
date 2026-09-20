@@ -147,7 +147,7 @@ router.post('/mpesa/initiate', authMiddleware, sensitiveLimiter, [
   }
 
   try {
-    const { phone, amount, orderId, payment_type } = req.body;
+    const { phone, amount, orderId, payment_type, shortcode: requestedShortcode, account_reference: requestedAccountReference } = req.body;
     const customerId = req.userId;
 
     if (amount < 1) {
@@ -175,19 +175,35 @@ router.post('/mpesa/initiate', authMiddleware, sensitiveLimiter, [
       actualOrderId = orderResult.rows[0].id;
     }
 
-    const businessResult = actualOrderId ? await pool.query(`SELECT b.mpesa_payment_type, b.mpesa_paybill_number, b.mpesa_paybill_account, b.mpesa_till_number, b.pochi_la_biashara_number FROM orders o JOIN businesses b ON b.id = o.business_id WHERE o.id = $1`, [actualOrderId]) : { rows: [] };
+    const businessResult = actualOrderId ? await pool.query(`
+      SELECT b.mpesa_enabled, b.mpesa_paybill_enabled, b.mpesa_till_enabled,
+             b.mpesa_pochi_enabled, b.mpesa_paybill_number,
+             b.mpesa_paybill_account, b.mpesa_till_number,
+             b.pochi_la_biashara_number
+      FROM orders o JOIN businesses b ON b.id = o.business_id WHERE o.id = $1
+    `, [actualOrderId]) : { rows: [] };
     const paymentSettings = businessResult.rows[0] || {};
-    const type = payment_type || paymentSettings.mpesa_payment_type || 'paybill';
+    const type = payment_type || 'paybill';
     if (!['paybill', 'till', 'pochi'].includes(type)) return res.status(400).json({ error: 'Invalid payment type' });
-    const clientShortcode = req.body && req.body.shortcode ? String(req.body.shortcode).trim() : '';
+    const enabledForType = type === 'paybill'
+      ? paymentSettings.mpesa_paybill_enabled
+      : type === 'till'
+        ? paymentSettings.mpesa_till_enabled
+        : paymentSettings.mpesa_pochi_enabled;
+    if (businessResult.rows.length && (!paymentSettings.mpesa_enabled || !enabledForType)) {
+      return res.status(400).json({ error: 'This M-Pesa payment type is not enabled for this business' });
+    }
+    const clientShortcode = requestedShortcode ? String(requestedShortcode).trim() : '';
     const fallbackShortcode = type === 'paybill' ? paymentSettings.mpesa_paybill_number : type === 'till' ? paymentSettings.mpesa_till_number : paymentSettings.pochi_la_biashara_number;
     const shortcode = clientShortcode || fallbackShortcode;
-    const stkResult = await initiateMpesaStkPush(phone, amount, orderRef, 'Payment for order', { paymentType: type, shortcode, accountReference: type === 'paybill' ? paymentSettings.mpesa_paybill_account || orderRef : orderRef });
+    const accountReference = type === 'paybill'
+      ? (requestedAccountReference || paymentSettings.mpesa_paybill_account || orderRef)
+      : orderRef;
+    const stkResult = await initiateMpesaStkPush(phone, amount, orderRef, 'Payment for order', { paymentType: type, shortcode, accountReference });
 
     if (stkResult.success) {
       const paymentResult = await pool.query(`
-        INSERT INTO payments (c
-        ustomer_id, order_id, amount, method, status, transaction_id, payment_details)
+        INSERT INTO payments (customer_id, order_id, amount, method, status, transaction_id, payment_details)
         VALUES ($1, $2, $3, 'mpesa', 'pending', $4, $5)
         RETURNING *
       `, [
@@ -199,7 +215,7 @@ router.post('/mpesa/initiate', authMiddleware, sensitiveLimiter, [
           phone: phone,
           payment_type: type,
           shortcode: shortcode || process.env.MPESA_SHORTCODE || '174379',
-          account_reference: type === 'paybill' ? paymentSettings.mpesa_paybill_account || orderRef : orderRef,
+          account_reference: accountReference,
           transaction_type: type === 'paybill' ? 'CustomerPayBillOnline' : 'CustomerBuyGoodsOnline',
           checkoutRequestId: stkResult.checkoutRequestId,
           isSimulation: stkResult.isSimulation || false
