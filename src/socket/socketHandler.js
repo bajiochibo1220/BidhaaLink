@@ -62,6 +62,7 @@ function setupSocketHandlers(io) {
     // ---- Seller Chat ----
     socket.on('seller-chat-message', async (data) => {
       try {
+        if (!socket.customerId || !['business_admin', 'super_admin'].includes(socket.role)) return;
         const { message } = data;
         if (!message) return;
 
@@ -80,6 +81,9 @@ function setupSocketHandlers(io) {
     // ---- Chat History ----
     socket.on('request-chat-history', async () => {
       try {
+        if (!socket.customerId || !['business_admin', 'super_admin'].includes(socket.role)) {
+          return socket.emit('chat-history', []);
+        }
         const result = await pool.query(
           'SELECT cm.*, c.name AS customer_name FROM chat_messages cm LEFT JOIN customers c ON cm.customer_id = c.id ORDER BY timestamp ASC'
         );
@@ -99,6 +103,7 @@ function setupSocketHandlers(io) {
 
     // ---- Customer Location ----
     socket.on('customer-location', (data) => {
+      if (!socket.customerId || socket.role !== 'customer') return;
       socket.broadcast.emit('customer-update', {
         socketId: socket.id,
         lat: data.lat,
@@ -126,6 +131,7 @@ function setupSocketHandlers(io) {
 
     // ---- Admin Location Update ----
     socket.on('admin-location-update', (data) => {
+      if (!socket.customerId || !['business_admin', 'super_admin'].includes(socket.role)) return;
       const { lat, lng } = data;
       if (lat && lng) {
         socket.broadcast.emit('admin_location', { lat, lng });

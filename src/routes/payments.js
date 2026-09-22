@@ -341,8 +341,8 @@ router.get('/mpesa/status/:checkoutRequestId', authMiddleware, async (req, res) 
 // ============================================================
 
 router.post('/mpesa/save-credentials', authMiddleware, async (req, res) => {
-  if (req.role !== 'admin') {
-    return res.status(403).json({ error: 'Admin only' });
+  if (req.role !== 'super_admin') {
+    return res.status(403).json({ error: 'Super admin only' });
   }
 
   try {
@@ -416,8 +416,8 @@ router.post('/mpesa/save-credentials', authMiddleware, async (req, res) => {
 // ============================================================
 
 router.get('/mpesa/test-connection', authMiddleware, async (req, res) => {
-  if (req.role !== 'admin') {
-    return res.status(403).json({ error: 'Admin only' });
+  if (req.role !== 'super_admin') {
+    return res.status(403).json({ error: 'Super admin only' });
   }
 
   try {

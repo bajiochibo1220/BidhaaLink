@@ -1175,7 +1175,7 @@ var bigMediaGestureState = {
 
 var BIG_MEDIA_LOCK_PX = 12;
 var BIG_MEDIA_LOCK_RATIO = 1.2;
-var BIG_MEDIA_TRIGGER_PX = 60;
+var BIG_MEDIA_TRIGGER_PX = 24;
 
 function injectBigMediaArrows() {
   var host = document.getElementById('detailMainMedia');
@@ -1411,6 +1411,7 @@ async function ensureProductSwipeList() {
 
     window.__productSwipeList = all;
     window.siblingProducts = all;
+    prefetchAdjacentProductDetails();
     if (typeof updateBigMediaArrows === 'function') updateBigMediaArrows();
   } catch (err) {
     console.warn('Sibling list fetch failed:', err.message);
@@ -1452,11 +1453,34 @@ window.ensureProductSwipeList = ensureProductSwipeList;
    re-wired after each swap.
    ============================================================ */
 
+var productSwapInFlight = false;
+const prefetchedProductDetails = new Map();
+
+function prefetchAdjacentProductDetails() {
+  const list = window.__productSwipeList || [];
+  const index = list.findIndex(item => String(item.id) === String(productId));
+  if (index < 0) return;
+  [list[index - 1], list[index + 1]].filter(Boolean).forEach(item => {
+    const id = String(item.id);
+    if (!id || prefetchedProductDetails.has(id)) return;
+    const request = fetch('/api/products/' + encodeURIComponent(id) + '/detail')
+      .then(res => { if (!res.ok) throw new Error('Product unavailable'); return res.json(); })
+      .catch(() => { prefetchedProductDetails.delete(id); return null; });
+    prefetchedProductDetails.set(id, request);
+  });
+}
+
 async function swapToProduct(targetId) {
+  if (productSwapInFlight || String(targetId) === String(productId)) return;
+  productSwapInFlight = true;
   try {
-    const res = await fetch('/api/products/' + encodeURIComponent(targetId) + '/detail');
-    if (!res.ok) throw new Error('Failed to load product ' + targetId);
-    const data = await res.json();
+    let data = prefetchedProductDetails.get(String(targetId));
+    if (data) data = await data;
+    if (!data) {
+      const res = await fetch('/api/products/' + encodeURIComponent(targetId) + '/detail');
+      if (!res.ok) throw new Error('Failed to load product ' + targetId);
+      data = await res.json();
+    }
 
     currentProduct = data.product;
     productId = String(data.product.id);
@@ -1499,11 +1523,14 @@ async function swapToProduct(targetId) {
     // only need to re-check the enable state, not refetch.
     document.documentElement.scrollTop = 0;
     document.body.scrollTop = 0;
+    prefetchAdjacentProductDetails();
   } catch (err) {
     console.warn('In-place swap failed:', err.message);
     if (typeof showToast === 'function') {
       showToast('Could not load that product. Please try again.', 'error');
     }
+  } finally {
+    productSwapInFlight = false;
   }
 }
 

@@ -71,7 +71,14 @@ async function authMiddleware(req, res, next) {
         return next();
     }
 
-    const token = req.cookies?.authToken;
+    // Browser clients use the HttpOnly cookie, while API clients may send a
+    // real Bearer JWT.  Never treat the old literal "cookie-auth" marker as
+    // a credential.
+    const bearer = req.get('authorization');
+    const bearerToken = bearer && /^Bearer\s+(.+)$/i.test(bearer)
+        ? bearer.replace(/^Bearer\s+/i, '').trim()
+        : null;
+    const token = req.cookies?.authToken || bearerToken;
     if (!token) {
         return res.status(401).json({ error: 'Unauthorized - No token provided' });
     }

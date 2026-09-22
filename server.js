@@ -211,6 +211,7 @@ app.use(helmet({
         "https://res.cloudinary.com",
         "https://basemaps.cartocdn.com",
         "https://*.basemaps.cartocdn.com",
+        "https://server.arcgisonline.com",
         "https://unpkg.com"
       ],
       // ------------------------------------------------------------
@@ -241,6 +242,7 @@ app.use(helmet({
         "https://nominatim.openstreetmap.org",
         "https://basemaps.cartocdn.com",
         "https://*.basemaps.cartocdn.com",
+        "https://server.arcgisonline.com",
         "http://localhost:3000",
         "https://localhost:3000",
         "http://localhost:*",
@@ -900,6 +902,7 @@ function validateEnv() {
   if (!allRequired) {
     console.error('❌ Missing required environment variables. Please check your .env file.');
     console.log('💡 Required: DATABASE_URL, JWT_SECRET, CLOUDINARY_* variables');
+    throw new Error('Required environment variables are missing');
   }
 
   return allRequired;
@@ -911,8 +914,8 @@ function validateEnv() {
 
 async function startServer() {
   try {
-    await initDatabase();
     validateEnv();
+    await initDatabase();
     initPaypalClient();
 
     // Warn at startup if welcome.html is missing so it is obvious

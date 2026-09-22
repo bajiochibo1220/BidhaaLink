@@ -12,9 +12,9 @@
 //  TILE PROVIDER — single source of truth
 // ============================================================
 
-const CARTO_TILE_URL = 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
-const CARTO_TILE_ATTRIBUTION = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>';
-const CARTO_TILE_SUBDOMAINS = 'abcd';
+const CARTO_TILE_URL = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}';
+const CARTO_TILE_ATTRIBUTION = 'Tiles &copy; Esri';
+const CARTO_TILE_SUBDOMAINS = undefined;
 
 // ============================================================
 //  GLOBALS
@@ -777,11 +777,12 @@ async function loadBusinessProducts() {
             window.businessProductList = [];
             businessProductList = window.businessProductList;
             renderBusinessGrid();
+
             return;
         }
 
         const tab = getActiveProductTab();
-        const url = '/api/businesses/' + encodeURIComponent(businessSlug) + '/products?limit=100&page=1&tab=' + encodeURIComponent(tab);
+        const url = '/api/businesses/' + encodeURIComponent(businessSlug) + '/products?limit=24&page=1&tab=' + encodeURIComponent(tab);
         console.log('Fetching products from:', url);
 
         let res;
@@ -807,19 +808,18 @@ async function loadBusinessProducts() {
         const allProducts = Array.isArray(data.products) ? data.products : [];
         const totalPages = data.pagination?.pages || 1;
 
-        for (let page = 2; page <= totalPages; page += 1) {
-            try {
-                const nextRes = await fetch('/api/businesses/' + encodeURIComponent(businessSlug) + '/products?limit=100&page=' + page + '&tab=' + encodeURIComponent(tab));
-                if (!nextRes.ok) break;
-                const nextData = await nextRes.json();
-                if (Array.isArray(nextData.products)) {
-                    allProducts.push(...nextData.products);
-                }
-            } catch (pageErr) {
-                console.warn('Page ' + page + ' fetch failed:', pageErr.message);
-                break;
-            }
-        }
+        // The visible first page is ready. Fetch additional pages in parallel
+        // after paint instead of serially blocking the whole shop.
+        const remainingPages = Array.from({ length: Math.max(0, totalPages - 1) }, (_, i) => i + 2);
+        const remainingProductsPromise = Promise.all(remainingPages.map(async page => {
+            const nextRes = await fetch('/api/businesses/' + encodeURIComponent(businessSlug) + '/products?limit=24&page=' + page + '&tab=' + encodeURIComponent(tab));
+            if (!nextRes.ok) return [];
+            const nextData = await nextRes.json();
+            return Array.isArray(nextData.products) ? nextData.products : [];
+        })).catch(err => {
+            console.warn('Background product pages failed:', err.message);
+            return [];
+        });
 
         window.businessProductList = allProducts;
         businessProductList = window.businessProductList;
@@ -831,6 +831,17 @@ async function loadBusinessProducts() {
 
         showProductTabEmptyState(tab, allProducts.length > 0);
         renderBusinessGrid();
+
+        remainingProductsPromise.then(pages => {
+            const laterProducts = pages.flat();
+            if (!laterProducts.length) return;
+            allProducts.push(...laterProducts);
+            window.businessProductList = allProducts;
+            businessProductList = allProducts;
+            populateBusinessProductCategories();
+            populateDefinedProductCategories();
+            renderBusinessGrid();
+        });
     } catch (err) {
         console.error('Products error:', err);
         const grid = document.getElementById('productGrid');

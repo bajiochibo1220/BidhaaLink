@@ -61,7 +61,7 @@ async function saveCredentials() {
     status.textContent = '⏳ Saving credentials...';
 
     try {
-        const response = await fetch('/api/mpesa/save-credentials', {
+        const response = await fetch('/api/payments/mpesa/save-credentials', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -84,7 +84,7 @@ async function saveCredentials() {
             status.textContent = '✅ Credentials saved successfully! You can now use M-Pesa.';
 
             status.textContent += ' 🔍 Testing connection...';
-            const testResponse = await fetch('/api/mpesa/test-connection', {
+            const testResponse = await fetch('/api/payments/mpesa/test-connection', {
                 headers: {
                     'Authorization': `Bearer ${window.customerToken}`
                 }

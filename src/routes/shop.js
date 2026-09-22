@@ -337,18 +337,21 @@ router.put('/featured-products', authMiddleware, async (req, res) => {
 
 router.get('/statistics', async (req, res) => {
   try {
-    const products = await pool.query('SELECT COUNT(*) FROM products');
-    const orders = await pool.query('SELECT COUNT(*) FROM orders WHERE status != $1', ['cancelled']);
-    const reviews = await pool.query('SELECT COUNT(*) FROM product_reviews');
-    const customers = await pool.query('SELECT COUNT(*) FROM customers');
-
-    const avgRating = await pool.query('SELECT AVG(rating) as avg_rating FROM product_reviews');
+    const [products, orders, reviews, customers, avgRating, businesses] = await Promise.all([
+      pool.query('SELECT COUNT(*) FROM products'),
+      pool.query('SELECT COUNT(*) FROM orders WHERE status != $1', ['cancelled']),
+      pool.query('SELECT COUNT(*) FROM product_reviews'),
+      pool.query('SELECT COUNT(*) FROM customers'),
+      pool.query('SELECT AVG(rating) as avg_rating FROM product_reviews'),
+      pool.query('SELECT COUNT(*) FROM businesses WHERE is_active = true')
+    ]);
 
     res.json({
       totalProducts: parseInt(products.rows[0].count),
       totalOrders: parseInt(orders.rows[0].count),
       totalReviews: parseInt(reviews.rows[0].count),
       totalCustomers: parseInt(customers.rows[0].count),
+      totalBusinesses: parseInt(businesses.rows[0].count),
       averageRating: parseFloat(avgRating.rows[0].avg_rating || 0)
     });
   } catch (err) {

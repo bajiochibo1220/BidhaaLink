@@ -33,10 +33,11 @@ async function appendOrderStatus(orderId, status, note = '') {
 /**
  * Decrement stock atomically with row locking to prevent race conditions
  */
-async function decrementStockAtomic(productId, quantity, variantId = null) {
-  const client = await pool.connect();
+async function decrementStockAtomic(productId, quantity, variantId = null, existingClient = null) {
+  const client = existingClient || await pool.connect();
+  const ownsTransaction = !existingClient;
   try {
-    await client.query('BEGIN');
+    if (ownsTransaction) await client.query('BEGIN');
 
     if (variantId) {
       // Check variant stock
@@ -74,15 +75,15 @@ async function decrementStockAtomic(productId, quantity, variantId = null) {
       );
     }
 
-    await client.query('COMMIT');
+    if (ownsTransaction) await client.query('COMMIT');
     return { success: true };
   } catch (err) {
-    await client.query('ROLLBACK');
+    if (ownsTransaction) await client.query('ROLLBACK');
     console.error('Error decrementing stock:', err);
     logError(err, 'Decrement stock');
     throw err;
   } finally {
-    client.release();
+    if (ownsTransaction) client.release();
   }
 }
 

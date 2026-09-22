@@ -41,11 +41,16 @@ function logError(error, context = '') {
 //  - max: 15 leaves room for admin tools (Aiven allows 20 total)
 // ============================================================
 
+const databaseUrl = process.env.DATABASE_URL || '';
+const databaseHostIsLocal = /(?:localhost|127\.0\.0\.1|::1)/i.test(databaseUrl);
+const databaseSslEnabled = process.env.DATABASE_SSL !== 'false' && !databaseHostIsLocal;
+
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: {
-    rejectUnauthorized: false
-  },
+  connectionString: databaseUrl,
+  // Hosted PostgreSQL providers generally require TLS; local PostgreSQL
+  // installations generally reject it. DATABASE_SSL can explicitly override
+  // the automatic choice when a non-local provider has unusual requirements.
+  ssl: databaseSslEnabled ? { rejectUnauthorized: false } : false,
   max: 15,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 10000,
@@ -189,7 +194,7 @@ async function executeWithRetry(query, params, maxRetries = 3) {
       lastError = err;
       console.warn(`⚠️ Query attempt ${attempt}/${maxRetries} failed:`, err.message);
 
-      if (err.code === 'ECONNREFUSED' || err.code === 'ETIMEDOUT' || err.message.includes('terminated')) {
+      if (err.code === 'ECONNREFUSED' || err.code === 'ETIMEDOUT' || err.code === '57P01' || err.message.includes('terminated')) {
         const delay = Math.min(1000 * attempt, 5000);
         console.log(`⏳ Waiting ${delay}ms before retry...`);
         await new Promise(resolve => setTimeout(resolve, delay));

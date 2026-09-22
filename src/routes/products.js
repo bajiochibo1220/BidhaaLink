@@ -392,7 +392,7 @@ router.get('/:id/detail', async (req, res) => {
           ELSE 1
         END,
         p.created_at DESC
-      LIMIT 400
+      LIMIT 24
     `, [id, product.business_id, product.product_category_id || null]);
 
     const related = [];

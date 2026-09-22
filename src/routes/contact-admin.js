@@ -338,10 +338,13 @@ router.post(
         });
       }
 
-      await logAdminActivity(req.userId, 'CONTACT_ADMIN_SEND', {
+      // admin_logs is foreign-keyed to admin_users. The sender here can be a
+      // customer or business owner, so writing req.userId to that table made
+      // a successfully inserted complaint look like a failed request.
+      console.info('Contact-admin message submitted', {
         messageId: inserted.id,
-        sender_type: sender.senderType,
-        sender_id: sender.senderId
+        senderType: sender.senderType,
+        senderId: sender.senderId
       });
 
       res.status(201).json({

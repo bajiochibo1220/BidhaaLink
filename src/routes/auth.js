@@ -742,7 +742,7 @@ router.post('/customer/login', loginLimiter, [
     let result;
 
     if (isEmail) {
-      result = await pool.query('SELECT * FROM customers WHERE email = $1', [raw]);
+      result = await pool.query('SELECT * FROM customers WHERE LOWER(email) = LOWER($1)', [raw]);
     } else if (looksLikePhone) {
       result = await pool.query(
         'SELECT * FROM customers WHERE phone = $1 OR phone = $2 LIMIT 1',
@@ -1184,10 +1184,17 @@ router.post('/business/login', loginLimiter, [
 
     const businessRow = businessCheck.rows[0];
 
+    // A disabled account is restored only as part of cancelling its own
+    // scheduled deletion. A super-admin suspension has no deletion marker
+    // and therefore remains enforced.
+    if (user.is_active === false && !businessRow.deletion_scheduled_at) {
+      return res.status(403).json({ error: 'This business admin account is suspended.' });
+    }
+
     let deletionCancelled = false;
     let cancellationContext = null;
 
-    if (businessRow.deletion_scheduled_at || user.is_active === false) {
+    if (businessRow.deletion_scheduled_at) {
       try {
         const previousScheduledFor = businessRow.deletion_scheduled_at
           ? new Date(businessRow.deletion_scheduled_at).toISOString()

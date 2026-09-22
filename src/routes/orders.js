@@ -127,6 +127,8 @@ router.post('/', authMiddleware, customerOnly, sensitiveLimiter, [
     pod_agreement_signed = false
   } = req.body;
 
+  let transactionClient = null;
+
   try {
     console.log('📦 ORDER CREATION STARTED');
     console.log('📦 User:', customerId);
@@ -278,9 +280,10 @@ router.post('/', authMiddleware, customerOnly, sensitiveLimiter, [
     const urgent = tier === 'overnight';
     const deliveryCode = generateDeliveryCode();
 
-    await pool.query('BEGIN');
+    transactionClient = await pool.connect();
+    await transactionClient.query('BEGIN');
 
-    const orderResult = await pool.query(`
+    const orderResult = await transactionClient.query(`
       INSERT INTO orders (
         customer_id, business_id, total, status, order_ref, status_history,
         shipping_tier, shipping_cost, order_notes, promo_code, discount_applied,
@@ -326,7 +329,7 @@ router.post('/', authMiddleware, customerOnly, sensitiveLimiter, [
     // to be (incorrectly) attempted by the receipt endpoint, where checkout
     // variables do not exist and every receipt request failed.
     if (paymentMode === 'pod') {
-      await pool.query(
+      await transactionClient.query(
         `INSERT INTO pod_agreements (customer_id, order_id, business_id, agreement_text, ip_address, user_agent)
          VALUES ($1, $2, $3, $4, $5, $6)`,
         [customerId, order.id, finalBusinessId,
@@ -338,7 +341,7 @@ router.post('/', authMiddleware, customerOnly, sensitiveLimiter, [
     // Insert order items with business_id
     for (const item of items) {
       const uniqueId = generateOrderRef();
-      await pool.query(`
+      await transactionClient.query(`
         INSERT INTO order_items (
           order_id, product_id, product_name, price, quantity, image,
           unique_id, variant_name, variant_id, business_id
@@ -350,12 +353,14 @@ router.post('/', authMiddleware, customerOnly, sensitiveLimiter, [
         item.variant_id || null, finalBusinessId
       ]);
 
-      await decrementStockAtomic(item.productId, item.quantity, item.variant_id);
+      await decrementStockAtomic(item.productId, item.quantity, item.variant_id, transactionClient);
     }
 
-    await pool.query('UPDATE carts SET items = $1, reserved_until = NULL WHERE customer_id = $2', ['[]', customerId]);
+    await transactionClient.query('UPDATE carts SET items = $1, reserved_until = NULL WHERE customer_id = $2', ['[]', customerId]);
 
-    await pool.query('COMMIT');
+    await transactionClient.query('COMMIT');
+    transactionClient.release();
+    transactionClient = null;
 
     const io = req.app.get('io');
     io.emit('new-order', { orderId: order.id, businessId: finalBusinessId });
@@ -390,7 +395,11 @@ router.post('/', authMiddleware, customerOnly, sensitiveLimiter, [
     res.status(201).json({ success: true, order, requiresPayment: paymentMode === 'online' });
 
   } catch (err) {
-    await pool.query('ROLLBACK');
+    if (transactionClient) {
+      try { await transactionClient.query('ROLLBACK'); } catch (_) { /* transaction may not have started */ }
+      transactionClient.release();
+      transactionClient = null;
+    }
     console.error('❌ Order creation error:', err);
     logError(err, 'Order creation');
     res.status(500).json({

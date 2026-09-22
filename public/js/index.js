@@ -767,10 +767,9 @@ async function upgradeToPreciseLocationOnce() {
 
 async function loadMarketplace() {
   try {
-    await loadCategories();
-    await loadAds();
-    await loadBusinesses();
-    await loadPlatformStats();
+    // These endpoints do not depend on one another. Starting them together
+    // removes three round trips from the marketplace's first visible load.
+    await Promise.all([loadCategories(), loadAds(), loadBusinesses(), loadPlatformStats()]);
     updateCartBadge();
     console.log('✅ Marketplace loaded successfully');
   } catch (err) {
@@ -2144,22 +2143,16 @@ function formatDistance(km) {
 
 async function loadPlatformStats() {
   try {
-    const [statisticsResponse, businessesResponse] = await Promise.all([
-      fetch('/api/shop/statistics'),
-      fetch('/api/businesses?limit=1&page=1', { credentials: 'same-origin' })
-    ]);
-    if (!statisticsResponse.ok || !businessesResponse.ok) {
+    const statisticsResponse = await fetch('/api/shop/statistics');
+    if (!statisticsResponse.ok) {
       throw new Error('Failed to load public marketplace statistics');
     }
 
-    const [statistics, businesses] = await Promise.all([
-      statisticsResponse.json(),
-      businessesResponse.json()
-    ]);
+    const statistics = await statisticsResponse.json();
     const totalBusinesses = document.getElementById('totalBusinesses');
     const totalProducts = document.getElementById('totalProducts');
     const totalCustomers = document.getElementById('totalCustomers');
-    if (totalBusinesses) totalBusinesses.textContent = businesses.pagination?.total || 0;
+    if (totalBusinesses) totalBusinesses.textContent = statistics.totalBusinesses || 0;
     if (totalProducts) totalProducts.textContent = statistics.totalProducts || 0;
     if (totalCustomers) totalCustomers.textContent = statistics.totalCustomers || 0;
   } catch (err) {
