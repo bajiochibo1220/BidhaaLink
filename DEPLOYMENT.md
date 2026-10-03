@@ -1,56 +1,86 @@
-# Vercel + Render + Neon deployment
+# Manual Render Free + Vercel deployment
 
-## What is configured in this repository
+This guide uses a manually created Render Web Service on the Free plan, not a Render Blueprint. The app schema has already been migrated to Neon in `business_website`. Do not run migrations as part of the Render build.
 
-- Render runs the Express app, PostgreSQL client, Socket.IO server, and scheduled jobs as one long-running web service.
-- Vercel serves the files in `public/` and rewrites `/api/*` and `/socket.io/*` to the Render service. API responses are explicitly excluded from Vercel rewrite caching.
-- Runtime requests and `npm run migrate` use matching direct Neon endpoints. This is a persistent Render Node service, so a direct endpoint supports the per-connection schema search path without transaction-pooler limitations. Marketplace tables live in the `business_website` schema, keeping pre-existing public tables separate.
-- Package installation no longer runs SQL migrations as a side effect.
-- Future database schema/data changes should be added as new files under `migrations/sql/` and applied with `npm run migrate`.
+## 1. Push the project to GitHub
 
-The Render service name is `my-business-website-api`, so its default public URL is expected to be `https://my-business-website-api.onrender.com`. If Render assigns a different public hostname, update `BASE_URL` in Render and both upstream destinations in `vercel.json` to that hostname before deploying the frontend.
+Commit and push the deployment configuration and migration changes. Do not commit `.env`; it contains private values and is ignored by Git.
 
-## 1. Check the database before applying schema changes
+## 2. Deploy the frontend to Vercel first
 
-The local `.env` has valid matching direct Neon URLs for `DATABASE_URL` and `DIRECT_URL`. Both were checked with read-only queries. Keep these credentials private. The connected Neon database has unrelated public tables, including `notifications` and `system_settings` with different columns from this app’s migrations. The app now uses a separate `business_website` schema so those public tables remain untouched. This only separates table namespaces; it does not create a separate database or backup the existing data.
+1. In Vercel, choose **Add New → Project** and import this repository.
+2. Set **Root Directory** to the repository root.
+3. Use **Framework Preset: Other**, leave **Build Command** blank, and set **Output Directory** to `public` (also configured in `vercel.json`).
+4. Deploy and copy the production URL, such as `https://your-project.vercel.app`. You will enter it as Render's `CLIENT_URL`.
 
-If Aiven contains data you need, export and restore that data to Neon before switching production traffic. Take a backup first and verify key table counts. Do not run migrations against a database containing valuable data until you have a restorable backup and have reviewed the migration SQL.
+## 3. Create the Render Free Web Service manually
 
-Run `npm run migrate` from this repository to create/update the `business_website` schema. The migration runner uses `DIRECT_URL`. Check the command output for any failed migration. This command changes the Neon schema and may apply seed rows; it is intentionally not run automatically during deploy.
+1. In Render, click **New + → Web Service**. Do not select **Blueprint**.
+2. Connect the GitHub repository and choose the same branch you deployed to Vercel.
+3. Set:
 
-## 2. Deploy the backend to Render
+   | Render field | Value |
+   |---|---|
+   | Name | `my-business-website-api` |
+   | Region | `Ohio` (the current Neon endpoint is in AWS `us-east-2`) |
+   | Root Directory | Leave blank (the app is at the repository root) |
+   | Language / Runtime | `Node` |
+   | Build Command | `npm ci` |
+   | Start Command | `npm start` |
+   | Instance Type | `Free` |
 
-1. Push this repository to GitHub or another Git provider supported by Render.
-2. In Render, choose **New → Blueprint** and select the repository. Render reads `render.yaml` and creates the `my-business-website-api` web service.
-3. The manifest uses `npm ci` for build, `npm start` for launch, and `/api/health` for its health check. It selects the paid Starter plan so the server and in-process cron schedules keep running.
-4. In the Render service’s Environment page, set `DATABASE_URL` to the direct Neon URL and `DIRECT_URL` to that same direct URL. The persistent Render service uses the direct endpoint for its database pool and schema setting. `npm run migrate` also uses `DIRECT_URL`.
-5. Set `CLIENT_URL` to the final Vercel production origin, for example `https://your-project.vercel.app` or your custom frontend domain.
-6. Enter the existing Cloudinary cloud name, API key, and API secret. Keep the current Cloudinary account; do not replace it with local storage.
-7. Add credentials only for payment and email providers you use. Set M-Pesa and Airtel callback URLs to the Render host plus `/api/payments/mpesa-callback` and `/api/payments/airtel-callback`. Set provider modes to sandbox until callbacks have been checked.
-8. Confirm the service is healthy and `https://my-business-website-api.onrender.com/api/health` reports `status: healthy` and `database: connected`.
+   Use the exact service name shown above so its URL matches the upstreams in `vercel.json`: `https://my-business-website-api.onrender.com`. If Render gives you a different hostname, replace the two Render destinations in `vercel.json` and push the change.
 
-After the first successful deployment, open `/admin.html` and register the first super admin. The migrations intentionally remove the development seed account, so there is no default production password. Then use the admin interface to add the first business before expecting marketplace listings.
+4. In **Advanced**, set the health check path to `/api/health` if the option is available.
+5. Add the environment variables below before deploying if the form allows it. Otherwise, create the service, add the variables in its **Environment** page, then redeploy.
+6. Create the service. Render supplies `PORT` automatically; do not add your own `PORT` value.
 
-Render’s filesystem is not durable by default. Product/business media must successfully upload to Cloudinary; do not depend on local upload paths surviving restarts or deploys.
+## 4. Set Render environment variables
 
-## 3. Deploy the frontend to Vercel
+Add these in the Render service's **Environment** page. Enter secret values directly in Render; do not put them in Git or Vercel.
 
-1. In Vercel, import the same Git repository as a separate project.
-2. Set the project root to the repository root. Keep the Vercel config in the root so it can apply its rewrites.
-3. Set the output directory to `public` (already specified in `vercel.json`). The HTML pages are under `public/html`, with static assets in `public/css` and `public/js`.
-4. Deploy a Preview first. Open the preview homepage, `/marketplace`, and `/admin.html` to confirm the static page rewrites load the expected files.
-5. After assigning the production domain, update Render’s `CLIENT_URL` to that exact origin and redeploy Render if necessary.
+| Variable | Value |
+|---|---|
+| `NODE_ENV` | `production` |
+| `DATABASE_URL` | The direct Neon connection string from local `.env` (host does **not** contain `-pooler`) |
+| `DATABASE_SCHEMA` | `business_website` |
+| `JWT_SECRET` | Generate a fresh long random value for production; do not reuse a sample or share it |
+| `CLIENT_URL` | Exact Vercel production origin, e.g. `https://your-project.vercel.app`, no trailing slash |
+| `BASE_URL` | `https://my-business-website-api.onrender.com` (or the actual Render URL) |
+| `CLOUDINARY_CLOUD_NAME` | Existing Cloudinary cloud name |
+| `CLOUDINARY_API_KEY` | Existing Cloudinary API key |
+| `CLOUDINARY_API_SECRET` | Existing Cloudinary API secret |
 
-## 4. Verify the deployed app
+The direct Neon endpoint is intentional: this Render app uses a PostgreSQL connection setting to select `business_website`, and the Neon pooled URL does not support that setting. `DIRECT_URL` is only needed when running `npm run migrate` from a trusted development machine; it is not needed for the deployed app's normal runtime.
 
-Check these flows on the Vercel production URL before directing customers to it:
+Set these only if you use the associated services:
 
-- `/api/health` through the Vercel URL returns healthy and reports a connected database.
-- Login, logout, page refresh while signed in, and CSRF-protected updates work.
-- The browser Network panel shows `/api/*` calls going through Vercel and receiving application responses, not Vercel 404s or Render HTML error pages.
-- Socket.IO connects and chat/order/admin live updates work. Vercel’s external rewrites proxy HTTP traffic; validate the `/socket.io/` WebSocket upgrade on the deployed URL because platform behavior can differ from ordinary HTTP rewrites.
-- Upload a test image and video, verify their returned Cloudinary URLs, and open those URLs after a Render restart.
-- Verify password reset/email links, M-Pesa/Airtel callbacks, and PayPal return URLs use the correct public hostnames.
-- Confirm the Render logs show the database, Cloudinary, and cron jobs initialized. Do not share raw environment-validation output publicly.
+- Email: `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM` or `SENDGRID_API_KEY`.
+- M-Pesa: `MPESA_CONSUMER_KEY`, `MPESA_CONSUMER_SECRET`, `MPESA_PASSKEY`, `MPESA_SHORTCODE`, `MPESA_ENVIRONMENT`, and `MPESA_CALLBACK_URL` set to `https://my-business-website-api.onrender.com/api/payments/mpesa-callback`.
+- Airtel Money: `AIRTEL_CLIENT_ID`, `AIRTEL_CLIENT_SECRET`, `AIRTEL_ENVIRONMENT`, and `AIRTEL_CALLBACK_URL` set to `https://my-business-website-api.onrender.com/api/payments/airtel-callback`.
+- PayPal: `PAYPAL_CLIENT_ID`, `PAYPAL_CLIENT_SECRET`, and `PAYPAL_MODE`. PayPal return links use `CLIENT_URL`.
+- Redis: `REDIS_URL` only if you have a Redis service; caching is optional.
 
-Keep Aiven available until the Neon data, app flows, and payment callbacks have passed these checks. For the initial database cutover, take a fresh Aiven export close to the switch time and avoid writes during the final export/restore window.
+Use sandbox payment credentials and modes for initial checkout and callback checks. If you later add a Vercel custom domain, update `CLIENT_URL` to that exact origin and redeploy Render.
+
+## 5. Check both deployments
+
+1. In Render, wait for the deploy to finish and visit `https://my-business-website-api.onrender.com/api/health`. It should return `status: healthy`, `database: connected`, and the app schema should be present.
+2. In Vercel, open `/`, `/marketplace`, and `/admin.html`.
+3. Visit `/api/health` through the Vercel domain too. It should proxy to Render and return the same healthy status.
+4. Test sign-in, page refresh while signed in, sign-out, and a CSRF-protected update.
+5. Check the browser Network panel for Socket.IO: the client script should load and the WebSocket connection should upgrade successfully. If `/api/health` works but Socket.IO does not, check the `/socket.io/` Vercel rewrite and Render logs.
+6. Upload a test image and video and confirm each returned Cloudinary URL opens.
+7. Test password reset/email and payment callbacks in sandbox. Render Free blocks outbound SMTP ports 25, 465, and 587, which are the ports this app's Nodemailer SMTP/SendGrid transports use; those email flows need an HTTPS email API integration or a paid service plan.
+8. Register the first super admin at `/admin.html`, then create the first business.
+
+## Free plan limits to plan around
+
+- Render spins down a Free web service after 15 minutes without traffic; waking it can take about a minute. The first request after idle may feel slow.
+- The app's scheduled tasks run inside the web server process. They stop while the service is asleep, so automatic order cleanup and account-deletion jobs are not reliable on Free.
+- Render may restart a Free service, and its local filesystem is ephemeral. The app uses Cloudinary for durable media; do not rely on local upload files.
+- Free is useful for preview/testing. These limits make it unsuitable for reliable production payments, email, and scheduled processing.
+
+## Database note
+
+The app's 29 migrations are already applied to the Neon `business_website` schema. They did not copy existing Aiven customer/business/order data. If that data is needed, migrate it separately before switching customers to the new deployment. For future SQL/schema changes, add a migration file under `migrations/sql/` and apply it with `npm run migrate`.

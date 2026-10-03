@@ -763,47 +763,16 @@ async function initDatabase() {
       const count = parseInt(businessCount.rows[0].count, 10);
 
       if (count === 0) {
-        console.log('🔄 No businesses found. Creating a default business...');
-
-        // Create a default super admin if none exists
+        // First deployment has no businesses until the platform admin
+        // registers and creates one. Do not seed a predictable account.
         const adminResult = await pool.query(
           "SELECT id FROM admin_users WHERE role = 'super_admin' LIMIT 1"
         );
 
-        let adminId = null;
         if (adminResult.rows.length === 0) {
-          throw new Error('No super admin exists. Create one through secure provisioning before starting the marketplace.');
-          const bcrypt = require('bcrypt');
-          const hashedPassword = await bcrypt.hash('admin123', 10);
-          const insertAdmin = await pool.query(
-            `INSERT INTO admin_users (username, email, password, role)
-             VALUES ($1, $2, $3, 'super_admin')
-             RETURNING id`,
-            ['admin', 'admin@example.com', hashedPassword]
-          );
-          adminId = insertAdmin.rows[0].id;
-          console.log('✅ Default super admin created: admin@example.com / admin123');
+          console.log('No businesses or super admin found. Register the first super admin at /admin.html.');
         } else {
-          adminId = adminResult.rows[0].id;
-        }
-
-        // Create default business
-        await pool.query(`
-          INSERT INTO businesses (
-            business_name, slug, owner_id, location, is_active, is_verified
-          )
-          VALUES ($1, $2, $3, $4, true, true)
-        `, ['My Store', 'my-store', adminId, 'Nairobi, Kenya']);
-
-        console.log('✅ Default business created: My Store');
-
-        // Create business stats
-        const businessIdResult = await pool.query('SELECT id FROM businesses WHERE slug = $1', ['my-store']);
-        if (businessIdResult.rows.length > 0) {
-          await pool.query(
-            'INSERT INTO business_stats (business_id) VALUES ($1)',
-            [businessIdResult.rows[0].id]
-          );
+          console.log('No businesses found. Create the first business from the admin dashboard.');
         }
       } else {
         console.log(`✅ ${count} businesses found in database`);

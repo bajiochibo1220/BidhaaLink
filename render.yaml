@@ -3,7 +3,7 @@ services:
     name: my-business-website-api
     runtime: node
     region: ohio
-    plan: starter
+    plan: free
     buildCommand: npm ci
     startCommand: npm start
     healthCheckPath: /api/health
