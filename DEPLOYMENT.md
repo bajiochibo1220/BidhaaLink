@@ -74,6 +74,12 @@ Use sandbox payment credentials and modes for initial checkout and callback chec
 7. Test password reset/email and payment callbacks in sandbox. Render Free blocks outbound SMTP ports 25, 465, and 587, which are the ports this app's Nodemailer SMTP/SendGrid transports use; those email flows need an HTTPS email API integration or a paid service plan.
 8. Register the first super admin at `/admin.html`, then create the first business.
 
+## Install BidhaaLink on a device
+
+After the latest frontend deploy is live over HTTPS, open the stable Vercel production URL. On supported browsers, use the **Install** button shown on the welcome or marketplace page. You can also install from the browser menu. On iPhone or iPad, open the site in Safari, tap **Share**, then **Add to Home Screen**; choose **Open as Web App** if offered. [Chrome install steps](https://support.google.com/chrome/answer/9658361?co=genie.platform%3DDesktop&hl=en) · [Apple home-screen steps](https://support.apple.com/en-gb/guide/iphone/iph42ab2f3a7/ios)
+
+The installed app opens directly to `/marketplace`. It can show an offline notice when disconnected, but browsing shops, signing in, and payments still need internet access.
+
 ## Free plan limits to plan around
 
 - Render spins down a Free web service after 15 minutes without traffic; waking it can take about a minute. The first request after idle may feel slow.

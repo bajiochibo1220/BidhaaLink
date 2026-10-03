@@ -83,7 +83,7 @@ async function createPaypalOrder(amount, orderId, currency = 'KES') {
         brand_name: process.env.SHOP_NAME || 'Our Shop',
         landing_page: 'BILLING',
         user_action: 'PAY_NOW',
-        return_url: `${process.env.CLIENT_URL || 'http://localhost:3000'}/payment-success.html`,
+        return_url: `${process.env.CLIENT_URL || 'http://localhost:3000'}/payment-success.html?orderId=${encodeURIComponent(orderId || '')}`,
         cancel_url: `${process.env.CLIENT_URL || 'http://localhost:3000'}/payment-cancel.html`
       }
     });

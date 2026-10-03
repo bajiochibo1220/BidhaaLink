@@ -5,6 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
   <title>BidhaaLink - Kenya's Multi-Vendor Marketplace</title>
   <meta name="description" content="BidhaaLink connects Kenyan businesses with customers. Buy and sell products from trusted vendors across Kenya.">
+  <meta name="theme-color" content="#15803d">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="BidhaaLink">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="icon" type="image/png" sizes="192x192" href="/icons/pwa-192.png">
+  <link rel="apple-touch-icon" href="/icons/pwa-180.png">
 
   <!-- Main Global Styles -->
   <link rel="stylesheet" href="/style.css">
@@ -16,6 +23,7 @@
   <!-- Page-Specific Styles -->
   <link rel="stylesheet" href="/css/index.css">
   <link rel="stylesheet" href="/css/marketplace.css">
+  <link rel="stylesheet" href="/css/pwa.css">
 </head>
 <body class="index-body">
 
@@ -123,6 +131,15 @@
       <div class="announcement-bar">
         <span class="announcement-copy">Trusted shops across Kenya. Own a business? Register today.</span>
       </div>
+
+      <aside class="pwa-install-prompt" id="pwaInstallPrompt" hidden aria-label="Install BidhaaLink">
+        <div class="pwa-install-copy">
+          <strong>Get BidhaaLink on this device</strong>
+          <span id="pwaInstallMessage">Install the app for quick access.</span>
+        </div>
+        <button class="pwa-install-button" id="pwaInstallButton" type="button" hidden>Install</button>
+        <button class="pwa-install-dismiss" id="pwaInstallDismiss" type="button" aria-label="Dismiss install message">&times;</button>
+      </aside>
 
       <!-- Admin Dot -->
       <a href="/admin.html" class="admin-dot" title="Super Admin Panel">•</a>
@@ -598,6 +615,7 @@
 <script src="/js/index.js"></script>
 <script src="/js/category-blocks.js"></script>
 <script src="/js/legal.js"></script>
+<script src="/js/pwa.js"></script>
 
 <!-- ============================================================ -->
 <!-- LEGAL FOOTER — BidhaaLink                                     -->

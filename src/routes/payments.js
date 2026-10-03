@@ -776,7 +776,7 @@ router.post('/paypal/create-order', authMiddleware, async (req, res) => {
         brand_name: process.env.SHOP_NAME || 'Our Shop',
         landing_page: 'BILLING',
         user_action: 'PAY_NOW',
-        return_url: `${process.env.CLIENT_URL || 'http://localhost:3000'}/payment-success.html`,
+        return_url: `${process.env.CLIENT_URL || 'http://localhost:3000'}/payment-success.html?orderId=${encodeURIComponent(orderId || '')}`,
         cancel_url: `${process.env.CLIENT_URL || 'http://localhost:3000'}/payment-cancel.html`
       }
     });
@@ -823,6 +823,16 @@ router.post('/paypal/capture', authMiddleware, async (req, res) => {
       `SELECT * FROM payments WHERE transaction_id = $1 AND customer_id = $2`,
       [paypalOrderId, req.userId]
     );
+
+    if (!paymentCheck.rows.length) {
+      return res.status(404).json({ error: 'No payment was found for this PayPal transaction' });
+    }
+    if (String(paymentCheck.rows[0].order_id || '') !== String(orderId)) {
+      return res.status(400).json({ error: 'This payment does not match the selected order' });
+    }
+    if (paymentCheck.rows[0].status === 'success') {
+      return res.json({ success: true, message: 'Payment was already confirmed', transactionId: paypalOrderId });
+    }
 
     if (paymentCheck.rows.length > 0 && paymentCheck.rows[0].payment_details?.isSimulation) {
       await pool.query(

@@ -4,6 +4,13 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Welcome to BidhaaLink</title>
+  <meta name="theme-color" content="#15803d">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="BidhaaLink">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="icon" type="image/png" sizes="192x192" href="/icons/pwa-192.png">
+  <link rel="apple-touch-icon" href="/icons/pwa-180.png">
   <meta name="description" content="Welcome to BidhaaLink — Kenya's multi-vendor marketplace.">
 
   <noscript>
@@ -14,6 +21,7 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
   <link rel="stylesheet" href="/css/welcome.css">
   <link rel="stylesheet" href="/css/legal.css">
+  <link rel="stylesheet" href="/css/pwa.css">
 
   <style>
     /* Welcome-page-only styles for the acceptance block.
@@ -141,8 +149,17 @@
     </button>
 
     <p class="welcome-hint">Takes less than a second — we won't show this again.</p>
+    <aside class="pwa-install-prompt" id="pwaInstallPrompt" hidden aria-label="Install BidhaaLink">
+      <div class="pwa-install-copy">
+        <strong>Get BidhaaLink on this device</strong>
+        <span id="pwaInstallMessage">Install the app for quick access.</span>
+      </div>
+      <button class="pwa-install-button" id="pwaInstallButton" type="button" hidden>Install</button>
+      <button class="pwa-install-dismiss" id="pwaInstallDismiss" type="button" aria-label="Dismiss install message">&times;</button>
+    </aside>
   </main>
 
   <script src="/js/welcome.js"></script>
+  <script src="/js/pwa.js"></script>
 </body>
 </html>

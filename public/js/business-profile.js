@@ -1055,7 +1055,7 @@ async function toggleBusinessWishlist(productId) {
         return;
     }
     try {
-        const res = await fetch('/api/wishlist', {
+        const res = await fetch('/api/products/wishlist', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ product_id: productId })

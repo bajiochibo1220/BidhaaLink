@@ -15,41 +15,19 @@
   <link rel="stylesheet" href="/css/minify.css">
 </head>
 <body class="minify-body">
-  <div class="minify-container">
-    <h1><i class="fas fa-compress-arrows-alt"></i> Asset Minifier</h1>
-    <p class="sub">Minify JavaScript and CSS files to improve performance.</p>
-
-    <div class="stats" id="stats">
-      <div class="stat">
-        <div class="number" id="jsCount">0</div>
-        <div class="label">JS Files</div>
-      </div>
-      <div class="stat">
-        <div class="number" id="cssCount">0</div>
-        <div class="label">CSS Files</div>
-      </div>
-      <div class="stat">
-        <div class="number" id="totalSize">0 KB</div>
-        <div class="label">Total Size</div>
-      </div>
+  <main class="minify-container">
+    <h1><i class="fas fa-gauge-high" aria-hidden="true"></i> Asset optimization</h1>
+    <p class="sub">The live storefront files are deployed through Vercel.</p>
+    <div class="output show" role="status" style="display:block;">
+      <div class="title">No manual action is needed here</div>
+      <div class="details">This older tool could not update the Vercel site: it called backend endpoints that do not exist, and changing files on Render would not change the storefront. Asset changes take effect when the site is deployed from the repository.</div>
     </div>
-
-    <div class="btn-group">
-      <button class="btn" id="minifyBtn" onclick="minifyAssets()">
-        <i class="fas fa-compress"></i> Minify Assets
-      </button>
-      <button class="btn btn-success" onclick="window.location.reload()">
-        <i class="fas fa-sync-alt"></i> Refresh
-      </button>
+    <div class="btn-group" style="margin-top:20px;">
       <a href="/admin.html" class="btn btn-danger" style="text-decoration:none;">
-        <i class="fas fa-arrow-left"></i> Back to Admin
+        <i class="fas fa-arrow-left" aria-hidden="true"></i> Back to Admin
       </a>
     </div>
-
-    <div class="output" id="output"></div>
-  </div>
-
-  <script src="/js/minify.js"></script>
+  </main>
 
   <!-- ============================================================ -->
 <!-- LEGAL FOOTER — BidhaaLink                                     -->

@@ -3,11 +3,7 @@
 //  Location: public/js/order-tracking.js
 // ============================================================
 
-const token = window.customerToken;
-if (!token) {
-    alert('Please login first.');
-    window.location.href = '/';
-}
+const token = window.customerToken || 'cookie-auth';
 
 const urlParams = new URLSearchParams(window.location.search);
 const orderId = urlParams.get('id');
@@ -43,6 +39,10 @@ async function loadOrder() {
         const res = await fetch(`/api/orders/${orderId}/tracking`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
+        if (res.status === 401) {
+            window.location.replace('/?auth=login');
+            return;
+        }
         if (!res.ok) throw new Error('Failed to load order');
         const order = await res.json();
         currentOrder = order;
@@ -400,13 +400,6 @@ function renderActionsWithSettings(order, settings) {
         msg.textContent = 'No actions available for this order.';
         container.appendChild(msg);
     }
-
-    // Track button
-    const trackBtn = document.createElement('button');
-    trackBtn.className = 'btn btn-secondary';
-    trackBtn.innerHTML = '<i class="fas fa-map"></i> Track';
-    trackBtn.onclick = () => window.open(`/track.html`, '_blank');
-    container.appendChild(trackBtn);
 
     // Receipt button
     const receiptBtn = document.createElement('a');

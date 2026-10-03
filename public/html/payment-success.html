@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#15803d">
+  <title>Confirming your payment | BidhaaLink</title>
+  <link rel="stylesheet" href="/style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <link rel="stylesheet" href="/css/payment-success.css">
+</head>
+<body>
+  <main class="payment-success" aria-live="polite" aria-labelledby="paymentTitle">
+    <div class="icon" id="paymentIcon"><i class="fas fa-spinner fa-spin" aria-hidden="true"></i></div>
+    <h1 id="paymentTitle">Confirming your payment</h1>
+    <p id="paymentMessage">Please keep this page open while PayPal confirms your payment.</p>
+    <a id="paymentContinue" class="btn" href="/account.html" hidden>View your orders</a>
+    <a id="paymentRetry" href="/account.html" hidden>Check your orders</a>
+  </main>
+  <script src="/js/cookie-auth-client.js"></script>
+  <script src="/js/payment-success.js" defer></script>
+</body>
+</html>

@@ -3,35 +3,49 @@
 // ============================================================
 
 const urlParams = new URLSearchParams(window.location.search);
-const orderId = urlParams.get('orderId') || urlParams.get('PayerID') || null;
-const token = window.customerToken;
+const orderId = urlParams.get('orderId');
+const paypalOrderId = urlParams.get('token') || urlParams.get('paymentId');
+const title = document.getElementById('paymentTitle');
+const message = document.getElementById('paymentMessage');
+const icon = document.getElementById('paymentIcon');
+const continueLink = document.getElementById('paymentContinue');
+const retryLink = document.getElementById('paymentRetry');
 
-if (orderId && token) {
-    const paypalOrderId = urlParams.get('token') || urlParams.get('paymentId');
-    if (paypalOrderId) {
-        fetch('/api/payments/paypal/capture', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify({
-                orderId: orderId,
-                paypalOrderId: paypalOrderId
-            })
-        })
-        .then(res => res.json())
-        .then(data => {
-            if (data.success) {
-                console.log('✅ Payment captured successfully');
-            } else {
-                console.error('❌ Payment capture failed:', data.message);
-            }
-        })
-        .catch(err => console.error('❌ Capture error:', err));
-    }
+function showPaymentResult(success, text) {
+    title.textContent = success ? 'Payment confirmed' : 'We could not confirm your payment';
+    message.textContent = text;
+    icon.innerHTML = success
+        ? '<i class="fas fa-circle-check" aria-hidden="true"></i>'
+        : '<i class="fas fa-circle-exclamation" aria-hidden="true"></i>';
+    icon.style.color = success ? '#16a34a' : '#dc2626';
+    continueLink.hidden = !success;
+    retryLink.hidden = success;
+    if (success && orderId) continueLink.href = `/order-tracking.html?id=${encodeURIComponent(orderId)}`;
 }
 
+if (!orderId || !paypalOrderId) {
+    showPaymentResult(false, 'The return link is missing payment details. Check your order before trying to pay again.');
+} else {
+    window.customerToken = window.customerToken || 'cookie-auth';
+    fetch('/api/payments/paypal/capture', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${window.customerToken}` },
+        body: JSON.stringify({ orderId, paypalOrderId })
+    })
+    .then(async (response) => {
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(data.message || data.error || 'Payment confirmation failed.');
+        return data;
+    })
+    .then((data) => {
+        if (!data.success) throw new Error(data.message || 'PayPal has not completed this payment.');
+        showPaymentResult(true, 'Your order is paid. You can now view its status and delivery updates.');
+    })
+    .catch((error) => {
+        showPaymentResult(false, error.message || 'A network problem stopped us from confirming the payment.');
+        console.error('Payment capture failed:', error);
+    });
+}
 // ============================================================
 //  FORCE THE PINNED FOOTER
 //  Overrides any old inline footer stylesheet on this page so
