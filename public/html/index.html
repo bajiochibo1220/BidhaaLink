@@ -121,9 +121,7 @@
 
       <!-- Announcement Bar -->
       <div class="announcement-bar">
-        <marquee behavior="scroll" direction="left" scrollamount="3">
-          🎉 Welcome to BidhaaLink! Find trusted shops across Kenya and shop with confidence &nbsp;•&nbsp; Own a business? Register it today.
-        </marquee>
+        <span class="announcement-copy">Trusted shops across Kenya. Own a business? Register today.</span>
       </div>
 
       <!-- Admin Dot -->
@@ -199,6 +197,13 @@
           </button>
         </div>
 
+        <details class="mobile-search-options" id="mobileSearchOptions" open>
+          <summary aria-label="Show or hide search filters">
+            <span><i class="fas fa-sliders-h" aria-hidden="true"></i> Refine your search</span>
+            <small>Category, sorting and area</small>
+            <i class="fas fa-chevron-down mobile-search-chevron" aria-hidden="true"></i>
+          </summary>
+          <div class="mobile-search-controls">
         <!-- 2. Category -->
         <select id="businessCategoryFilter" onchange="filterBusinesses()" aria-label="Business category">
           <option value="all">All categories</option>
@@ -243,6 +248,8 @@
                 hidden aria-label="Clear location search" style="display:none;">
           <i class="fas fa-times"></i>
         </button>
+          </div>
+        </details>
       </div>
 
       <!-- Collapsed dropdown filters — opened by the Select region button above. -->

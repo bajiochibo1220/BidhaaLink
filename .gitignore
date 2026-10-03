@@ -4,6 +4,8 @@ node_modules/
 # Environment variables (sensitive!)
 .env
 .env.backup
+.env.local
+.env.*.local
 
 # Uploaded files (local storage)
 public/uploads/
@@ -32,3 +34,5 @@ build/
 # Temporary files
 *.tmp
 temp/
+.vercel
+.env*

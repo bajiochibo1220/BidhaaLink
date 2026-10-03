@@ -3367,6 +3367,56 @@ console.log('✅ Index.js loaded successfully (Section 9 — customer workspace 
     var footer = document.querySelector('footer.bidhaa-legal-footer');
     if (!footer) return;
 
+    var filterDetails = document.getElementById('mobileSearchOptions');
+    if (filterDetails && !filterDetails.dataset.viewportSync) {
+      var phoneLayout = window.matchMedia('(max-width: 640px)');
+      var syncFilterDisclosure = function () { filterDetails.open = !phoneLayout.matches; };
+      syncFilterDisclosure();
+      if (phoneLayout.addEventListener) phoneLayout.addEventListener('change', syncFilterDisclosure);
+      else if (phoneLayout.addListener) phoneLayout.addListener(syncFilterDisclosure);
+      filterDetails.dataset.viewportSync = 'true';
+    }
+
+    // On phones, keep the footer in normal page flow. A pinned
+    // three-column footer leaves too little width for its content.
+    if (window.matchMedia('(max-width: 640px)').matches) {
+      footer.style.position = 'static';
+      footer.style.left = 'auto';
+      footer.style.right = 'auto';
+      footer.style.bottom = 'auto';
+      footer.style.zIndex = 'auto';
+      footer.style.margin = '20px 0 0';
+      footer.style.padding = '0';
+
+      var mobileInner = footer.querySelector('.bidhaa-legal-footer-inner');
+      if (mobileInner) {
+        mobileInner.style.maxWidth = 'none';
+        mobileInner.style.margin = '0';
+        mobileInner.style.padding = '18px 16px';
+        mobileInner.style.display = 'grid';
+        mobileInner.style.gridTemplateColumns = 'minmax(0, 1fr)';
+        mobileInner.style.alignItems = 'start';
+        mobileInner.style.gap = '14px';
+        mobileInner.style.minHeight = '0';
+        mobileInner.style.flexWrap = 'initial';
+      }
+
+      var mobileBrand = footer.querySelector('.bidhaa-legal-footer-brand');
+      if (mobileBrand) mobileBrand.style.whiteSpace = 'normal';
+
+      var mobileLinks = footer.querySelector('.bidhaa-legal-footer-links');
+      if (mobileLinks) {
+        mobileLinks.style.display = 'grid';
+        mobileLinks.style.gridTemplateColumns = 'repeat(2, minmax(0, 1fr))';
+        mobileLinks.style.gap = '12px';
+        mobileLinks.style.flexWrap = 'initial';
+        mobileLinks.style.whiteSpace = 'normal';
+      }
+
+      document.body.style.paddingBottom = '0';
+      return;
+    }
+
     var navHeight = 0;
     var bottomNav = document.querySelector('.bottom-nav');
     if (bottomNav) {

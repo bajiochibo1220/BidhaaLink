@@ -914,7 +914,7 @@
   transform: scale(0.97);
 }
 
-.search-filter-bar > select {
+.search-filter-bar .mobile-search-controls > select {
   flex: 0 1 auto;
   min-width: 0;
   max-width: 180px;
@@ -933,7 +933,7 @@
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
-.search-filter-bar > select:focus {
+.search-filter-bar .mobile-search-controls > select:focus {
   outline: none;
   border-color: #16a34a;
   box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.10);
@@ -1198,6 +1198,11 @@
    RESPONSIVE — merged search bar
    ============================================================ */
 
+/* Keep the mobile disclosure transparent to the existing desktop filter row. */
+.mobile-search-options,
+.mobile-search-controls { display: contents; }
+.mobile-search-options > summary { display: none; }
+
 @media (min-width: 900px) {
   .search-filter-bar {
     flex-wrap: nowrap;
@@ -1218,7 +1223,7 @@
     order: 1;
   }
 
-  .search-filter-bar > select {
+  .search-filter-bar .mobile-search-controls > select {
     flex: 1 1 calc(50% - 6px);
     max-width: none;
     order: 2;
@@ -1266,7 +1271,7 @@
     padding: 0 10px;
   }
 
-  .search-filter-bar > select {
+  .search-filter-bar .mobile-search-controls > select {
     font-size: 0.72rem;
     padding: 7px 26px 7px 8px;
     background-position: right 8px center;
@@ -3570,4 +3575,141 @@ html.embedded .category-blocks-section {
     font-size: 0.5rem;
     padding: 1px 6px;
   }
+}
+
+/* PHONE LAYOUT - marketplace header, search, and footer */
+@media (max-width: 640px) {
+  body.index-body { overflow-x: hidden; padding-bottom: 0 !important; }
+  body.index-body .top-bar {
+    position: relative; top: auto; gap: 8px; padding: 9px 12px;
+  }
+  body.index-body .admin-dot { display: none; }
+  body.index-body .top-bar > div:first-child { min-width: 0; gap: 6px !important; }
+  body.index-body .top-bar .brand { gap: 4px; font-size: .82rem; white-space: nowrap; }
+  body.index-body .top-bar .top-bar-right { min-width: 0; gap: 4px; }
+  body.index-body #publicNavTop { gap: 4px !important; }
+  body.index-body #publicNavTop .auth-btn {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-height: 34px; padding: 6px 9px !important; font-size: .68rem !important;
+    white-space: nowrap;
+  }
+  body.index-body #publicNavTop .auth-btn:first-child,
+  body.index-body #publicNavTop .auth-btn:last-child {
+    width: 34px; padding: 6px !important; font-size: 0 !important;
+  }
+  body.index-body #publicNavTop .auth-btn i { font-size: .82rem; }
+  body.index-body .announcement-bar {
+    position: relative; top: auto; z-index: auto; padding: 9px 12px;
+    white-space: normal; text-align: center; font-size: .76rem; line-height: 1.4;
+  }
+  body.index-body .announcement-copy { display: block; max-width: 36rem; margin: 0 auto; }
+  body.index-body .marketplace-container { padding: 12px 12px 20px; }
+  body.index-body .marketplace-divider { margin-top: 10px; padding: 0 12px; }
+  body.index-body .marketplace-label { font-size: .72rem; letter-spacing: .18em; }
+  body.index-body .mobile-search-options {
+    display: grid;
+    grid-column: 1 / -1;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
+  }
+  body.index-body .mobile-search-options > summary {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 16px;
+    align-items: center;
+    gap: 2px 8px;
+    min-height: 44px;
+    padding: 8px 12px;
+    border: 1px solid #dbe7f0;
+    border-radius: 12px;
+    background: #f8fafc;
+    color: #1e293b;
+    font-size: .8rem;
+    font-weight: 800;
+    list-style: none;
+    cursor: pointer;
+  }
+  body.index-body .mobile-search-options > summary::-webkit-details-marker { display: none; }
+  body.index-body .mobile-search-options > summary > span { grid-column: 1; display: inline-flex; align-items: center; gap: 8px; }
+  body.index-body .mobile-search-options > summary > span i { color: #15803d; }
+  body.index-body .mobile-search-options > summary small { grid-column: 1; grid-row: 2; color: #64748b; font-size: .68rem; font-weight: 600; }
+  body.index-body .mobile-search-chevron { grid-column: 2; grid-row: 1 / 3; justify-self: end; color: #64748b; transition: transform .18s ease; }
+  body.index-body .mobile-search-options[open] .mobile-search-chevron { transform: rotate(180deg); }
+  body.index-body .mobile-search-controls {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 9px;
+  }
+
+  body.index-body .search-filter-bar {
+    display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: stretch;
+    gap: 9px; padding: 12px; margin-bottom: 14px; border: 1px solid #e2e8f0;
+    border-radius: 18px; background: linear-gradient(145deg, #fff 0%, #f8fbff 100%);
+    box-shadow: 0 10px 28px rgba(15, 23, 42, .08);
+  }
+  body.index-body .search-filter-bar .search-wrapper {
+    grid-column: 1 / -1; width: 100%; min-width: 0; min-height: 48px; border-radius: 13px;
+  }
+  body.index-body .search-filter-bar .search-wrapper input { padding: 10px 12px; font-size: 16px; }
+  body.index-body .search-filter-bar .search-submit-btn {
+    min-width: 44px; min-height: 42px; justify-content: center; margin: 2px; border-radius: 11px;
+  }
+  body.index-body .search-filter-bar .mobile-search-controls > select {
+    width: 100%; max-width: none; min-height: 44px; padding: 8px 30px 8px 11px;
+    border-radius: 12px; font-size: .78rem;
+  }
+  body.index-body .search-filter-bar .loc-filters-toggle,
+  body.index-body .search-filter-bar .loc-pill.loc-primary {
+    display: flex; width: 100%; min-width: 0; min-height: 44px; justify-content: center;
+    padding: 8px 10px; border-radius: 12px; font-size: .78rem;
+  }
+  body.index-body .search-filter-bar .loc-status-chip {
+    grid-column: 1 / -1; justify-content: center; min-width: 0;
+    white-space: normal; text-align: center;
+  }
+  body.index-body .search-filter-bar .loc-turnoff { width: 36px; height: 36px; justify-self: end; }
+  body.index-body .location-filters-row {
+    display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px;
+    padding: 12px; margin: -4px 0 14px; border-radius: 16px; background: #f8fafc;
+  }
+  body.index-body .location-filters-row select { width: 100%; min-width: 0; min-height: 42px; font-size: .76rem; }
+  body.index-body .location-filters-row .location-clear-btn {
+    grid-column: 1 / -1; min-height: 40px; justify-content: center;
+  }
+  body.index-body .businesses-section { padding: 8px 0 0; }
+  body.index-body .businesses-section h2 { margin: 0 0 10px; padding: 0; font-size: 1.05rem; }
+  body.index-body .business-grid { grid-template-columns: minmax(0, 1fr); gap: 14px; }
+  body.index-body .business-grid .empty-state {
+    padding: 30px 16px !important; margin: 2px 0 0; border: 1px solid #e2e8f0;
+    border-radius: 18px; background: #fff; box-shadow: 0 8px 24px rgba(15, 23, 42, .05);
+  }
+  body.index-body .business-grid .empty-state h3 { font-size: 1rem; }
+  body.index-body .business-grid .empty-state p { margin: 0; line-height: 1.5; }
+  body.index-body .bidhaa-legal-footer {
+    position: static !important; inset: auto !important; z-index: auto !important;
+    margin: 20px 0 0 !important; padding: 0 !important;
+    border-top: 1px solid rgba(148, 163, 184, .18);
+  }
+  body.index-body .bidhaa-legal-footer .bidhaa-legal-footer-inner {
+    display: grid !important; grid-template-columns: minmax(0, 1fr) !important;
+    align-items: start !important; gap: 14px !important; min-height: 0 !important;
+    padding: 18px 16px !important;
+  }
+  body.index-body .bidhaa-legal-footer-brand { white-space: normal !important; }
+  body.index-body .bidhaa-legal-footer-thanks {
+    display: flex; align-items: flex-start; gap: 8px; max-width: none; line-height: 1.5;
+  }
+  body.index-body .bidhaa-legal-footer-links {
+    display: grid !important; grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px !important; white-space: normal !important;
+  }
+  body.index-body .bidhaa-legal-footer-links a {
+    min-width: 0; align-items: flex-start; line-height: 1.35; overflow-wrap: anywhere;
+  }
+}
+
+@media (max-width: 360px) {
+  body.index-body .top-bar { padding-right: 8px; padding-left: 8px; }
+  body.index-body .top-bar .brand { font-size: .74rem; }
+  body.index-body #publicNavTop .auth-btn { padding-right: 7px !important; padding-left: 7px !important; }
+  body.index-body .search-filter-bar { gap: 7px; padding: 10px; }
 }
