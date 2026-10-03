@@ -30,6 +30,25 @@
   letter-spacing: 0.02em;
 }
 
+.announcement-bar { overflow: hidden; }
+.announcement-track {
+  display: flex;
+  width: max-content;
+  animation: announcementScroll 26s linear infinite;
+}
+.announcement-copy { flex: 0 0 auto; padding-right: 3rem; }
+.announcement-bar:hover .announcement-track,
+.announcement-bar:focus-within .announcement-track { animation-play-state: paused; }
+@keyframes announcementScroll {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .announcement-track { width: 100%; justify-content: center; animation: none; }
+  .announcement-copy { white-space: normal; padding: 0; text-align: center; }
+  .announcement-copy + .announcement-copy { display: none; }
+}
+
 @keyframes gradientMove {
   0% { background-position: 0% 50%; }
   50% { background-position: 100% 50%; }

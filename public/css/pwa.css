@@ -91,3 +91,14 @@
   .pwa-install-button { min-height: 38px; padding: 7px 10px; font-size: .74rem; }
   .pwa-install-dismiss { flex-basis: 28px; width: 28px; height: 28px; }
 }
+
+
+.pwa-install-button {
+  animation: pwa-install-pulse 1.2s ease-in-out infinite;
+}
+.pwa-install-button:hover { animation-play-state: paused; }
+@keyframes pwa-install-pulse {
+  0%, 100% { transform: scale(1); box-shadow: 0 4px 12px rgba(21, 128, 61, .2); }
+  50% { transform: scale(1.06); box-shadow: 0 7px 20px rgba(21, 128, 61, .38); }
+}
+@media (prefers-reduced-motion: reduce) { .pwa-install-button { animation: none; } }

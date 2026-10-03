@@ -486,13 +486,33 @@ function renderHeroSearchTagChip(business) {
 //  THANK-YOU BAND
 // ============================================================
 
+let thankYouPopupTimer = null;
+
+function dismissThankYouBand() {
+    const band = document.getElementById('thankYouBand');
+    if (!band) return;
+    clearTimeout(thankYouPopupTimer);
+    band.classList.remove('is-visible');
+    band.hidden = true;
+}
+
+window.dismissThankYouBand = dismissThankYouBand;
+
 function renderThankYouBand(business) {
     const band = document.getElementById('thankYouBand');
     const nameEl = document.getElementById('thankYouBusinessName');
-    if (!band) return;
+    if (!band || band.dataset.shown === 'true') return;
+    band.dataset.shown = 'true';
     const name = business && business.business_name ? String(business.business_name).trim() : 'our business';
     if (nameEl) nameEl.textContent = name;
-    band.style.display = '';
+    clearTimeout(thankYouPopupTimer);
+    band.hidden = true;
+    band.classList.remove('is-visible');
+    thankYouPopupTimer = setTimeout(() => {
+        band.hidden = false;
+        requestAnimationFrame(() => band.classList.add('is-visible'));
+        thankYouPopupTimer = setTimeout(dismissThankYouBand, 4800);
+    }, 700);
 }
 
 // ============================================================

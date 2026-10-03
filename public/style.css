@@ -1672,3 +1672,18 @@ body {
     gap: 10px;
   }
 }
+
+
+/* Keep the shared legal footer compact; shop thank-you messages use the shop toast instead. */
+.bidhaa-legal-footer-brand,
+.bidhaa-legal-footer-thanks { display: none !important; }
+.bidhaa-legal-footer .bidhaa-legal-footer-inner {
+  grid-template-columns: minmax(0, 1fr) !important;
+  gap: 0 !important;
+  min-height: 0 !important;
+}
+.bidhaa-legal-footer .bidhaa-legal-footer-inner > * { grid-area: auto !important; }
+.bidhaa-legal-footer .bidhaa-legal-footer-links {
+  grid-column: 1 / -1 !important;
+  justify-content: flex-end;
+}

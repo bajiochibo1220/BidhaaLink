@@ -7,6 +7,7 @@
   <meta name="description" content="BidhaaLink connects Kenyan businesses with customers. Buy and sell products from trusted vendors across Kenya.">
   <meta name="theme-color" content="#15803d">
   <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="BidhaaLink">
   <link rel="manifest" href="/manifest.webmanifest">
@@ -79,7 +80,7 @@
           <a href="#" onclick="openAuthModal('register'); return false;" class="auth-btn" style="background:#2563eb;color:white;padding:6px 14px;border-radius:20px;font-weight:700;font-size:0.75rem;text-decoration:none;">
             <i class="fas fa-user-plus"></i> Register
           </a>
-          <a href="/admin.html" class="auth-btn" title="Super Admin login"
+          <a href="/admin.html" class="auth-btn" aria-label="Super Admin login"
              style="color:#64748b;font-weight:700;font-size:0.72rem;text-decoration:none;">
             <i class="fas fa-lock"></i> Super Admin
           </a>
@@ -128,8 +129,11 @@
     <div class="marketplace-container">
 
       <!-- Announcement Bar -->
-      <div class="announcement-bar">
-        <span class="announcement-copy">Trusted shops across Kenya. Own a business? Register today.</span>
+      <div class="announcement-bar" role="region" aria-label="Marketplace announcement">
+        <div class="announcement-track">
+          <span class="announcement-copy">Trusted shops across Kenya. Own a business? Register today.</span>
+          <span class="announcement-copy" aria-hidden="true">Trusted shops across Kenya. Own a business? Register today.</span>
+        </div>
       </div>
 
       <aside class="pwa-install-prompt" id="pwaInstallPrompt" hidden aria-label="Install BidhaaLink">
@@ -626,18 +630,6 @@
 
 <footer class="bidhaa-legal-footer" role="contentinfo">
   <div class="bidhaa-legal-footer-inner">
-
-    <div class="bidhaa-legal-footer-brand">
-      <strong>BidhaaLink</strong>
-      <span>Kenya's Multi-Vendor Marketplace</span>
-    </div>
-
-    <div class="bidhaa-legal-footer-thanks" id="footerThankYou">
-      <span class="bidhaa-legal-footer-thanks-icon" aria-hidden="true">🙏</span>
-      <span class="bidhaa-legal-footer-thanks-text">
-        Thank you for visiting <span id="footerThankYouBusinessName">our business</span>. We value you!
-      </span>
-    </div>
 
     <nav class="bidhaa-legal-footer-links" aria-label="Legal and contact links">
       <a href="/terms.html">

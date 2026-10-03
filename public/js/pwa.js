@@ -18,7 +18,9 @@
   const isAppleMobile = /iPhone|iPad|iPod/.test(window.navigator.userAgent) ||
     (window.navigator.platform === 'MacIntel' && window.navigator.maxTouchPoints > 1);
 
-  if (standalone || sessionStorage.getItem(storageKey) === '1') return;
+  let dismissed = false;
+  try { dismissed = localStorage.getItem(storageKey) === '1'; } catch (error) { /* storage may be unavailable */ }
+  if (standalone || dismissed) return;
 
   let deferredInstallPrompt = null;
 
@@ -30,11 +32,13 @@
     promptBox.hidden = true;
   }
 
-  if (isAppleMobile) {
-    if (message) message.textContent = 'In Safari, tap Share, then choose Add to Home Screen.';
-    if (installButton) installButton.hidden = true;
-    showPrompt();
+  if (message) {
+    message.textContent = isAppleMobile
+      ? 'In Safari, tap Share, then choose Add to Home Screen.'
+      : 'Install BidhaaLink from your browser menu for quick access.';
   }
+  if (installButton) installButton.hidden = false;
+  showPrompt();
 
   window.addEventListener('beforeinstallprompt', (event) => {
     event.preventDefault();
@@ -46,7 +50,14 @@
 
   if (installButton) {
     installButton.addEventListener('click', async () => {
-      if (!deferredInstallPrompt) return;
+      if (!deferredInstallPrompt) {
+        if (message) {
+          message.textContent = isAppleMobile
+            ? 'Open Safari Share, then tap Add to Home Screen.'
+            : 'Open your browser menu and choose Install app or Add to Home Screen.';
+        }
+        return;
+      }
       deferredInstallPrompt.prompt();
       await deferredInstallPrompt.userChoice;
       deferredInstallPrompt = null;
@@ -56,7 +67,7 @@
 
   if (dismissButton) {
     dismissButton.addEventListener('click', () => {
-      sessionStorage.setItem(storageKey, '1');
+      try { localStorage.setItem(storageKey, '1'); } catch (error) { /* dismissal still hides this visit */ }
       hidePrompt();
     });
   }

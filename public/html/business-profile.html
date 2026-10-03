@@ -312,23 +312,11 @@
       </div>
     </div>
 
-    <!-- ============================================================ -->
-    <!-- THANK-YOU BAND                                               -->
-    <!--                                                              -->
-    <!-- Replaces the old reviews section. Warm, positive, and always -->
-    <!-- visible. The business name is injected by                      -->
-    <!-- business-profile.js into #thankYouBusinessName so the band     -->
-    <!-- feels personal. No review UI, no stars, no textarea.           -->
-    <!-- ============================================================ -->
-    <div class="thank-you-band" id="thankYouBand" role="contentinfo">
-      <div class="thank-you-band-inner">
-        <span class="thank-you-band-icon" aria-hidden="true">🙏</span>
-        <p class="thank-you-band-text">
-          Thank you for visiting <span id="thankYouBusinessName">our business</span>. We value you!
-        </p>
-      </div>
-    </div>
-
+    <aside class="thank-you-band" id="thankYouBand" hidden role="status" aria-live="polite">
+      <span class="thank-you-band-icon" aria-hidden="true">&#128591;</span>
+      <p class="thank-you-band-text">Thank you for visiting <strong id="thankYouBusinessName">our business</strong>. We value you!</p>
+      <button type="button" class="thank-you-band-close" aria-label="Dismiss thank-you message" onclick="dismissThankYouBand()">&times;</button>
+    </aside>
   </div>
 </div>
 

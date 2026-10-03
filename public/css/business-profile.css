@@ -1020,80 +1020,42 @@
   transform: scale(1.1);
 }
 
-/* ============================================================
-   THANK-YOU BAND
-   Replaces the old reviews section. Warm, always visible,
-   and personalised with the business name injected by
-   business-profile.js. No review UI, no stars, no textarea.
-   ============================================================ */
-
+/* Short, dismissible thank-you toast shown after a shop profile loads. */
 .thank-you-band {
-  max-width: 1200px;
-  margin: 18px auto 24px;
-  padding: 0 12px;
-}
-
-.thank-you-band-inner {
+  position: fixed;
+  z-index: 2500;
+  left: 50%;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 82px);
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 14px;
-  padding: 20px 24px;
-  border-radius: 14px;
-  background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 60%, #a7f3d0 100%);
+  gap: 12px;
+  width: min(560px, calc(100vw - 28px));
+  padding: 14px 44px 14px 16px;
   border: 1px solid #86efac;
-  box-shadow: 0 4px 14px rgba(22, 101, 52, 0.08);
-  text-align: center;
-  flex-wrap: wrap;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #ecfdf5, #d1fae5);
+  box-shadow: 0 16px 44px rgba(15, 23, 42, .24);
+  opacity: 0;
+  transform: translate(-50%, 12px);
+  transition: opacity .25s ease, transform .25s ease;
 }
 
-.thank-you-band-icon {
-  font-size: 1.8rem;
-  line-height: 1;
-  flex-shrink: 0;
+.thank-you-band[hidden] { display: none !important; }
+.thank-you-band.is-visible { opacity: 1; transform: translate(-50%, 0); }
+.thank-you-band-icon { flex-shrink: 0; font-size: 1.5rem; line-height: 1; }
+.thank-you-band-text { margin: 0; color: #14532d; font-size: .9rem; font-weight: 700; line-height: 1.5; }
+.thank-you-band-text strong { color: #065f46; font-weight: 800; }
+.thank-you-band-close {
+  position: absolute; top: 7px; right: 8px; display: grid; width: 30px; height: 30px;
+  place-items: center; border: 0; border-radius: 50%; background: transparent;
+  color: #166534; font-size: 1.3rem; cursor: pointer;
 }
-
-.thank-you-band-text {
-  font-size: 1rem;
-  font-weight: 700;
-  color: #14532d;
-  margin: 0;
-  line-height: 1.5;
-  letter-spacing: 0.01em;
-  word-break: break-word;
-}
-
-.thank-you-band-text #thankYouBusinessName {
-  color: #065f46;
-  font-weight: 800;
-}
-
+.thank-you-band-close:hover { background: rgba(22, 101, 52, .1); }
 @media (max-width: 640px) {
-  .thank-you-band {
-    margin: 14px auto 20px;
-    padding: 0 8px;
-  }
-
-  .thank-you-band-inner {
-    padding: 16px 18px;
-    gap: 10px;
-    border-radius: 12px;
-  }
-
-  .thank-you-band-icon {
-    font-size: 1.5rem;
-  }
-
-  .thank-you-band-text {
-    font-size: 0.9rem;
-  }
+  .thank-you-band { bottom: calc(env(safe-area-inset-bottom, 0px) + 76px); gap: 9px; padding: 12px 42px 12px 13px; }
+  .thank-you-band-text { font-size: .85rem; }
 }
-
-@media (max-width: 400px) {
-  .thank-you-band-text {
-    font-size: 0.85rem;
-  }
-}
+@media (prefers-reduced-motion: reduce) { .thank-you-band { transition: none; } }
 
 /* ============================================================
    BOTTOM NAV - BUSINESS PROFILE

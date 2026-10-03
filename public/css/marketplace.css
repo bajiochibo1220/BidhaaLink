@@ -3593,16 +3593,21 @@ html.embedded .category-blocks-section {
     min-height: 34px; padding: 6px 9px !important; font-size: .68rem !important;
     white-space: nowrap;
   }
-  body.index-body #publicNavTop .auth-btn:first-child,
   body.index-body #publicNavTop .auth-btn:last-child {
-    width: 34px; padding: 6px !important; font-size: 0 !important;
+    position: relative; width: 34px; padding: 6px !important; font-size: 0 !important;
+    color: transparent !important;
   }
   body.index-body #publicNavTop .auth-btn i { font-size: .82rem; }
-  body.index-body .announcement-bar {
-    position: relative; top: auto; z-index: auto; padding: 9px 12px;
-    white-space: normal; text-align: center; font-size: .76rem; line-height: 1.4;
+  body.index-body #publicNavTop .auth-btn:last-child i { display: none; }
+  body.index-body #publicNavTop .auth-btn:last-child::after {
+    content: ""; width: 5px; height: 5px; border-radius: 50%;
+    background: #64748b; opacity: .58;
   }
-  body.index-body .announcement-copy { display: block; max-width: 36rem; margin: 0 auto; }
+  body.index-body .announcement-bar {
+    position: relative; top: auto; z-index: auto; padding: 9px 0;
+    white-space: nowrap; text-align: left; font-size: .76rem; line-height: 1.4;
+  }
+  body.index-body .announcement-copy { display: block; max-width: none; margin: 0; }
   body.index-body .marketplace-container { padding: 12px 12px 20px; }
   body.index-body .marketplace-divider { margin-top: 10px; padding: 0 12px; }
   body.index-body .marketplace-label { font-size: .72rem; letter-spacing: .18em; }
@@ -3691,16 +3696,13 @@ html.embedded .category-blocks-section {
   }
   body.index-body .bidhaa-legal-footer .bidhaa-legal-footer-inner {
     display: grid !important; grid-template-columns: minmax(0, 1fr) !important;
-    align-items: start !important; gap: 14px !important; min-height: 0 !important;
-    padding: 18px 16px !important;
+    align-items: center !important; gap: 0 !important; min-height: 0 !important;
+    padding: 10px 12px !important;
   }
   body.index-body .bidhaa-legal-footer-brand { white-space: normal !important; }
-  body.index-body .bidhaa-legal-footer-thanks {
-    display: flex; align-items: flex-start; gap: 8px; max-width: none; line-height: 1.5;
-  }
   body.index-body .bidhaa-legal-footer-links {
     display: grid !important; grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 12px !important; white-space: normal !important;
+    gap: 8px 12px !important; white-space: normal !important;
   }
   body.index-body .bidhaa-legal-footer-links a {
     min-width: 0; align-items: flex-start; line-height: 1.35; overflow-wrap: anywhere;
