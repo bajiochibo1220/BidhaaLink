@@ -36,21 +36,26 @@ function logError(error, context = '') {
 
 // ============================================================
 //  POOL CONFIGURATION
-//  - SSL: rejectUnauthorized false to accept Aiven's self-signed cert
-//  - uselibpqcompat=true in URL enables libpq SSL semantics
-//  - max: 15 leaves room for admin tools (Aiven allows 20 total)
+//  - Hosted databases use TLS with normal certificate verification.
+//  - DATABASE_SSL=false is only intended for local PostgreSQL.
+//  - max: 15 keeps one service instance within a moderate connection budget.
 // ============================================================
 
 const databaseUrl = process.env.DATABASE_URL || '';
 const databaseHostIsLocal = /(?:localhost|127\.0\.0\.1|::1)/i.test(databaseUrl);
 const databaseSslEnabled = process.env.DATABASE_SSL !== 'false' && !databaseHostIsLocal;
+const databaseSchema = process.env.DATABASE_SCHEMA || 'public';
+if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(databaseSchema)) {
+  throw new Error('DATABASE_SCHEMA must be a simple PostgreSQL schema name');
+}
 
 const pool = new Pool({
   connectionString: databaseUrl,
   // Hosted PostgreSQL providers generally require TLS; local PostgreSQL
   // installations generally reject it. DATABASE_SSL can explicitly override
   // the automatic choice when a non-local provider has unusual requirements.
-  ssl: databaseSslEnabled ? { rejectUnauthorized: false } : false,
+  ssl: databaseSslEnabled,
+  options: `-c search_path=${databaseSchema},public`,
   max: 15,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 10000,

@@ -157,7 +157,7 @@ BEGIN
 
     SELECT EXISTS (
         SELECT 1 FROM pg_indexes
-        WHERE schemaname = 'public'
+        WHERE schemaname = current_schema()
           AND indexname = 'idx_products_business_media_active'
     ) INTO has_index;
 

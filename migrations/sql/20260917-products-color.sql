@@ -66,7 +66,7 @@ BEGIN
 
     SELECT EXISTS (
         SELECT 1 FROM pg_indexes
-        WHERE schemaname = 'public' AND indexname = 'idx_products_color'
+        WHERE schemaname = current_schema() AND indexname = 'idx_products_color'
     ) INTO has_index;
 
     SELECT COUNT(*) INTO total_rows FROM products;

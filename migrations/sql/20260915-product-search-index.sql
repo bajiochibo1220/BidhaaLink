@@ -118,17 +118,17 @@ BEGIN
     -- Are the indexes present?
     SELECT EXISTS (
         SELECT 1 FROM pg_indexes
-        WHERE schemaname = 'public' AND indexname = 'idx_products_name_trgm'
+        WHERE schemaname = current_schema() AND indexname = 'idx_products_name_trgm'
     ) INTO has_name_idx;
 
     SELECT EXISTS (
         SELECT 1 FROM pg_indexes
-        WHERE schemaname = 'public' AND indexname = 'idx_products_description_trgm'
+        WHERE schemaname = current_schema() AND indexname = 'idx_products_description_trgm'
     ) INTO has_desc_idx;
 
     SELECT EXISTS (
         SELECT 1 FROM pg_indexes
-        WHERE schemaname = 'public' AND indexname = 'idx_products_active_business'
+        WHERE schemaname = current_schema() AND indexname = 'idx_products_active_business'
     ) INTO has_active_idx;
 
     RAISE NOTICE 'pg_trgm installed:                       %', trgm_installed;

@@ -1,0 +1,45 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "outputDirectory": "public",
+  "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "https://my-business-website-api.onrender.com/api/:path*"
+    },
+    {
+      "source": "/socket.io/:path*",
+      "destination": "https://my-business-website-api.onrender.com/socket.io/:path*"
+    },
+    {
+      "source": "/business/:slug/:rest*",
+      "destination": "/html/business-profile.html"
+    },
+    {
+      "source": "/business/:slug",
+      "destination": "/html/business-profile.html"
+    },
+    {
+      "source": "/marketplace",
+      "destination": "/html/index.html"
+    },
+    {
+      "source": "/",
+      "destination": "/html/welcome.html"
+    },
+    {
+      "source": "/:page.html",
+      "destination": "/html/:page.html"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/api/:path*",
+      "headers": [
+        {
+          "key": "x-vercel-enable-rewrite-caching",
+          "value": "0"
+        }
+      ]
+    }
+  ]
+}

@@ -1,6 +1,15 @@
 require('dotenv').config();
 const fs = require('fs');
 const path = require('path');
+const databaseSchema = process.env.DATABASE_SCHEMA || 'public';
+if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(databaseSchema)) {
+  throw new Error('DATABASE_SCHEMA must be a simple PostgreSQL schema name');
+}
+// Migrations should use Neon’s direct endpoint. Runtime requests use the
+// pooled DATABASE_URL; DIRECT_URL is an optional, migration-only override.
+if (process.env.DIRECT_URL) {
+  process.env.DATABASE_URL = process.env.DIRECT_URL;
+}
 const { pool } = require('../src/config/database');
 
 // ============================================================
@@ -18,6 +27,7 @@ const { pool } = require('../src/config/database');
 // ============================================================
 
 async function ensureTrackingTable() {
+  await pool.query(`CREATE SCHEMA IF NOT EXISTS "${databaseSchema}"`);
   await pool.query(`
     CREATE TABLE IF NOT EXISTS schema_migrations (
       filename VARCHAR(255) PRIMARY KEY,
@@ -89,7 +99,8 @@ async function handleBaselineIfNeeded(sqlDir, baseline, files) {
   if (baselineApplied) return;
 
   const businessTable = await pool.query(
-    "SELECT to_regclass('public.businesses') AS table_name"
+    'SELECT to_regclass($1) AS table_name',
+    [`${databaseSchema}.businesses`]
   );
 
   if (businessTable.rows[0].table_name) {

@@ -399,8 +399,18 @@ app.get('/:page.html', (req, res) => {
 
 app.get('/api/health', async (req, res) => {
   try {
-    const dbResult = await pool.query('SELECT NOW()');
+    const dbResult = await pool.query(
+      "SELECT NOW() AS checked_at, to_regclass('businesses') AS businesses_table"
+    );
     const dbStatus = dbResult.rows.length > 0 ? 'connected' : 'disconnected';
+    if (!dbResult.rows[0].businesses_table) {
+      return res.status(503).json({
+        status: 'unhealthy',
+        database: dbStatus,
+        schema: 'missing_businesses_table',
+        timestamp: new Date().toISOString()
+      });
+    }
 
     res.json({
       status: 'healthy',
@@ -871,8 +881,7 @@ function validateEnv() {
       console.log(`❌ Missing: ${key}`);
       allRequired = false;
     } else {
-      const display = process.env[key].length > 20 ? process.env[key].substring(0, 10) + '...' : process.env[key];
-      console.log(`✅ ${key}: ${display}`);
+      console.log(`✅ ${key}: configured`);
     }
   }
 

@@ -32,7 +32,7 @@ DECLARE
 BEGIN
     SELECT EXISTS (
         SELECT 1 FROM information_schema.tables
-        WHERE table_schema = 'public'
+        WHERE table_schema = current_schema()
           AND table_name = 'product_variants'
     ) INTO table_exists;
 
@@ -42,7 +42,7 @@ BEGIN
 
     SELECT EXISTS (
         SELECT 1 FROM information_schema.columns
-        WHERE table_schema = 'public'
+        WHERE table_schema = current_schema()
           AND table_name = 'product_variants'
           AND column_name = 'is_active'
     ) INTO has_is_active;

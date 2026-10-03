@@ -121,7 +121,6 @@ CREATE TABLE IF NOT EXISTS products (
     old_price VARCHAR(50),
     discount_percent VARCHAR(10),
     category VARCHAR(100),
-    product_category_id INTEGER REFERENCES product_categories(id) ON DELETE SET NULL,
     contact VARCHAR(100),
     rating VARCHAR(50),
     badge1 VARCHAR(100),
@@ -438,6 +437,12 @@ CREATE TABLE IF NOT EXISTS product_categories (
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+
+-- This foreign key must be added after both products and
+-- product_categories exist; products is created earlier in this baseline.
+ALTER TABLE products
+    ADD COLUMN IF NOT EXISTS product_category_id INTEGER
+        REFERENCES product_categories(id) ON DELETE SET NULL;
 
 -- ============================================================
 -- 5. LOCATION & DELIVERY

@@ -93,7 +93,7 @@ INSERT INTO business_categories (name, slug) VALUES
   ('Professional Services 📋', 'professional-services'),
   ('Agriculture & Farming 🌾', 'agriculture-farming'),
   ('Events & Entertainment 🎬', 'events-entertainment')
-ON CONFLICT (name) DO NOTHING;
+ON CONFLICT DO NOTHING;
 
 
 -- ============================================================

@@ -17,7 +17,6 @@
     "mpesa:setup": "node scripts/mpesa-credentials-helper.js",
     "mpesa:test": "node scripts/test-mpesa.js",
     "airtel:setup": "node scripts/airtel-credentials-helper.js",
-    "postinstall": "npm run migrate || echo 'Migration skipped'",
     "fix": "node scripts/fix-database.js"
   },
   "dependencies": {

@@ -49,6 +49,9 @@ async function uploadToCloudinary(filePath, options = {}) {
     return result.secure_url;
   } catch (err) {
     console.error('❌ Cloudinary upload error:', err);
+    if (process.env.NODE_ENV === 'production') {
+      throw err;
+    }
     const localPath = '/uploads/' + path.basename(filePath);
     console.log('⚠️ Using local fallback:', localPath);
     return localPath;
