@@ -1138,7 +1138,7 @@
           <form id="profileForm" enctype="multipart/form-data">
             <div class="form-row">
               <div class="full"><label>Business Name</label><input type="text" id="bName" name="business_name"></div>
-              <div class="full"><label>Business categories</label><input type="search" id="businessCategorySearch" placeholder="Filter categories" oninput="filterBusinessCategoryOptions()"><select id="businessCategories" multiple size="7" aria-label="Business categories"></select><small>Hold Ctrl/Cmd to select more than one category.</small></div>
+              <div class="full"><label>Business categories</label><input type="search" id="businessCategorySearch" placeholder="Filter categories" oninput="filterBusinessCategoryOptions()"><select id="businessCategories" multiple size="1" onfocus="this.size=7" onblur="this.size=1" onchange="this.size=1" aria-label="Business categories"></select><small>Choose a category; the list closes after selection. Reopen it to choose more.</small></div>
               <div class="full"><label>Location</label><input type="text" id="bLocation" name="location"></div>
               <div class="full"><label>Address</label><input type="text" id="bAddress" name="address"></div>
               <div class="full"><label>Description</label><textarea id="bDescription" name="description" rows="3"></textarea></div>

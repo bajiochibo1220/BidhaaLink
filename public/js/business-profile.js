@@ -567,30 +567,12 @@ function renderHeroDescriptionOverlay(business) {
     overlay.classList.remove('is-scrolling');
     track.style.animationDuration = '';
     track.style.removeProperty('--hero-desc-scroll');
-    track.innerHTML = '';
+    if (!tagline) {
+        overlay.style.display = 'none';
+        return;
+    }
 
-    if (!business) { overlay.style.display = 'none'; return; }
-
-    const name = String(business.business_name || 'Business');
-    const tagline = business.description ? String(business.description).trim() : '';
-
-    const locationParts = [];
-    if (business.town) locationParts.push(business.town);
-    if (business.county) locationParts.push(business.county);
-    if (locationParts.length === 0 && business.location) locationParts.push(business.location);
-    const locationText = locationParts.length > 0 ? locationParts.join(', ') : 'Kenya';
-
-    const safe = (value) => {
-        const div = document.createElement('div');
-        div.textContent = String(value == null ? '' : value);
-        return div.innerHTML;
-    };
-
-    track.innerHTML = '<span class="hero-desc-title">??? ' + safe(name) + ' – Quality for Every Home</span>'
-        + (tagline ? '<span class="hero-desc-tagline">' + safe(tagline) + '</span>' : '')
-        + '<ul class="hero-desc-bullets"><li>? Quality &amp; Affordable</li><li>?? Wide Variety</li><li>?? Retail &amp; Wholesale</li><li>?? Delivery Across Kenya</li></ul>'
-        + '<span class="hero-desc-meta">?? ' + safe(locationText) + '</span>'
-        + '<span class="hero-desc-meta">?? Contact us today!</span>';
+    track.innerHTML = '<span class="hero-desc-tagline">' + safe(tagline) + '</span>';
 
     overlay.style.display = '';
 
@@ -897,7 +879,7 @@ function populateBusinessProductCategories() {
     const selected = select.value || 'all';
     const categories = [...new Set((businessProductList || []).map(product => product.category).filter(Boolean))]
         .sort((a, b) => a.localeCompare(b));
-    select.innerHTML = '<option value="all">All product categories</option>';
+    select.innerHTML = '<option value="all">Product categories</option>';
     categories.forEach(category => {
         const option = document.createElement('option');
         option.value = category;
@@ -905,37 +887,6 @@ function populateBusinessProductCategories() {
         select.appendChild(option);
     });
     select.value = categories.includes(selected) ? selected : 'all';
-}
-
-function populateDefinedProductCategories() {
-    const select = document.getElementById('businessProductCategoryIdFilter');
-    if (!select) return;
-
-    const selected = select.value || 'all';
-    const map = new Map();
-    (businessProductList || []).forEach(product => {
-        if (!product.product_category_id) return;
-        const id = String(product.product_category_id);
-        if (!map.has(id)) {
-            map.set(id, {
-                id,
-                name: product.product_category_name || 'Uncategorised',
-                icon: product.product_category_icon || '??'
-            });
-        }
-    });
-
-    const categories = [...map.values()].sort((a, b) => a.name.localeCompare(b.name));
-
-    select.innerHTML = '<option value="all">All defined categories</option>';
-    categories.forEach(cat => {
-        const option = document.createElement('option');
-        option.value = cat.id;
-        option.textContent = cat.icon + ' ' + cat.name;
-        select.appendChild(option);
-    });
-
-    select.value = categories.some(c => c.id === selected) ? selected : 'all';
 }
 
 // ============================================================
@@ -1037,7 +988,6 @@ function filterBusinessProducts() {
     if (!grid) return;
 
     const query = (document.getElementById('businessSearchInput')?.value || '').trim().toLowerCase();
-    const definedCategoryId = document.getElementById('businessProductCategoryIdFilter')?.value || 'all';
     const legacyCategory = document.getElementById('businessProductCategoryFilter')?.value || 'all';
 
     let products = (businessProductList || []).slice();
@@ -1047,10 +997,6 @@ function filterBusinessProducts() {
             (p.name || '').toLowerCase().includes(query) ||
             (p.description && p.description.toLowerCase().includes(query))
         );
-    }
-
-    if (definedCategoryId !== 'all') {
-        products = products.filter(p => String(p.product_category_id || '') === definedCategoryId);
     }
 
     if (legacyCategory !== 'all') {

@@ -1464,7 +1464,10 @@ async function loadBusinessCategories() {
             headers: { Authorization: `Bearer ${token}` }
         });
         if (!response.ok) throw new Error('Unable to load categories');
-        businessCategories = await response.json();
+        const categoryPayload = await response.json();
+        businessCategories = Array.isArray(categoryPayload)
+            ? categoryPayload
+            : (Array.isArray(categoryPayload?.categories) ? categoryPayload.categories : []);
 
         const requestCategorySelect = document.getElementById('requestCategoryBusinessCategory');
         if (requestCategorySelect) {
@@ -1478,9 +1481,10 @@ async function loadBusinessCategories() {
 
 function populateBusinessCategorySelect(selectedCategories) {
     const select = document.getElementById('businessCategories');
-    if (!select || !businessCategories.length) return;
-    const selectedIds = new Set((selectedCategories || []).map(category => Number(category.id)));
-    select.innerHTML = businessCategories.map(category =>
+    if (!select) return;
+    const availableCategories = Array.isArray(businessCategories) ? businessCategories : [];
+    const selectedIds = new Set((Array.isArray(selectedCategories) ? selectedCategories : []).map(category => Number(category.id)));
+    select.innerHTML = availableCategories.map(category =>
         `<option value="${category.id}" ${selectedIds.has(Number(category.id)) ? 'selected' : ''}>${escapeHtml(category.name)}</option>`
     ).join('');
 }
@@ -2821,7 +2825,10 @@ async function loadBusinessProfile() {
         });
         if (!res.ok) throw new Error('Failed to load profile');
         const data = await res.json();
-        const business = data.business;
+        const business = data?.business;
+        if (!business || typeof business !== 'object') {
+            throw new Error(data?.error || 'Business profile data is missing. Please reload and try again.');
+        }
 
         const fieldIds = {
             bName: business.business_name || '',
@@ -2854,9 +2861,19 @@ async function loadBusinessProfile() {
             if (el) el.value = fieldIds[id];
         });
 
-        const categoriesResponse = await fetch(`/api/businesses/${encodeURIComponent(business.slug)}`);
-        const publicBusiness = categoriesResponse.ok ? await categoriesResponse.json() : { categories: [] };
-        if (!businessCategories.length) await loadBusinessCategories();
+        let publicBusiness = { categories: [], location: {} };
+        if (business.slug) {
+            try {
+                const categoriesResponse = await fetch(`/api/businesses/${encodeURIComponent(business.slug)}`);
+                if (categoriesResponse.ok) {
+                    const publicData = await categoriesResponse.json();
+                    if (publicData && typeof publicData === 'object') publicBusiness = publicData;
+                }
+            } catch (categoryError) {
+                console.warn('Could not load public business categories:', categoryError);
+            }
+        }
+        if (!Array.isArray(businessCategories) || businessCategories.length === 0) await loadBusinessCategories();
         populateBusinessCategorySelect(publicBusiness.categories);
 
         const onlineOrdersToggle = document.getElementById('onlineOrdersEnabled');
