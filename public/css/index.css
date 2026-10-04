@@ -778,6 +778,25 @@
   border-radius: 6px;
 }
 
+#authModal .auth-remember-choice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 10px 0;
+  color: #475569;
+  font-size: 0.82rem;
+}
+
+#authModal .auth-remember-choice select {
+  max-width: 150px;
+  padding: 7px 9px;
+  border: 1px solid #cbd5e1;
+  border-radius: 7px;
+  background: #fff;
+  color: #1e293b;
+}
+
 #authModal .auth-status.error { color: #ef4444; background: #fef2f2; }
 #authModal .auth-status.success { color: #16a34a; background: #f0fdf4; }
 

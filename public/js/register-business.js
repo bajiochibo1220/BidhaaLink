@@ -284,6 +284,7 @@ document.getElementById('registerForm')?.addEventListener('submit', async functi
     formData.append('vision', vision || '');
     formData.append('password', password);
     formData.append('accept_terms', 'true');
+    formData.append('remember_days', document.getElementById('registerRememberDays')?.value || '');
 
     // Payment Settings
     formData.append('mpesa_enabled', document.getElementById('mpesaEnabled').checked ? 'true' : 'false');

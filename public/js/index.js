@@ -2331,6 +2331,7 @@ function togglePwd(inputId, btn) {
 async function handleLogin() {
   const username = document.getElementById('loginUsername').value.trim();
   const password = document.getElementById('loginPassword').value;
+  const rememberDays = document.getElementById('loginRememberDays')?.value || '';
   const status = document.getElementById('loginStatus');
   if (!status) return;
   status.textContent = '';
@@ -2353,14 +2354,14 @@ async function handleLogin() {
       res = await fetch('/api/auth/business/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password })
+        body: JSON.stringify({ username, password, remember_days: rememberDays })
       });
       data = await res.json();
     } else {
       res = await fetch('/api/auth/customer/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password })
+        body: JSON.stringify({ username, password, remember_days: rememberDays })
       });
       data = await res.json();
     }
@@ -2418,6 +2419,7 @@ async function handleCustomerRegister() {
   const email = document.getElementById('regCustomerEmail').value.trim();
   const password = document.getElementById('regCustomerPassword').value;
   const confirm = document.getElementById('regCustomerConfirm').value;
+  const rememberDays = document.getElementById('customerRegisterRememberDays')?.value || '';
   const status = document.getElementById('customerRegisterStatus');
   if (!status) return;
 
@@ -2478,7 +2480,8 @@ async function handleCustomerRegister() {
         phone: cleanPhone,
         password,
         email: email || null,
-        accept_terms: true
+        accept_terms: true,
+        remember_days: rememberDays
       })
     });
     const data = await res.json();
@@ -2542,6 +2545,7 @@ async function handleBusinessRegister() {
   const location = document.getElementById('regBusinessLocation').value.trim();
   const password = document.getElementById('regBusinessPassword').value;
   const confirm = document.getElementById('regBusinessConfirm').value;
+  const rememberDays = document.getElementById('businessRegisterRememberDays')?.value || '';
   const status = document.getElementById('businessRegisterStatus');
   const categoryError = document.getElementById('businessCategoryError');
 
@@ -2642,6 +2646,7 @@ async function handleBusinessRegister() {
   formData.append('password', password);
   formData.append('category', primaryCategory);
   formData.append('accept_terms', 'true');
+  formData.append('remember_days', rememberDays);
 
   formData.append('mpesa_enabled', 'false');
   formData.append('airtel_enabled', 'false');
@@ -2879,6 +2884,7 @@ window.togglePwd = togglePwd;
 window.handleLogin = handleLogin;
 window.handleCustomerRegister = handleCustomerRegister;
 window.handleBusinessRegister = handleBusinessRegister;
+window.continueAfterBusinessRegister = continueAfterBusinessRegister;
 window.showToast = showToast;
 window.loadBusinessCategoriesForRegistration = loadBusinessCategoriesForRegistration;
 window.maybeSuggestNearKeyword = maybeSuggestNearKeyword;
@@ -3057,8 +3063,6 @@ function showLoggedInState(user) {
   if (publicNav) publicNav.style.display = 'none';
   if (loggedInNav) loggedInNav.style.display = 'flex';
   if (userBadge) userBadge.textContent = '';
-  const legalFooter = document.querySelector('footer.bidhaa-legal-footer');
-  if (legalFooter) legalFooter.hidden = true;
 
   const role = getWorkspaceRole(user);
   renderWorkspaceNavigation(role);
@@ -3077,8 +3081,6 @@ function showGuestState() {
   const divider = document.getElementById('marketplaceDivider');
   const frame = document.getElementById('workspaceFrame');
   const subtabs = document.getElementById('workspaceSubtabs');
-  const legalFooter = document.querySelector('footer.bidhaa-legal-footer');
-  if (legalFooter) legalFooter.hidden = false;
 
   if (publicNav) publicNav.style.display = 'flex';
   if (loggedInNav) loggedInNav.style.display = 'none';
@@ -3092,6 +3094,11 @@ function showGuestState() {
   }
   document.body.classList.remove('workspace-active');
   closeMobileSidebar();
+}
+
+function continueAfterBusinessRegister() {
+  closeAuthModal();
+  checkAuthState().then(() => openDashboardPanel('dashboard'));
 }
 
 function renderWorkspaceNavigation(role) {

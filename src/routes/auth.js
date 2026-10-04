@@ -113,6 +113,16 @@ const {
   setAuthCookie,
   clearAuthCookie
 } = require('../middleware/auth');
+
+function getRememberDays(value) {
+  const days = Number(value);
+  return days === 30 || days === 60 ? days : null;
+}
+
+function getTokenExpiry(rememberDays, role) {
+  if (role === 'super_admin') return '8h';
+  return rememberDays ? `${rememberDays}d` : '7d';
+}
 const { loginLimiter } = require('../middleware/rateLimiter');
 const { validateKenyanPhone, generateResetToken } = require('../utils/helpers');
 const { sendEmail, forgotPasswordEmail } = require('../services/email');
@@ -502,7 +512,7 @@ router.post('/register', [
 
     const inserted = insertResult.rows[0];
 
-    const token = generateToken(email, 'super_admin', inserted.id);
+    const token = generateToken(email, 'super_admin', inserted.id, getTokenExpiry(null, 'super_admin'));
     setAuthCookie(res, token);
 
     try {
@@ -606,7 +616,7 @@ router.post('/login', loginLimiter, [
       });
     }
 
-    const token = generateToken(email, 'super_admin', user.id);
+    const token = generateToken(email, 'super_admin', user.id, getTokenExpiry(null, 'super_admin'));
     setAuthCookie(res, token);
 
     try {
@@ -692,8 +702,9 @@ router.post('/customer/register', [
     await pool.query('INSERT INTO carts (customer_id, items) VALUES ($1, $2)', [customer.id, '[]']);
 
     const tokenSubject = email || cleanPhone;
-    const token = generateToken(tokenSubject, 'customer', customer.id);
-    setAuthCookie(res, token);
+    const rememberDays = getRememberDays(req.body.remember_days);
+    const token = generateToken(tokenSubject, 'customer', customer.id, getTokenExpiry(rememberDays, 'customer'));
+    setAuthCookie(res, token, rememberDays);
 
     res.json({ success: true, customer });
   } catch (err) {
@@ -799,8 +810,9 @@ router.post('/customer/login', loginLimiter, [
     await pool.query('INSERT INTO carts (customer_id, items) VALUES ($1, $2) ON CONFLICT (customer_id) DO NOTHING', [customer.id, '[]']);
 
     const tokenSubject = customer.email || customer.phone || customer.username;
-    const token = generateToken(tokenSubject, 'customer', customer.id);
-    setAuthCookie(res, token);
+    const rememberDays = getRememberDays(req.body.remember_days);
+    const token = generateToken(tokenSubject, 'customer', customer.id, getTokenExpiry(rememberDays, 'customer'));
+    setAuthCookie(res, token, rememberDays);
 
     res.json({
       success: true,
@@ -1079,8 +1091,9 @@ router.post('/business/register', upload.fields([
     await pool.query('COMMIT');
 
     const businessData = await pool.query('SELECT * FROM businesses WHERE id = $1', [businessId]);
-    const token = generateToken(email, 'business_admin', adminId);
-    setAuthCookie(res, token);
+    const rememberDays = getRememberDays(req.body.remember_days);
+    const token = generateToken(email, 'business_admin', adminId, getTokenExpiry(rememberDays, 'business_admin'));
+    setAuthCookie(res, token, rememberDays);
 
     const savedBusiness = businessData.rows[0];
 
@@ -1236,8 +1249,9 @@ router.post('/business/login', loginLimiter, [
       return res.status(403).json({ error: 'Business is inactive.' });
     }
 
-    const token = generateToken(user.email, 'business_admin', user.id);
-    setAuthCookie(res, token);
+    const rememberDays = getRememberDays(req.body.remember_days);
+    const token = generateToken(user.email, 'business_admin', user.id, getTokenExpiry(rememberDays, 'business_admin'));
+    setAuthCookie(res, token, rememberDays);
     await logAdminActivity(user.id, 'BUSINESS_LOGIN', { email: user.email, businessId: user.business_id });
 
     console.log('✅ Business admin login successful for:', username);

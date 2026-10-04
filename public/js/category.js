@@ -150,6 +150,7 @@ window.toggleAuthPwd = toggleAuthPwd;
 async function handleAuthLogin() {
     const email = document.getElementById('authLoginEmail').value.trim();
     const password = document.getElementById('authLoginPassword').value;
+    const rememberDays = document.getElementById('categoryLoginRememberDays')?.value || '';
     const status = document.getElementById('authLoginStatus');
     if (!status) return;
     status.textContent = '';
@@ -167,7 +168,7 @@ async function handleAuthLogin() {
         const res = await fetch('/api/auth/customer/login', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username: email, password })
+            body: JSON.stringify({ username: email, password, remember_days: rememberDays })
         });
         const data = await res.json();
 
@@ -210,6 +211,7 @@ async function handleAuthRegister() {
     const email = document.getElementById('authRegEmail').value.trim();
     const phone = document.getElementById('authRegPhone').value.trim();
     const password = document.getElementById('authRegPassword').value;
+    const rememberDays = document.getElementById('categoryRegisterRememberDays')?.value || '';
     const confirm = document.getElementById('authRegConfirm').value;
     const status = document.getElementById('authRegisterStatus');
     if (!status) return;
@@ -253,7 +255,7 @@ async function handleAuthRegister() {
         const res = await fetch('/api/auth/customer/register', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name, email, phone: cleanPhone, password, accept_terms: true })
+            body: JSON.stringify({ name, email, phone: cleanPhone, password, accept_terms: true, remember_days: rememberDays })
         });
         const data = await res.json();
 

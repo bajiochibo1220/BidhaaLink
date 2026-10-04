@@ -24,13 +24,13 @@ const { pool } = require('../config/database');
 /**
  * Generate JWT token - always include userId.
  */
-function generateToken(email, role = 'customer', userId = null) {
+function generateToken(email, role = 'customer', userId = null, expiresIn = '7d') {
     const payload = {
         email,
         role,
         userId: userId || email
     };
-    return jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '7d' });
+    return jwt.sign(payload, process.env.JWT_SECRET, { expiresIn });
 }
 
 /**
@@ -44,14 +44,17 @@ function verifyToken(token) {
     }
 }
 
-function setAuthCookie(res, token) {
-    res.cookie('authToken', token, {
+function setAuthCookie(res, token, rememberDays = null) {
+    const cookieOptions = {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'lax',
-        maxAge: 7 * 24 * 60 * 60 * 1000,
         path: '/'
-    });
+    };
+    if (rememberDays === 30 || rememberDays === 60) {
+        cookieOptions.maxAge = rememberDays * 24 * 60 * 60 * 1000;
+    }
+    res.cookie('authToken', token, cookieOptions);
 }
 
 function clearAuthCookie(res) {
