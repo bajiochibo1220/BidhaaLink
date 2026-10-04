@@ -797,6 +797,18 @@
   color: #1e293b;
 }
 
+@media (max-width: 640px) {
+  footer.bidhaa-legal-footer {
+    position: fixed !important;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 999;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+}
+
 #authModal .auth-status.error { color: #ef4444; background: #fef2f2; }
 #authModal .auth-status.success { color: #16a34a; background: #f0fdf4; }
 

@@ -3402,15 +3402,23 @@ console.log('✅ Index.js loaded successfully (Section 9 — customer workspace 
       filterDetails.dataset.viewportSync = 'true';
     }
 
-    // On phones, keep the footer in normal page flow. A pinned
-    // three-column footer leaves too little width for its content.
+    // Keep the links pinned on phones too, while laying them out
+    // in two readable columns above the workspace navigation.
     if (window.matchMedia('(max-width: 640px)').matches) {
-      footer.style.position = 'static';
-      footer.style.left = 'auto';
-      footer.style.right = 'auto';
-      footer.style.bottom = 'auto';
-      footer.style.zIndex = 'auto';
-      footer.style.margin = '20px 0 0';
+      var mobileNav = document.querySelector('.marketplace-bottom-nav, .bottom-nav');
+      var mobileNavHeight = 0;
+      if (mobileNav) {
+        var mobileNavStyle = window.getComputedStyle(mobileNav);
+        if (mobileNavStyle.display !== 'none' && mobileNavStyle.visibility !== 'hidden') {
+          mobileNavHeight = mobileNav.getBoundingClientRect().height || 0;
+        }
+      }
+      footer.style.position = 'fixed';
+      footer.style.left = '0';
+      footer.style.right = '0';
+      footer.style.bottom = mobileNavHeight + 'px';
+      footer.style.zIndex = '999';
+      footer.style.margin = '0';
       footer.style.padding = '0';
 
       var mobileInner = footer.querySelector('.bidhaa-legal-footer-inner');
@@ -3438,7 +3446,7 @@ console.log('✅ Index.js loaded successfully (Section 9 — customer workspace 
         mobileLinks.style.whiteSpace = 'normal';
       }
 
-      document.body.style.paddingBottom = '0';
+      document.body.style.paddingBottom = (mobileNavHeight + footer.getBoundingClientRect().height + 16) + 'px';
       return;
     }
 
