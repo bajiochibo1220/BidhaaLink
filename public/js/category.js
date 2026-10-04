@@ -215,6 +215,12 @@ async function handleAuthRegister() {
     if (!status) return;
     status.textContent = '';
 
+    if (!document.getElementById('categoryLegalAccept')?.checked) {
+        status.textContent = 'Please accept the Terms and Conditions and Privacy Policy to create an account.';
+        status.style.color = '#ef4444';
+        return;
+    }
+
     if (!name || !email || !phone || !password || !confirm) {
         status.textContent = '❌ All fields are required.';
         status.style.color = '#ef4444';
@@ -247,7 +253,7 @@ async function handleAuthRegister() {
         const res = await fetch('/api/auth/customer/register', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name, email, phone: cleanPhone, password })
+            body: JSON.stringify({ name, email, phone: cleanPhone, password, accept_terms: true })
         });
         const data = await res.json();
 

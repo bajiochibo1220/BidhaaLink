@@ -643,6 +643,9 @@ router.post('/customer/register', [
   body('email').optional({ nullable: true, checkFalsy: true }).isEmail().withMessage('Invalid email'),
   body('username').optional({ nullable: true, checkFalsy: true }).isLength({ min: 3 }).withMessage('Username must be at least 3 characters')
 ], async (req, res) => {
+  if (req.body.accept_terms !== true) {
+    return res.status(400).json({ error: 'You must accept the Terms and Conditions and Privacy Policy to register.' });
+  }
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return res.status(400).json({ errors: errors.array() });
@@ -834,6 +837,9 @@ router.post('/business/register', upload.fields([
   body('username').optional({ nullable: true, checkFalsy: true }).isLength({ min: 3 }).withMessage('Username must be at least 3 characters')
 ], async (req, res) => {
   try {
+    if (req.body.accept_terms !== 'true' && req.body.accept_terms !== true) {
+      return res.status(400).json({ error: 'You must accept the Terms and Conditions and Privacy Policy to register.' });
+    }
     console.log('📝 Business registration request received');
     console.log('📝 Email:', req.body.email);
     console.log('📝 Username (may be absent):', req.body.username);

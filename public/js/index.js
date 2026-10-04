@@ -2421,6 +2421,12 @@ async function handleCustomerRegister() {
   const status = document.getElementById('customerRegisterStatus');
   if (!status) return;
 
+  if (!document.getElementById('customerLegalAccept')?.checked) {
+    status.textContent = 'Please accept the Terms and Conditions and Privacy Policy to create an account.';
+    status.className = 'auth-status error';
+    return;
+  }
+
   status.textContent = '';
   status.className = 'auth-status';
   status.style.color = '';
@@ -2471,7 +2477,8 @@ async function handleCustomerRegister() {
         name,
         phone: cleanPhone,
         password,
-        email: email || null
+        email: email || null,
+        accept_terms: true
       })
     });
     const data = await res.json();
@@ -2543,6 +2550,12 @@ async function handleBusinessRegister() {
   const successUsernameValue = document.getElementById('businessRegisterUsernameValue');
 
   if (!status) return;
+
+  if (!document.getElementById('businessLegalAccept')?.checked) {
+    status.textContent = 'Please accept the Terms and Conditions and Privacy Policy to create an account.';
+    status.className = 'auth-status error';
+    return;
+  }
 
   status.textContent = '';
   status.className = 'auth-status';
@@ -2628,6 +2641,7 @@ async function handleBusinessRegister() {
   formData.append('location', location);
   formData.append('password', password);
   formData.append('category', primaryCategory);
+  formData.append('accept_terms', 'true');
 
   formData.append('mpesa_enabled', 'false');
   formData.append('airtel_enabled', 'false');
@@ -3043,6 +3057,8 @@ function showLoggedInState(user) {
   if (publicNav) publicNav.style.display = 'none';
   if (loggedInNav) loggedInNav.style.display = 'flex';
   if (userBadge) userBadge.textContent = '';
+  const legalFooter = document.querySelector('footer.bidhaa-legal-footer');
+  if (legalFooter) legalFooter.hidden = true;
 
   const role = getWorkspaceRole(user);
   renderWorkspaceNavigation(role);
@@ -3061,6 +3077,8 @@ function showGuestState() {
   const divider = document.getElementById('marketplaceDivider');
   const frame = document.getElementById('workspaceFrame');
   const subtabs = document.getElementById('workspaceSubtabs');
+  const legalFooter = document.querySelector('footer.bidhaa-legal-footer');
+  if (legalFooter) legalFooter.hidden = false;
 
   if (publicNav) publicNav.style.display = 'flex';
   if (loggedInNav) loggedInNav.style.display = 'none';

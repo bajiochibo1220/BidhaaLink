@@ -234,6 +234,11 @@ function validateStep(step) {
 document.getElementById('registerForm')?.addEventListener('submit', async function(e) {
     e.preventDefault();
 
+    if (!document.getElementById('businessLegalAccept')?.checked) {
+        alert('Please accept the Terms and Conditions and Privacy Policy to register your business.');
+        return;
+    }
+
     console.log('📤 Starting business registration submission...');
 
     // Validate step 3
@@ -278,6 +283,7 @@ document.getElementById('registerForm')?.addEventListener('submit', async functi
     formData.append('mission', mission || '');
     formData.append('vision', vision || '');
     formData.append('password', password);
+    formData.append('accept_terms', 'true');
 
     // Payment Settings
     formData.append('mpesa_enabled', document.getElementById('mpesaEnabled').checked ? 'true' : 'false');

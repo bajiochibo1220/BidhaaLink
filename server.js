@@ -478,12 +478,17 @@ app.use('/api/contact-admin', contactAdminRoutes);
 
 app.get('/api/csrf-token', (req, res) => {
   try {
-    const token = crypto.randomBytes(32).toString('hex');
-    res.cookie('csrfToken', token, {
-      httpOnly: false,
-      sameSite: 'lax',
-      secure: process.env.NODE_ENV === 'production'
-    });
+    // Keep tabs in the same session from invalidating each other's requests.
+    const token = /^[a-f0-9]{64}$/i.test(req.cookies.csrfToken || '')
+      ? req.cookies.csrfToken
+      : crypto.randomBytes(32).toString('hex');
+    if (token !== req.cookies.csrfToken) {
+      res.cookie('csrfToken', token, {
+        httpOnly: false,
+        sameSite: 'lax',
+        secure: process.env.NODE_ENV === 'production'
+      });
+    }
     res.json({ csrfToken: token });
   } catch (err) {
     logError(err, 'CSRF token');

@@ -1,14 +1,13 @@
 (() => {
     const nativeFetch = window.fetch.bind(window);
-    let csrfTokenPromise;
-
     async function getCsrfToken() {
-        if (!csrfTokenPromise) {
-            csrfTokenPromise = nativeFetch('/api/csrf-token', { credentials: 'same-origin' })
-                .then(response => response.json())
-                .then(data => data.csrfToken);
-        }
-        return csrfTokenPromise;
+        const cookieToken = document.cookie.split('; ')
+            .find(cookie => cookie.startsWith('csrfToken='));
+        if (cookieToken) return decodeURIComponent(cookieToken.slice('csrfToken='.length));
+
+        const response = await nativeFetch('/api/csrf-token', { credentials: 'same-origin' });
+        const data = await response.json();
+        return data.csrfToken;
     }
 
     window.fetch = async (input, init = {}) => {

@@ -83,6 +83,10 @@
         <input type="password" id="authRegConfirm" placeholder="Re-enter password">
         <button class="toggle-pwd" onclick="toggleAuthPwd('authRegConfirm', this)"><i class="fas fa-eye"></i></button>
       </div>
+      <label style="display:flex; align-items:flex-start; gap:8px; margin:10px 0; font-size:0.8rem; line-height:1.5;">
+        <input type="checkbox" id="categoryLegalAccept" style="margin-top:3px;">
+        <span>I accept the <a href="/terms.html" target="_blank" rel="noopener">Terms and Conditions</a> and <a href="/privacy.html" target="_blank" rel="noopener">Privacy Policy</a>.</span>
+      </label>
       <button class="btn btn-success" style="width:100%;" onclick="handleAuthRegister()">Create Account</button>
       <div id="authRegisterStatus" class="auth-status"></div>
       <p style="margin-top:8px; text-align:center; font-size:0.8rem;">Already have an account? <a href="#" onclick="switchAuthTab('login')">Login</a></p>
