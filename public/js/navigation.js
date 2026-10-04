@@ -110,6 +110,7 @@ function updateBottomNav(state, page, isOwnBusiness) {
     const navHome = document.getElementById('navHome');
     const navCategory = document.getElementById('navCategory');
     const navMessages = document.getElementById('navMessages');
+    const navBusinessContact = document.getElementById('navBusinessContact');
     const navCart = document.getElementById('navCart');
     const navCartGuest = document.getElementById('navCartGuest');
     const navOrders = document.getElementById('navOrders');
@@ -119,7 +120,7 @@ function updateBottomNav(state, page, isOwnBusiness) {
     const navBackToMarketplace = document.getElementById('navBackToMarketplace');
     const navLogout = document.getElementById('navLogout');
 
-    const allNav = [navHome, navCategory, navMessages, navCart, navCartGuest,
+    const allNav = [navHome, navCategory, navMessages, navBusinessContact, navCart, navCartGuest,
                     navOrders, navCustomers, navPublicPreview, navAdmin, navBackToMarketplace, navLogout,
                     document.getElementById('navBackToDashboard')];
     allNav.forEach(el => { if (el) el.style.display = 'none'; });
@@ -137,7 +138,7 @@ function updateBottomNav(state, page, isOwnBusiness) {
     if (!state.isLoggedIn) {
         if (page === 'business_profile') {
             if (navHome) navHome.style.display = 'flex';
-            if (navBackToMarketplace) navBackToMarketplace.style.display = 'flex';
+            if (navBusinessContact) navBusinessContact.style.display = 'flex';
             if (navCartGuest) navCartGuest.style.display = 'flex';
         }
         return;
@@ -149,9 +150,8 @@ function updateBottomNav(state, page, isOwnBusiness) {
     if (state.role === 'customer') {
         if (page === 'business_profile') {
             if (navHome) navHome.style.display = 'flex';
-            if (navMessages) navMessages.style.display = 'flex';
+            if (navBusinessContact) navBusinessContact.style.display = 'flex';
             if (navCart) navCart.style.display = 'flex';
-            if (navBackToMarketplace) navBackToMarketplace.style.display = 'flex';
         } else {
             if (navMessages) navMessages.style.display = 'flex';
             if (navCart) navCart.style.display = 'flex';
@@ -165,10 +165,8 @@ function updateBottomNav(state, page, isOwnBusiness) {
     if (state.role === 'business_admin') {
         if (page === 'business_profile') {
             if (navHome) navHome.style.display = 'flex';
-            if (navBackToMarketplace) navBackToMarketplace.style.display = 'flex';
-            if (isOwnBusiness && document.getElementById('navBackToDashboard')) {
-                document.getElementById('navBackToDashboard').style.display = 'flex';
-            }
+            if (navBusinessContact) navBusinessContact.style.display = 'flex';
+            if (navCart) navCart.style.display = 'flex';
         } else {
             // Keep every signed-in action inside the Marketplace workspace.
             // The click handlers in index.html select the appropriate panel.
