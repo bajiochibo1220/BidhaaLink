@@ -388,8 +388,8 @@ function renderBusinessProfile() {
     const heroLogo = document.getElementById('heroLogo');
 
     if (heroTitle) heroTitle.textContent = business.business_name || 'Welcome';
-    if (heroLocation) heroLocation.textContent = business.location ? '?? ' + business.location : '';
-    if (heroAddress) heroAddress.textContent = business.address ? '?? ' + business.address : '';
+    if (heroLocation) heroLocation.textContent = business.location || '';
+    if (heroAddress) heroAddress.textContent = business.address || '';
 
     const productCountEl = document.getElementById('productCount');
     const followerCountEl = document.getElementById('followerCount');
@@ -415,8 +415,8 @@ function renderBusinessProfile() {
     const missionEl = document.getElementById('businessMission');
     const visionEl = document.getElementById('businessVision');
     const descEl = document.getElementById('businessDescription');
-    if (missionEl) missionEl.textContent = business.mission || 'To provide quality products with care.';
-    if (visionEl) visionEl.textContent = business.vision || 'To be the most trusted shop in the community.';
+    if (missionEl) missionEl.textContent = business.mission || '-';
+    if (visionEl) visionEl.textContent = business.vision || '-';
     if (descEl) descEl.textContent = business.description || 'No description provided.';
 
     renderSocialLinks(business);
@@ -567,12 +567,17 @@ function renderHeroDescriptionOverlay(business) {
     overlay.classList.remove('is-scrolling');
     track.style.animationDuration = '';
     track.style.removeProperty('--hero-desc-scroll');
+    const tagline = String(business && business.description || '').trim();
     if (!tagline) {
         overlay.style.display = 'none';
+        track.textContent = '';
         return;
     }
 
-    track.innerHTML = '<span class="hero-desc-tagline">' + safe(tagline) + '</span>';
+    const description = document.createElement('span');
+    description.className = 'hero-desc-tagline';
+    description.textContent = tagline;
+    track.replaceChildren(description);
 
     overlay.style.display = '';
 
@@ -710,7 +715,7 @@ function renderMap(business) {
             L.marker([lat, lng]).addTo(businessMap)
                 .bindPopup('<strong>' + business.business_name + '</strong><br>' + (address || business.location || ''));
             const mapAddressEl = document.getElementById('mapAddress');
-            if (mapAddressEl) mapAddressEl.textContent = address ? '?? ' + address : '';
+            if (mapAddressEl) mapAddressEl.textContent = address || '';
             const staticMapSection = document.getElementById('staticMapSection');
             if (staticMapSection) staticMapSection.style.display = 'block';
         }
@@ -737,12 +742,12 @@ function buildBusinessSlider() {
     });
 
     if (images.length === 0) {
-        wrapper.innerHTML = '<div class="slide">?? No images available</div>';
+        wrapper.textContent = 'No images available';
         return;
     }
 
     wrapper.innerHTML = images.map(img =>
-        '<div class="slide"><img src="' + img + '" alt="Business image" onerror="this.parentElement.innerHTML=\'<div>???</div>\'"></div>'
+        '<div class="slide"><img src="' + img + '" alt="Business image" onerror="this.parentElement.textContent=\'Image unavailable\'"></div>'
     ).join('');
 
     window.businessSlideIndex = 0;
