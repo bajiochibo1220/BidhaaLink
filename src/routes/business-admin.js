@@ -1174,7 +1174,10 @@ router.put('/location',
         } catch (err) {
             console.error('❌ Adjust business location pin error:', err);
             logError(err, 'Adjust business location pin');
-            res.status(500).json({ error: 'Unable to update location pin' });
+            res.status(500).json({
+                error: 'Unable to update location pin',
+                detail: process.env.NODE_ENV !== 'production' ? err.message : undefined
+            });
         }
     }
 );

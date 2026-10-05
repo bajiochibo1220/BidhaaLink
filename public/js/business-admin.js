@@ -697,7 +697,7 @@ async function saveAdjustedBusinessPin() {
         const data = await res.json();
 
         if (!res.ok || !data.success) {
-            throw new Error(data.error || 'Failed to save pin');
+            throw new Error(data.detail || data.error || 'Failed to save pin');
         }
 
         if (statusEl) {
@@ -1266,6 +1266,9 @@ function navigateTo(section) {
     const myshopJumpbar = document.getElementById('myshopJumpbar');
     if (myshopToolbar) myshopToolbar.style.display = targetSection === 'myshop' ? 'flex' : 'none';
     if (myshopJumpbar) myshopJumpbar.style.display = targetSection === 'myshop' ? 'flex' : 'none';
+    document.querySelectorAll('.myshop-jump').forEach(function (button) {
+        button.classList.toggle('is-active', button.dataset.jump === section);
+    });
 
     document.querySelectorAll('.menu-item').forEach(function(el) {
         el.classList.remove('active');
@@ -1281,10 +1284,10 @@ function navigateTo(section) {
         productcategories: 'Product Categories',
         messages: 'Messages',
         myshop: 'My Shop',
-        profile: 'Business Profile',
-        payments: 'Payment Settings',
-        delivery: 'Delivery / Shipping',
-        ordersettings: 'Order Settings'
+        profile: 'Business Profile Setup',
+        payments: 'Payments Setup',
+        delivery: 'Delivery Setup',
+        ordersettings: 'Order Setup'
     };
     const headerTitle = document.getElementById('headerTitle');
     if (headerTitle) headerTitle.textContent = titles[section] || 'Dashboard';

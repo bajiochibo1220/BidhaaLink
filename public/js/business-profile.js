@@ -1,15 +1,15 @@
-// ============================================================
-//  BUSINESS PROFILE JAVASCRIPT — PHASE 2 (PART A)
+ï»¿// ============================================================
+//  BUSINESS PROFILE JAVASCRIPT ï¿½ PHASE 2 (PART A)
 //  Location: public/js/business-profile.js
 //
 //  This file is written in two parts. Command A writes this
 //  half. Command B appends the rest. Do not run the browser
-//  between the two commands — the file is intentionally
+//  between the two commands ï¿½ the file is intentionally
 //  incomplete until Command B finishes.
 // ============================================================
 
 // ============================================================
-//  TILE PROVIDER — single source of truth
+//  TILE PROVIDER ï¿½ single source of truth
 // ============================================================
 
 const CARTO_TILE_URL = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}';
@@ -60,7 +60,7 @@ if (typeof window.isOwnBusiness === 'undefined') {
     window.isOwnBusiness = false;
 }
 
-// Phase 2 — current tab. Read from the URL on load and updated
+// Phase 2 ï¿½ current tab. Read from the URL on load and updated
 // whenever the customer clicks a tab.
 if (typeof window.businessProductTab === 'undefined') {
     window.businessProductTab = 'all';
@@ -83,7 +83,7 @@ let customerLocation = window.customerLocation;
 let isOwnBusiness = window.isOwnBusiness;
 
 // ============================================================
-//  PHASE 2 — TAB HELPERS
+//  PHASE 2 ï¿½ TAB HELPERS
 // ============================================================
 
 const VALID_PRODUCT_TABS = ['all', 'image', 'video'];
@@ -132,7 +132,7 @@ function switchShopTab(tab) {
     window.businessProductList = [];
     businessProductList = window.businessProductList;
     const grid = document.getElementById('productGrid');
-    if (grid) grid.innerHTML = '<p style="text-align:center;padding:40px;color:#94a3b8;">Loading products…</p>';
+    if (grid) grid.innerHTML = '<p style="text-align:center;padding:40px;color:#94a3b8;">Loading productsï¿½</p>';
     loadBusinessProducts();
 }
 
@@ -790,7 +790,7 @@ function changeBusinessSlide(direction) {
 }
 
 // ============================================================
-//  LOAD BUSINESS PRODUCTS — PHASE 2: forwards the active tab
+//  LOAD BUSINESS PRODUCTS ï¿½ PHASE 2: forwards the active tab
 // ============================================================
 
 async function loadBusinessProducts() {
@@ -908,7 +908,7 @@ function populateBusinessProductCategories() {
 }
 
 // ============================================================
-//  GRID — PHASE 2: uses thumbnail_url / thumbnail_kind
+//  GRID ï¿½ PHASE 2: uses thumbnail_url / thumbnail_kind
 // ============================================================
 
 function renderBusinessGrid() {
@@ -1321,7 +1321,7 @@ window.renderHeroDescriptionOverlay = renderHeroDescriptionOverlay;
 window.renderThankYouBand = renderThankYouBand;
 window.renderHeroSearchTagChip = renderHeroSearchTagChip;
 
-console.log('? Business Profile JS loaded successfully (Phase 2 — tabs wired, thumbnail_url used)');
+console.log('? Business Profile JS loaded successfully (Phase 2 ï¿½ tabs wired, thumbnail_url used)');
 
 function scrollToBusinessContact() {
     const contacts = document.getElementById('businessProfileContacts');
