@@ -13,7 +13,11 @@ html {
 }
 
 body {
-  background: #f5f7fa;
+  background-color: #e8d8b5;
+  background-image:
+    repeating-linear-gradient(45deg, transparent 0 35px, rgba(139, 105, 58, .09) 35px 36px, transparent 36px 70px),
+    repeating-linear-gradient(-45deg, transparent 0 35px, rgba(139, 105, 58, .09) 35px 36px, transparent 36px 70px);
+  background-size: 70px 70px, 70px 70px;
   color: #1e293b;
   padding-bottom: 80px;
   -webkit-font-smoothing: antialiased;

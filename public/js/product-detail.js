@@ -522,7 +522,7 @@ function renderDetail(product, related) {
         ${p.image ? `<img src="${p.image}" alt="${p.name}">` : `<div class="no-image">\u2705??</div>`}
         <div class="related-info">
           <div class="related-name">${p.name}</div>
-          ${p.description ? `<div class="related-description"><span class="related-description-text">${escapeProductCardText(p.description)}</span><button type="button" class="related-description-toggle" aria-expanded="false" onclick="event.stopPropagation(); toggleRelatedDescription(this)" hidden>More</button></div>` : ''}
+          ${p.description ? `<div class="related-description"><span class="related-description-text">${escapeProductCardText(p.description)}</span><button type="button" class="related-description-toggle" aria-expanded="false" onclick="event.stopPropagation(); toggleRelatedDescription(this)">More</button></div>` : ''}
           <div class="related-price">${p.price}</div>
         </div>
       </div>
@@ -615,11 +615,6 @@ function renderDetail(product, related) {
   renderThankYouBand(product);
   wireColourGallery();
   updateArrowsVisibility();
-  document.querySelectorAll('.related-description').forEach(description => {
-    const text = description.querySelector('.related-description-text');
-    const toggle = description.querySelector('.related-description-toggle');
-    if (text && toggle) toggle.hidden = text.scrollHeight > text.clientHeight + 1;
-  });
 
   if (typeof writeVariantToUrl === 'function') writeVariantToUrl(tile);
   if (typeof renderMixedMediaToggle === 'function') renderMixedMediaToggle(tile);
@@ -1018,10 +1013,13 @@ function resumeProductCartIntent() {
 document.addEventListener('DOMContentLoaded', () => {
   const businessSlug = urlParams.get('business');
   if (businessSlug) {
+    const shopUrl = `/business/${encodeURIComponent(businessSlug)}`;
     ['productBusinessHome', 'productBusinessHomeNav'].forEach(id => {
       const link = document.getElementById(id);
-      if (link) link.href = `/business/${encodeURIComponent(businessSlug)}`;
+      if (link) link.href = shopUrl;
     });
+    const backToShop = document.querySelector('.product-detail-page .back-link');
+    if (backToShop) backToShop.href = shopUrl;
   }
   const user = JSON.parse(localStorage.getItem('currentUser') || '{}');
   const isLoggedIn = Boolean(user.email);
