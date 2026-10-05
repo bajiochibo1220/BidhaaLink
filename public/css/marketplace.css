@@ -1595,7 +1595,8 @@
    Section K.7 — "SELLS: …" banner on a business card
    ============================================================ */
 
-.business-card .card-body .business-sells-banner {
+.business-card .card-body .business-sells-banner,
+.block-card .block-card-body .business-sells-banner {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -1618,7 +1619,8 @@
   animation: sellsBannerPulse 1.6s ease-in-out infinite;
 }
 
-.business-card .card-body .business-sells-banner .business-sells-dot {
+.business-card .card-body .business-sells-banner .business-sells-dot,
+.block-card .block-card-body .business-sells-banner .business-sells-dot {
   display: inline-block;
   flex-shrink: 0;
   width: 7px;
@@ -1629,12 +1631,22 @@
   animation: sellsBannerDot 1.2s ease-in-out infinite;
 }
 
-.business-card .card-body .business-sells-banner .business-sells-text {
+.business-card .card-body .business-sells-banner .business-sells-text,
+.block-card .block-card-body .business-sells-banner .business-sells-text {
   display: inline-block;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.business-card .business-sells-query,
+.block-card .business-sells-query {
+  animation: sellsQueryBlink 1s steps(2, start) infinite;
+}
+
+@keyframes sellsQueryBlink {
+  to { visibility: hidden; }
 }
 
 @keyframes sellsBannerPulse {
@@ -1651,7 +1663,11 @@
 
 @media (prefers-reduced-motion: reduce) {
   .business-card .card-body .business-sells-banner,
-  .business-card .card-body .business-sells-banner .business-sells-dot {
+  .business-card .card-body .business-sells-banner .business-sells-dot,
+  .block-card .block-card-body .business-sells-banner,
+  .block-card .block-card-body .business-sells-banner .business-sells-dot,
+  .business-card .business-sells-query,
+  .block-card .business-sells-query {
     animation: none;
   }
 }
@@ -1869,13 +1885,15 @@
     padding: 1px 6px;
   }
 
-  .business-card .card-body .business-sells-banner {
+  .business-card .card-body .business-sells-banner,
+  .block-card .block-card-body .business-sells-banner {
     font-size: 0.58rem;
     padding: 2px 8px 2px 7px;
     margin-bottom: 6px;
   }
 
-  .business-card .card-body .business-sells-banner .business-sells-dot {
+  .business-card .card-body .business-sells-banner .business-sells-dot,
+  .block-card .block-card-body .business-sells-banner .business-sells-dot {
     width: 6px;
     height: 6px;
   }
@@ -3395,7 +3413,7 @@ html.embedded .category-blocks-section {
 .business-card .card-body .business-description.clamped,
 .block-card .block-card-body .business-description.clamped {
   display: -webkit-box;
-  -webkit-line-clamp: 2;
+  -webkit-line-clamp: 1;
   -webkit-box-orient: vertical;
   overflow: hidden;
   text-overflow: ellipsis;

@@ -1279,7 +1279,7 @@ router.get('/', async (req, res) => {
                 product_matches: hasProductMatch ? matches : [],
                 matched_word: isTagMatch
                     ? (searchTagNormalized || null)
-                    : (hasProductMatch ? (searchText || null) : null),
+                    : (searchText || null),
                 search_mode: isTagMatch
                     ? 'tag'
                     : (hasProductMatch ? mode : null)

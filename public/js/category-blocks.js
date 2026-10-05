@@ -582,31 +582,18 @@
             : '';
 
         // ---- Description / ticker -------------------------------
-        const tickerNames = Array.isArray(business.product_keywords)
-            ? business.product_keywords.map(v => String(v || '').trim()).filter(Boolean)
-            : [];
-
-        let tickerHtml = '';
-        if (tickerNames.length > 0) {
-            const lines = tickerNames
-                .map(name => `<span class="business-ticker-name">${escapeHtml(name)}</span>`)
-                .join('');
-            tickerHtml = `
-                <div class="business-ticker" title="What this shop sells">
-                    <div class="business-ticker-track">
-                        ${lines}
-                        ${lines}
-                    </div>
-                </div>
-            `;
-        }
-
-        const description = business.description || '';
-        const truncatedDesc = description.length > 100 ? description.substring(0, 100) + '...' : description;
-
-        const descriptionOrTicker = tickerNames.length > 0
-            ? tickerHtml
-            : (truncatedDesc ? `<div class="business-description">${escapeHtml(truncatedDesc)}</div>` : '');
+        const tickerHtml = typeof window.renderBusinessTicker === 'function'
+            ? window.renderBusinessTicker(business)
+            : '';
+        const descriptionHtml = typeof window.renderBusinessCardDescription === 'function'
+            ? window.renderBusinessCardDescription(business)
+            : (business.description ? `<div class="business-description clamped">${escapeHtml(business.description)}</div><button type="button" class="card-description-more" onclick="window.toggleCardDescription(event, this)">More</button>` : '');
+        const sellsWord = typeof window.getBusinessSellsLabel === 'function'
+            ? window.getBusinessSellsLabel(business)
+            : '';
+        const sellsHtml = sellsWord
+            ? `<div class="business-sells-banner"><span class="business-sells-text">SELLS <span class="business-sells-query">${escapeHtml(sellsWord)}</span></span></div>`
+            : '';
 
         // ---- Stats ----------------------------------------------
         const productCountRaw = parseInt(business.product_count, 10);
@@ -636,10 +623,12 @@
                     ${badges.length ? `<div class="block-card-badges">${badges.join('')}</div>` : ''}
                 </div>
                 <div class="block-card-body">
-                    <div class="block-card-name">${escapeHtml(business.business_name)}</div>
                     ${searchTagChip}
+                    ${tickerHtml}
+                    <div class="block-card-name">${escapeHtml(business.business_name)}</div>
                     <div class="block-card-location">📍 ${escapeHtml(location)}</div>
-                    ${descriptionOrTicker}
+                    ${descriptionHtml}
+                    ${sellsHtml}
                     <div class="block-card-meta">
                         <span>🛍️ ${productCount}</span>
                         <span>👥 ${followerCount}</span>

@@ -70,10 +70,17 @@ function fallbackMediaUrl(product) {
 // ============================================================
 function getAutoSocialLinks(product) {
   const shop = product || {};
-  const productName = product.name || 'this product';
-  const productPrice = product.price ? ` (${product.price})` : '';
-  const message = `Hi, I'm interested in "${productName}"${productPrice}. Could I get more information about this product?`;
-  const encodedMessage = encodeURIComponent(message);
+  const tile = getSelectedTile();
+  const productUrl = new URL(window.location.href);
+  productUrl.searchParams.delete('cartAdd');
+  productUrl.searchParams.delete('cartQty');
+  if (tile && tile.name) productUrl.searchParams.set('variant', tile.name);
+  const mediaUrl = (tile && (tile.video || tile.image)) || shop.video || shop.image ||
+    (Array.isArray(shop.videos) && shop.videos[0]) || (Array.isArray(shop.images) && shop.images[0]) || '';
+  const productDescription = `${shop.name || 'this product'}${tile && tile.name && tile.name !== 'Standard' ? ` (${tile.name})` : ''}`;
+  const price = tile && tile.price ? tile.price : shop.price;
+  const inquiry = `I want to know more information about this: ${productDescription}${price ? `\nPrice: Ksh ${price}` : ''}\nProduct details: ${productUrl.href}${mediaUrl ? `\nProduct image/video: ${mediaUrl}` : ''}`;
+  const encodedMessage = encodeURIComponent(inquiry);
   const whatsappNumber = shop.business_whatsapp || '';
   const instagramUser = shop.business_instagram || '';
   const facebookUser = shop.business_facebook || '';
@@ -81,12 +88,56 @@ function getAutoSocialLinks(product) {
   const phone = shop.business_phone || '';
   const cleanedWhatsapp = whatsappNumber.replace(/[^0-9]/g, '');
   return {
-    whatsapp: cleanedWhatsapp ? `https://wa.me/${cleanedWhatsapp}?text=${encodedMessage}` : '#',
-    instagram: instagramUser ? `https://www.instagram.com/${instagramUser.replace('@', '').trim()}/` : '#',
-    messenger: facebookUser ? `https://m.me/${facebookUser.replace('@', '').trim()}?text=${encodedMessage}` : '#',
-    tiktok: tiktokUser ? `https://www.tiktok.com/@${tiktokUser.replace('@', '').trim()}` : '#',
-    phone: phone ? `tel:${phone}` : '#'
+    whatsapp: cleanedWhatsapp ? `https://wa.me/${cleanedWhatsapp}?text=${encodedMessage}` : '',
+    instagram: instagramUser ? `https://www.instagram.com/${instagramUser.replace('@', '').trim()}/` : '',
+    messenger: facebookUser ? `https://m.me/${facebookUser.replace('@', '').trim()}?text=${encodedMessage}` : '',
+    tiktok: tiktokUser ? `https://www.tiktok.com/@${tiktokUser.replace('@', '').trim()}` : '',
+    phone: phone ? `sms:${phone}?body=${encodedMessage}` : '',
+    call: phone ? `tel:${phone}` : '',
+    inquiry: encodedMessage
   };
+}
+
+function updateProductInquiryLinks() {
+  if (!currentProduct) return;
+  const links = getAutoSocialLinks(currentProduct);
+  const selectors = {
+    whatsapp: '.social-icons .whatsapp',
+    instagram: '.social-icons .instagram',
+    messenger: '.social-icons .messenger',
+    tiktok: '.social-icons .tiktok',
+    phone: '.social-icons a[href^="sms:"]',
+    call: '.social-icons a[href^="tel:"]'
+  };
+  Object.entries(selectors).forEach(([key, selector]) => {
+    const anchor = document.querySelector(selector);
+    if (anchor && links[key]) anchor.href = links[key];
+  });
+  document.querySelectorAll('.social-icons .instagram, .social-icons .tiktok').forEach(anchor => {
+    anchor.dataset.inquiry = links.inquiry;
+  });
+}
+
+function copyProductInquiryForContact(event) {
+  const encodedInquiry = event && event.currentTarget && event.currentTarget.dataset.inquiry;
+  if (!encodedInquiry) return;
+  const inquiry = decodeURIComponent(encodedInquiry);
+  const copyFallback = () => {
+    const field = document.createElement('textarea');
+    field.value = inquiry;
+    field.setAttribute('readonly', '');
+    field.style.position = 'fixed';
+    field.style.opacity = '0';
+    document.body.appendChild(field);
+    field.select();
+    try { document.execCommand('copy'); } catch (_) {}
+    field.remove();
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(inquiry).catch(copyFallback);
+  } else {
+    copyFallback();
+  }
 }
 
 // ============================================================
@@ -305,6 +356,7 @@ async function loadProductDetail() {
     const related = orderRelatedForDisplay(data.related || [], data.product);
 
     renderDetail(data.product, related);
+    resumeProductCartIntent();
   } catch (err) {
     document.getElementById('detailContent').innerHTML = `<p style="color:#ef4444;">Error: ${err.message}</p>`;
   }
@@ -395,33 +447,19 @@ function renderDetail(product, related) {
   if (badgesHtml) badgesHtml = `<div class="badges">${badgesHtml}</div>`;
 
   // ---------- Description / services / return ----------
-  const descriptionHtml = `<div class="description">${product.description || 'No description available for this product.'}</div>`;
+  const descriptionText = String(product.description || 'No description available for this product.').slice(0, 180);
+  const descriptionHtml = `<div class="description">${descriptionText.replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]))}</div>`;
 
   let servicesHtml = '';
   servicesHtml = '';
 
-  const returnDays = product.return_window_days || 14;
-  const restockingFee = product.restocking_fee_percent || 0;
-  const returnCondition = product.return_condition || 'unopened';
-  const returnEnabled = product.return_enabled !== false;
-
-  let returnPolicyHtml = '';
-  if (returnEnabled) {
-    returnPolicyHtml = `
-      <div class="return-policy">
-        <strong>\u{1F4DE}?\u201D\u{1F4DE} Return Policy:</strong>
-        Returns accepted within ${returnDays} days of delivery.
-        ${restockingFee > 0 ? `Restocking fee: ${restockingFee}%. ` : ''}
-        Products must be in ${returnCondition} condition.
-      </div>
-    `;
-  } else {
-    returnPolicyHtml = `
-      <div class="return-policy" style="background:linear-gradient(145deg, #fef2f2, #fee2e2); border-left-color:#ef4444; color:#991b1b;">
-        <strong>\u{1F4E6} Non-Returnable:</strong> This item is final sale and cannot be returned.
-      </div>
-    `;
-  }
+  const returnPolicy = String(product.business_return_policy || '').trim();
+  const safeReturnPolicy = returnPolicy.replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+  const returnPolicyHtml = `
+    <details class="return-policy">
+      <summary>See return policy</summary>
+      <div class="return-policy-content">${safeReturnPolicy || 'You can ask the business about the return policy of this product.'}</div>
+    </details>`;
 
   // ---------- Contact ----------
   const socialLinks = getAutoSocialLinks(product);
@@ -444,15 +482,17 @@ function renderDetail(product, related) {
 
   const contactHtml = `
     <div class="contact-us-section">
-      <h4>\u2705?? Contact Us</h4>
+      <details class="product-enquiry">
+        <summary>Enquire more about this product</summary>
       ${contactRatingHtml}
       <div class="social-icons" style="margin-top:6px;">
-        <a href="${socialLinks.whatsapp}" target="_blank" class="whatsapp"><i class="fab fa-whatsapp"></i> WhatsApp</a>
-        <a href="${socialLinks.instagram}" target="_blank" class="instagram"><i class="fab fa-instagram"></i> Instagram</a>
-        <a href="${socialLinks.messenger}" target="_blank" class="messenger"><i class="fab fa-facebook-messenger"></i> Messenger</a>
-        <a href="${socialLinks.tiktok}" target="_blank" class="tiktok"><i class="fab fa-tiktok"></i> TikTok</a>
-        <a href="${socialLinks.phone}" class="phone"><i class="fas fa-phone"></i> Call</a>
+        ${socialLinks.whatsapp ? `<a href="${socialLinks.whatsapp}" target="_blank" rel="noopener" class="whatsapp"><i class="fab fa-whatsapp"></i> WhatsApp</a>` : ''}
+        ${socialLinks.instagram ? `<a href="${socialLinks.instagram}" target="_blank" rel="noopener" class="instagram" data-inquiry="${socialLinks.inquiry}" onclick="copyProductInquiryForContact(event)"><i class="fab fa-instagram"></i> Instagram</a>` : ''}
+        ${socialLinks.messenger ? `<a href="${socialLinks.messenger}" target="_blank" rel="noopener" class="messenger"><i class="fab fa-facebook-messenger"></i> Messenger</a>` : ''}
+        ${socialLinks.tiktok ? `<a href="${socialLinks.tiktok}" target="_blank" rel="noopener" class="tiktok" data-inquiry="${socialLinks.inquiry}" onclick="copyProductInquiryForContact(event)"><i class="fab fa-tiktok"></i> TikTok</a>` : ''}
+        ${socialLinks.phone ? `<a href="${socialLinks.phone}" class="phone"><i class="fas fa-comment-sms"></i> SMS</a><a href="${socialLinks.call}" class="phone"><i class="fas fa-phone"></i> Call</a>` : ''}
       </div>
+      </details>
     </div>
   `;
 
@@ -554,8 +594,7 @@ function renderDetail(product, related) {
         </div>
 
         <div class="button-group">
-          <button class="btn-add-large ${btnClass}" onclick="addVariantToCart()">\u{1F6D2}? ${btnText}</button>
-          <button class="btn-buy-now" onclick="buyNow()">Buy Now</button>
+          <button class="btn-add-large ${btnClass}" onclick="addVariantToCart()">${btnText}</button>
         </div>
 
         ${contactHtml}
@@ -773,7 +812,7 @@ function selectColour(key, options) {
       item.id === currentProduct.id &&
       (tile.variantId !== null ? item.variant_id === tile.variantId : true)
     );
-    btn.textContent = isInCart ? '\u{1F6D2}? Add More' : '\u{1F6D2}? Add to Cart';
+    btn.textContent = isInCart ? 'Add More' : 'Add to Cart';
     btn.classList.toggle('in-cart', isInCart);
   }
 
@@ -781,6 +820,7 @@ function selectColour(key, options) {
 
   if (typeof writeVariantToUrl === 'function') writeVariantToUrl(tile);
   if (typeof renderMixedMediaToggle === 'function') renderMixedMediaToggle(tile);
+  updateProductInquiryLinks();
 }
 
 // ============================================================
@@ -859,49 +899,99 @@ function changeDetailQty(delta) {
 // ============================================================
 //  ADD TO CART
 // ============================================================
-function addVariantToCart() {
+async function addVariantToCart() {
   if (!currentProduct) return;
 
   const tile = getSelectedTile();
   if (!tile) return;
 
-  const price = tile.price || currentProduct.price;
   const variantId = tile.variantId;
   const variantName = tile.name || 'Default';
-  const image = tile.image || currentProduct.image;
 
-  let cart = getCart();
-  const existing = cart.find(item =>
-    item.id === currentProduct.id &&
-    (variantId !== null ? item.variant_id === variantId : true)
-  );
-
-  if (existing) {
-    existing.quantity += detailQty;
-  } else {
-    cart.push({
-      id: currentProduct.id,
-      variant_id: variantId,
-      name: currentProduct.name,
-      price: price,
-      image: image || '',
-      quantity: detailQty,
-      variant_name: variantName
+  const button = document.querySelector('.btn-add-large');
+  if (button) { button.disabled = true; button.textContent = 'Adding...'; }
+  try {
+    const response = await fetch('/api/cart/add', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        product_id: currentProduct.id,
+        variant_id: variantId,
+        quantity: detailQty
+      })
     });
-  }
+    const result = await response.json().catch(() => ({}));
+    if (response.status === 401 || response.status === 403) {
+      queueProductForCartAfterAuth();
+      return;
+    }
+    if (!response.ok || !result.success) {
+      throw new Error(result.error || 'Could not add this product to your cart.');
+    }
 
-  saveCart(cart);
-  updateCartBadge();
-  showToast(`\u2212 Added ${detailQty} "${currentProduct.name}" (${variantName}) to cart!`, 'success');
-  detailQty = 1;
-  const span = document.getElementById('detailQty');
-  if (span) span.textContent = '1';
-  selectColour(selectedColourKey, { force: true });
+    const savedItem = result.item;
+    const cart = getCart();
+  const existing = cart.find(item =>
+      Number(item.id) === Number(savedItem.id) &&
+      (item.variant_id || null) === (savedItem.variant_id || null)
+  );
+    if (existing) Object.assign(existing, savedItem);
+    else cart.push(savedItem);
+    saveCart(cart);
+    updateCartBadge();
+    showToast(`Added ${detailQty} "${currentProduct.name}" (${variantName}) to cart.`, 'success');
+    clearProductCartIntentFromUrl();
+    detailQty = 1;
+    const span = document.getElementById('detailQty');
+    if (span) span.textContent = '1';
+    selectColour(selectedColourKey, { force: true });
+  } catch (error) {
+    clearProductCartIntentFromUrl();
+    if (typeof showToast === 'function') showToast(error.message || 'Unable to add this product.', 'error');
+    else window.alert(error.message || 'Unable to add this product.');
+  } finally {
+    if (button && document.body.contains(button)) {
+      button.disabled = false;
+      button.textContent = getCart().some(item => Number(item.id) === Number(currentProduct.id)) ? 'Add More' : 'Add to Cart';
+    }
+  }
 }
 
-function buyNow() {
+function queueProductForCartAfterAuth() {
+  try {
+    const returnUrl = new URL(window.location.href);
+    returnUrl.searchParams.set('cartAdd', '1');
+    returnUrl.searchParams.set('cartQty', String(detailQty));
+    localStorage.setItem('postLoginReturnToProduct', returnUrl.pathname + returnUrl.search + returnUrl.hash);
+  } catch (_) {}
+  window.location.assign('/marketplace?auth=register');
+}
+
+function clearProductCartIntentFromUrl() {
+  const url = new URL(window.location.href);
+  url.searchParams.delete('cartAdd');
+  url.searchParams.delete('cartQty');
+  window.history.replaceState({}, '', url.pathname + url.search + url.hash);
+}
+
+function resumeProductCartIntent() {
+  const url = new URL(window.location.href);
+  if (url.searchParams.get('cartAdd') !== '1') return;
+  if (localStorage.getItem('resumePostLoginCartAdd') !== '1') {
+    clearProductCartIntentFromUrl();
+    return;
+  }
+  localStorage.removeItem('resumePostLoginCartAdd');
+  const pendingProductId = Number(url.searchParams.get('id'));
+  if (!currentProduct || pendingProductId !== Number(currentProduct.id)) {
+    clearProductCartIntentFromUrl();
+    return;
+  }
+  const quantity = Number.parseInt(url.searchParams.get('cartQty'), 10);
+  detailQty = Number.isFinite(quantity) ? Math.max(1, Math.min(quantity, 99)) : 1;
+  const quantityLabel = document.getElementById('detailQty');
+  if (quantityLabel) quantityLabel.textContent = String(detailQty);
   addVariantToCart();
-  window.location.href = '/cart.html';
 }
 
 // ============================================================
@@ -924,7 +1014,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (!isLoggedIn) {
     ['productHeaderCart', 'productNavCart'].forEach(id => {
       const item = document.getElementById(id);
-      if (item) item.href = '/?auth=login&next=cart';
+      if (item) item.href = '/marketplace?auth=login&next=cart';
     });
   }
   loadProductDetail();
@@ -939,7 +1029,6 @@ window.selectColour = selectColour;
 window.stepColourGallery = stepColourGallery;
 window.changeDetailQty = changeDetailQty;
 window.addVariantToCart = addVariantToCart;
-window.buyNow = buyNow;
 window.loadProductDetail = loadProductDetail;
 window.fallbackMediaUrl = fallbackMediaUrl;
 window.filterRelatedProducts = filterRelatedProducts;
@@ -1548,3 +1637,126 @@ function stepProductByDirection(direction) {
 
   swapToProduct(target.id);
 }
+
+/* Full-screen product media viewer. Reuses the detail API media and the
+   existing variant/sibling navigation so admin-uploaded media stays in sync. */
+(function installProductMediaViewer() {
+  let overlay;
+  let previousOverflow = '';
+
+  function mediaSource(node) {
+    if (!node) return null;
+    if (node.tagName === 'VIDEO') {
+      const source = node.querySelector('source');
+      return { kind: 'video', src: node.currentSrc || (source && source.src) || node.src, poster: node.poster || '' };
+    }
+    if (node.tagName === 'IMG') return { kind: 'image', src: node.currentSrc || node.src, alt: node.alt || (currentProduct && currentProduct.name) || 'Product image' };
+    return null;
+  }
+
+  function showCurrentMedia() {
+    if (!overlay) return;
+    const stage = overlay.querySelector('.product-media-viewer__stage');
+    const host = document.getElementById('detailMainMedia');
+    const node = host && host.querySelector('img, video');
+    const media = mediaSource(node);
+    stage.replaceChildren();
+    if (!media || !media.src) {
+      const message = document.createElement('p');
+      message.textContent = 'Product media is unavailable.';
+      stage.appendChild(message);
+      return;
+    }
+    const full = document.createElement(media.kind === 'video' ? 'video' : 'img');
+    full.className = 'product-media-viewer__media';
+    if (media.kind === 'video') {
+      full.src = media.src;
+      full.poster = media.poster;
+      full.controls = true;
+      full.playsInline = true;
+    } else {
+      full.src = media.src;
+      full.alt = media.alt;
+      full.draggable = false;
+    }
+    stage.appendChild(full);
+    const title = overlay.querySelector('.product-media-viewer__title');
+    const tile = typeof getSelectedTile === 'function' ? getSelectedTile() : null;
+    title.textContent = [currentProduct && currentProduct.name, tile && tile.name && tile.key !== 'parent' ? tile.name : ''].filter(Boolean).join(' · ');
+  }
+
+  function close() {
+    if (!overlay) return;
+    overlay.hidden = true;
+    document.body.style.overflow = previousOverflow;
+  }
+
+  function updateViewerArrows() {
+    if (!overlay) return;
+    const variantCount = Array.isArray(colourTiles) && colourTiles.length > 1;
+    const variantIndex = variantCount ? colourTiles.findIndex(item => item.key === selectedColourKey) : -1;
+    const products = window.__productSwipeList || [];
+    const productIndex = products.findIndex(item => String(item.id) === String(productId));
+    overlay.querySelector('.product-media-viewer__up').disabled = !variantCount || variantIndex <= 0;
+    overlay.querySelector('.product-media-viewer__down').disabled = !variantCount || variantIndex >= colourTiles.length - 1;
+    overlay.querySelector('.product-media-viewer__left').disabled = productIndex <= 0;
+    overlay.querySelector('.product-media-viewer__right').disabled = productIndex < 0 || productIndex >= products.length - 1;
+  }
+
+  function open() {
+    if (!overlay) {
+      overlay = document.createElement('div');
+      overlay.className = 'product-media-viewer';
+      overlay.id = 'productMediaViewer';
+      overlay.hidden = true;
+      overlay.setAttribute('role', 'dialog');
+      overlay.setAttribute('aria-modal', 'true');
+      overlay.setAttribute('aria-label', 'Full-size product media');
+      overlay.innerHTML = '<button type="button" class="product-media-viewer__close" aria-label="Close full-size media">×</button>' +
+        '<div class="product-media-viewer__title"></div><div class="product-media-viewer__stage"></div>' +
+        '<button type="button" class="product-media-viewer__arrow product-media-viewer__up" aria-label="Previous variant">↑</button>' +
+        '<button type="button" class="product-media-viewer__arrow product-media-viewer__down" aria-label="Next variant">↓</button>' +
+        '<button type="button" class="product-media-viewer__arrow product-media-viewer__left" aria-label="Previous product">‹</button>' +
+        '<button type="button" class="product-media-viewer__arrow product-media-viewer__right" aria-label="Next product">›</button>';
+      document.body.appendChild(overlay);
+      overlay.querySelector('.product-media-viewer__close').addEventListener('click', close);
+      overlay.addEventListener('click', event => { if (event.target === overlay) close(); });
+      overlay.querySelector('.product-media-viewer__up').addEventListener('click', () => stepVariantByDirection(-1));
+      overlay.querySelector('.product-media-viewer__down').addEventListener('click', () => stepVariantByDirection(1));
+      overlay.querySelector('.product-media-viewer__left').addEventListener('click', () => stepProductByDirection(-1));
+      overlay.querySelector('.product-media-viewer__right').addEventListener('click', () => stepProductByDirection(1));
+      overlay.addEventListener('keydown', event => {
+        if (event.key === 'Escape') close();
+        if (event.key === 'ArrowUp') stepVariantByDirection(-1);
+        if (event.key === 'ArrowDown') stepVariantByDirection(1);
+        if (event.key === 'ArrowLeft') stepProductByDirection(-1);
+        if (event.key === 'ArrowRight') stepProductByDirection(1);
+      });
+    }
+    if (overlay.hidden) previousOverflow = document.body.style.overflow;
+    overlay.hidden = false;
+    document.body.style.overflow = 'hidden';
+    showCurrentMedia();
+    updateViewerArrows();
+    if (document.activeElement !== overlay.querySelector('.product-media-viewer__close')) {
+      overlay.querySelector('.product-media-viewer__close').focus();
+    }
+  }
+
+  document.addEventListener('click', event => {
+    const host = event.target.closest && event.target.closest('#detailMainMedia');
+    if (!host || event.target.closest('button')) return;
+    if (event.target.matches('img, video') || event.target.closest('img, video')) open();
+  });
+  document.addEventListener('keydown', event => { if (event.key === 'Escape' && overlay && !overlay.hidden) close(); });
+  const observer = new MutationObserver(() => {
+    if (overlay && !overlay.hidden) {
+      showCurrentMedia();
+      updateViewerArrows();
+    }
+  });
+  document.addEventListener('DOMContentLoaded', () => {
+    const root = document.getElementById('productDetail') || document.body;
+    observer.observe(root, { childList: true, subtree: true });
+  }, { once: true });
+})();

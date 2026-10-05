@@ -305,6 +305,7 @@ router.get('/:id/detail', async (req, res) => {
              b.instagram AS business_instagram, b.facebook AS business_facebook,
              b.phone AS business_phone, b.email AS business_email,
              b.website AS business_website,
+             b.return_policy AS business_return_policy,
              b.online_orders_enabled,
              b.order_disabled_message
       FROM products p

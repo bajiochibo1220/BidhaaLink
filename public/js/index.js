@@ -1481,17 +1481,11 @@ function formatProductPrice(price) {
 }
 
 function getBusinessSellsLabel(business) {
-  if (!business || !Array.isArray(business.product_matches) || business.product_matches.length === 0) {
-    return null;
-  }
-  const first = business.product_matches[0];
+  if (!business) return null;
+  const first = Array.isArray(business.product_matches) ? business.product_matches[0] : null;
 
-  const word = String(
-    business.matched_word ||
-    (first && first.matched_word) ||
-    (first && first.product_name) ||
-    ''
-  ).trim();
+  if (business.search_mode === 'tag' || business.search_tag_match === true) return null;
+  const word = String((first && first.matched_word) || business.matched_word || '').trim();
 
   if (!word) return null;
   return word;
@@ -1872,7 +1866,6 @@ function renderBusinessTicker(business) {
  * full text is longer than this many characters. Anything shorter
  * is already fully visible in two lines and does not need a link.
  */
-const CARD_DESCRIPTION_MORE_THRESHOLD = 100;
 
 /**
  * Render the description block for a business card.
@@ -1892,13 +1885,7 @@ function renderBusinessCardDescription(business) {
 
   if (!trimmed) return '';
 
-  const needsToggle = trimmed.length > CARD_DESCRIPTION_MORE_THRESHOLD;
-
   const safe = escapeProductText(trimmed);
-
-  if (!needsToggle) {
-    return `<div class="business-description">${safe}</div>`;
-  }
 
   return `
     <div class="business-description clamped" data-description="1">${safe}</div>
@@ -2011,11 +1998,8 @@ function renderBusinessCardShared(business, options) {
     : '';
 
   // ---- Description vs ticker ---------------------------------
-  const hasTicker = getTickerNamesForBusiness(business).length > 0;
-
-  const descriptionOrTicker = hasTicker
-    ? renderBusinessTicker(business)
-    : renderBusinessCardDescription(business);
+  const businessTickerHtml = renderBusinessTicker(business);
+  const businessDescriptionHtml = renderBusinessCardDescription(business);
 
   // ---- Stats --------------------------------------------------
   const productCountRaw = parseInt(business.product_count, 10);
@@ -2047,7 +2031,7 @@ function renderBusinessCardShared(business, options) {
   const sellsBannerHtml = sellsWord
     ? `<div class="business-sells-banner" title="This shop sells a product that matches your search">
          <span class="business-sells-dot" aria-hidden="true"></span>
-         <span class="business-sells-text">SELLS: ${escapeProductText(sellsWord)}</span>
+         <span class="business-sells-text">SELLS <span class="business-sells-query">${escapeProductText(sellsWord)}</span></span>
        </div>`
     : '';
 
@@ -2072,12 +2056,13 @@ function renderBusinessCardShared(business, options) {
         </div>
       </div>
       <div class="${bodyClass}">
-        ${sellsBannerHtml}
-        <div class="${nameClass}">${escapeProductText(business.business_name)}</div>
         ${searchTagChip}
+        ${businessTickerHtml}
+        <div class="${nameClass}">${escapeProductText(business.business_name)}</div>
         <div class="${locationClass}">📍 ${escapeProductText(business.location || 'Kenya')}</div>
         ${distanceBadge}
-        ${descriptionOrTicker}
+        ${businessDescriptionHtml}
+        ${sellsBannerHtml}
         <div class="${statsClass}">
           <span>🛍️ ${productCount} ${size === 'block' ? '' : 'products'}</span>
           <span>👥 ${followerCount} ${size === 'block' ? '' : 'followers'}</span>
@@ -2388,6 +2373,13 @@ async function handleLogin() {
         closeAuthModal();
         showToast('✅ Welcome back, ' + (data.customer?.name || data.name || 'User') + '!', 'success');
         checkAuthState();
+        const returnToProduct = localStorage.getItem('postLoginReturnToProduct');
+        if (returnToProduct && returnToProduct.startsWith('/product-detail.html')) {
+          localStorage.removeItem('postLoginReturnToProduct');
+          localStorage.setItem('resumePostLoginCartAdd', '1');
+          window.location.assign(returnToProduct);
+          return;
+        }
         if (localStorage.getItem('postLoginDestination') === 'cart') {
           localStorage.removeItem('postLoginDestination');
           window.location.assign('/cart.html');
@@ -2516,6 +2508,13 @@ async function handleCustomerRegister() {
       }
 
       checkAuthState();
+      const returnToProduct = localStorage.getItem('postLoginReturnToProduct');
+      if (returnToProduct && returnToProduct.startsWith('/product-detail.html')) {
+        localStorage.removeItem('postLoginReturnToProduct');
+        localStorage.setItem('resumePostLoginCartAdd', '1');
+        window.location.assign(returnToProduct);
+        return;
+      }
     } else {
       status.textContent = '❌ ' + (data.error || 'Registration failed');
       status.className = 'auth-status error';

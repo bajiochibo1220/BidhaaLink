@@ -2095,7 +2095,7 @@ router.post('/products', authMiddleware, businessAdminOnly, getBusinessIdFromTok
                 isFlashSale === 'true' || isFlashSale === true,
                 isNewArrival === 'true' || isNewArrival === true,
                 image, video,
-                description || null, parseInt(stock) || 0,
+                description ? String(description).slice(0, 180) : null, parseInt(stock) || 0,
                 req.businessId, true, JSON.stringify(images), JSON.stringify(videos)
             ]);
 
@@ -2298,7 +2298,7 @@ router.put('/products/:id', authMiddleware, businessAdminOnly, getBusinessIdFrom
                 isNewArrival === 'true' || isNewArrival === true,
                 image,
                 video,
-                description || null,
+                description ? String(description).slice(0, 180) : null,
                 parseInt(stock) || 0,
                 is_active !== 'false',
                 is_featured === 'true' || is_featured === true,
@@ -2436,7 +2436,7 @@ router.post('/products/batch', authMiddleware, businessAdminOnly, getBusinessIdF
                  VALUES ($1, $2, $3, $4, $5, $6, $7, $8, true) RETURNING *`,
                 [String(product.name).trim(), product.price, product.old_price || null, product.category || null,
                     parseInt(product.product_category_id, 10),
-                    product.description || null, Number.parseInt(product.stock, 10) || 0, req.businessId]
+                    product.description ? String(product.description).slice(0, 180) : null, Number.parseInt(product.stock, 10) || 0, req.businessId]
             );
             created.push(result.rows[0]);
         }
@@ -3053,7 +3053,7 @@ router.get('/order-settings', authMiddleware, businessAdminOnly, getBusinessIdFr
             status_received: settings.status_received || '✔️ You have confirmed receipt. Thank you!',
             status_cancelled: settings.status_cancelled || '❌ This order has been cancelled.',
             status_completed: settings.status_completed || '✅ Order completed. Thank you for shopping!',
-            return_policy: settings.return_policy || 'Returns accepted within 14 days of delivery. Products must be in original condition.',
+            return_policy: settings.return_policy || null,
             return_window_days: settings.return_window_days || 14,
             online_payment_enabled: settings.online_payment_enabled !== false,
             payment_on_delivery_enabled: settings.payment_on_delivery_enabled === true,

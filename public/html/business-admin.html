@@ -825,7 +825,7 @@
               
               <div><label>Badge 1</label><input type="text" id="pBadge1" name="badge1" placeholder="Brand Official"></div>
               <div><label>Badge 2</label><input type="text" id="pBadge2" name="badge2" placeholder="Fulfilled By Kilimall"></div>
-              <div class="full"><label>Description</label><textarea id="pDescription" name="description" rows="3"></textarea></div>
+              <div class="full"><label>Description</label><textarea id="pDescription" name="description" rows="3" maxlength="180" placeholder="Describe this product (180 characters maximum)"></textarea></div>
               <div class="full checkbox-group">
                 <label><input type="checkbox" id="pFlashSale" name="isFlashSale"> 🔥 Flash Sale</label>
                 <label><input type="checkbox" id="pNewArrival" name="isNewArrival"> 🆕 New Arrival</label>
@@ -1701,8 +1701,8 @@
               </div>
 
               <div style="margin-top:12px;">
-                <label style="font-weight:600; font-size:0.85rem; display:block; margin-bottom:4px;">🔄 Return Policy</label>
-                <textarea id="orderReturnPolicy" rows="2" placeholder="Returns accepted within 14 days of delivery. Products must be in original condition." style="width:100%; padding:8px 12px; border:1px solid #d1d5db; border-radius:6px; font-family:inherit; font-size:0.9rem; resize:vertical;"></textarea>
+                <label style="font-weight:600; font-size:0.85rem; display:block; margin-bottom:4px;">🔄 Business return policy (applies to all products)</label>
+                <textarea id="orderReturnPolicy" rows="2" placeholder="Write your return policy. Leave blank to ask customers to contact you." style="width:100%; padding:8px 12px; border:1px solid #d1d5db; border-radius:6px; font-family:inherit; font-size:0.9rem; resize:vertical;"></textarea>
               </div>
 
             </div>

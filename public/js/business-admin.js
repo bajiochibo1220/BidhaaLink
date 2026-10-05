@@ -252,7 +252,7 @@ let orderSettings = {
     status_received: '✔️ You have confirmed receipt. Thank you!',
     status_cancelled: '❌ This order has been cancelled.',
     status_completed: '✅ Order completed. Thank you for shopping!',
-    return_policy: 'Returns accepted within 14 days of delivery. Products must be in original condition.',
+    return_policy: '',
     return_window_days: 14,
     online_payment_enabled: true,
     payment_on_delivery_enabled: false,
@@ -2577,6 +2577,8 @@ document.getElementById('productForm')?.addEventListener('submit', async functio
     }
 
     const formData = new FormData(this);
+    const descriptionInput = document.getElementById('pDescription');
+    if (descriptionInput) formData.set('description', descriptionInput.value.slice(0, 180));
         // Primary colour of the parent product. Sent as the `color` field.
     const parentColor = (document.getElementById('pColor')?.value || '').trim();
     formData.set('color', parentColor);
@@ -3461,7 +3463,7 @@ async function loadOrderSettings() {
         document.getElementById('orderStatusReceived').value = settings.status_received || '✔️ You have confirmed receipt. Thank you!';
         document.getElementById('orderStatusCancelled').value = settings.status_cancelled || '❌ This order has been cancelled.';
         document.getElementById('orderStatusCompleted').value = settings.status_completed || '✅ Order completed. Thank you for shopping!';
-        document.getElementById('orderReturnPolicy').value = settings.return_policy || 'Returns accepted within 14 days of delivery. Products must be in original condition.';
+        document.getElementById('orderReturnPolicy').value = settings.return_policy || '';
         document.getElementById('orderReturnWindow').value = settings.return_window_days || 14;
 
         const showCartEl = document.getElementById('showCartWhenDisabled');
