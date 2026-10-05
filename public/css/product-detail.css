@@ -427,6 +427,33 @@
   border-bottom: 1px solid #e8ecf1;
 }
 
+.related-description {
+  margin: 4px 0 5px;
+  color: #64748b;
+  font-size: .72rem;
+  line-height: 1.4;
+}
+.related-description-text {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+}
+.related-description.is-expanded .related-description-text {
+  display: block;
+  -webkit-line-clamp: unset;
+}
+.related-description-toggle {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: #9a4a0a;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
 .detail-info .services span {
   font-weight: 600;
   color: #0f172a;

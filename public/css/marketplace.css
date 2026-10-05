@@ -41,7 +41,19 @@
 .app-container {
   display: flex;
   min-height: 100vh;
-  background: #f1f5f9;
+  background-color: #e8d8b5;
+  background-image:
+    repeating-linear-gradient(45deg, transparent 0 35px, rgba(139, 105, 58, .09) 35px 36px, transparent 36px 70px),
+    repeating-linear-gradient(-45deg, transparent 0 35px, rgba(139, 105, 58, .09) 35px 36px, transparent 36px 70px);
+  background-size: 70px 70px, 70px 70px;
+}
+
+body.index-body {
+  background-color: #e8d8b5;
+  background-image:
+    repeating-linear-gradient(45deg, transparent 0 35px, rgba(139, 105, 58, .09) 35px 36px, transparent 36px 70px),
+    repeating-linear-gradient(-45deg, transparent 0 35px, rgba(139, 105, 58, .09) 35px 36px, transparent 36px 70px);
+  background-size: 70px 70px, 70px 70px;
 }
 
 /* ============================================================
@@ -277,6 +289,7 @@
   max-width: 1400px;
   margin: 0 auto;
   width: 100%;
+  background: transparent;
 }
 
 /* ============================================================

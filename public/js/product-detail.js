@@ -522,6 +522,7 @@ function renderDetail(product, related) {
         ${p.image ? `<img src="${p.image}" alt="${p.name}">` : `<div class="no-image">\u2705??</div>`}
         <div class="related-info">
           <div class="related-name">${p.name}</div>
+          ${p.description ? `<div class="related-description"><span class="related-description-text">${escapeProductCardText(p.description)}</span>${String(p.description).length > 110 ? '<button type="button" class="related-description-toggle" aria-expanded="false" onclick="event.stopPropagation(); toggleRelatedDescription(this)">More</button>' : ''}</div>` : ''}
           <div class="related-price">${p.price}</div>
         </div>
       </div>
@@ -617,6 +618,18 @@ function renderDetail(product, related) {
 
   if (typeof writeVariantToUrl === 'function') writeVariantToUrl(tile);
   if (typeof renderMixedMediaToggle === 'function') renderMixedMediaToggle(tile);
+}
+
+function escapeProductCardText(value) {
+  return String(value).replace(/[&<>"']/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[character]));
+}
+
+function toggleRelatedDescription(button) {
+  const description = button.closest('.related-description');
+  if (!description) return;
+  const expanded = description.classList.toggle('is-expanded');
+  button.textContent = expanded ? 'Less' : 'More';
+  button.setAttribute('aria-expanded', expanded ? 'true' : 'false');
 }
 
 // ============================================================

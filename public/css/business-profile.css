@@ -49,6 +49,14 @@
     a paused video poster looking clean.
    ============================================================ */
 
+body.index-body {
+  background-color: #e8d8b5;
+  background-image:
+    repeating-linear-gradient(45deg, transparent 0 35px, rgba(139, 105, 58, .09) 35px 36px, transparent 36px 70px),
+    repeating-linear-gradient(-45deg, transparent 0 35px, rgba(139, 105, 58, .09) 35px 36px, transparent 36px 70px);
+  background-size: 70px 70px, 70px 70px;
+}
+
 /* ===== BACK LINK TO MARKETPLACE ===== */
 .back-link {
   display: inline-block;
@@ -929,6 +937,35 @@
   -webkit-box-orient: vertical;
   overflow: hidden;
   margin-bottom: 2px;
+}
+
+.product-card .product-description,
+.product-card .product-description-text {
+  color: #64748b;
+  font-size: .72rem;
+  line-height: 1.4;
+}
+.product-card .product-description { margin: 5px 0 8px; }
+.product-card .product-description-text {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+}
+.product-card .product-description.is-expanded .product-description-text {
+  display: block;
+  -webkit-line-clamp: unset;
+}
+.product-card .product-description-toggle {
+  display: inline;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: #9a4a0a;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
 }
 
 .product-card .product-price {

@@ -947,6 +947,13 @@ function renderBusinessProductGrid(products) {
             ? '<div class="product-category-chip" title="' + p.product_category_name + '">' + (p.product_category_icon || '??') + ' ' + p.product_category_name + '</div>'
             : '';
 
+        const description = String(p.description || '').trim();
+        const descriptionHtml = description
+            ? '<div class="product-description"><span class="product-description-text">' + escapeBusinessProductText(description) + '</span>'
+                + (description.length > 110 ? '<button type="button" class="product-description-toggle" aria-expanded="false" onclick="event.stopPropagation(); toggleBusinessProductDescription(this)">More</button>' : '')
+                + '</div>'
+            : '';
+
         return '<div class="product-card">'
             + '<div class="media-wrap" onclick="location.href=\'/product-detail.html?id=' + p.id + '&business=' + businessSlug + '\'">'
             + imageHtml
@@ -959,6 +966,7 @@ function renderBusinessProductGrid(products) {
             + '<div class="info">'
             + '<div class="name">' + p.name + ' ' + (inCart ? '<span class="green-tick">?</span>' : '') + '</div>'
             + categoryHtml
+            + descriptionHtml
             + '<div class="price">' + p.price + '</div>'
             + ratingHtml
             + '<div class="actions">'
@@ -974,6 +982,18 @@ function renderBusinessProductGrid(products) {
             + '</div>'
             + '</div>';
     }).join('');
+}
+
+function escapeBusinessProductText(value) {
+    return String(value).replace(/[&<>"']/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[character]));
+}
+
+function toggleBusinessProductDescription(button) {
+    const description = button.closest('.product-description');
+    if (!description) return;
+    const expanded = description.classList.toggle('is-expanded');
+    button.textContent = expanded ? 'Less' : 'More';
+    button.setAttribute('aria-expanded', expanded ? 'true' : 'false');
 }
 
 function changeBusinessCardQty(productId, delta) {
