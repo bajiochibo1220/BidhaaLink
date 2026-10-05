@@ -655,33 +655,47 @@ router.get('/profile', authMiddleware, businessAdminOnly, getBusinessIdFromToken
     try {
         console.log('📊 Fetching business profile for ID:', req.businessId);
 
-        const result = await pool.query(`
-            SELECT b.*,
-                (SELECT COUNT(*) FROM products WHERE business_id = b.id AND is_active = true) as product_count,
-                (SELECT COUNT(*) FROM orders WHERE business_id = b.id) as order_count,
-                (SELECT COALESCE(SUM(total), 0) FROM orders WHERE business_id = b.id AND status IN ('confirmed', 'shipped', 'delivered', 'received', 'completed')) as total_revenue
-            FROM businesses b
-            WHERE b.id = $1 AND b.is_active = true
-        `, [req.businessId]);
+        const result = await pool.query(
+            'SELECT b.* FROM businesses b WHERE b.id = $1 AND b.is_active = true',
+            [req.businessId]
+        );
 
         if (result.rows.length === 0) {
             return res.status(404).json({ error: 'Business not found' });
         }
 
-        const stats = await pool.query(
-            'SELECT * FROM business_stats WHERE business_id = $1',
-            [req.businessId]
-        );
+        // These summaries are useful to other admin clients, but profile
+        // editing must still load if either optional summary table is absent
+        // or temporarily unavailable (for example during a migration).
+        const [stats, categories, counts] = await Promise.all([
+            pool.query('SELECT * FROM business_stats WHERE business_id = $1', [req.businessId])
+                .catch(err => {
+                    console.warn('Business profile stats unavailable:', err.message);
+                    return { rows: [] };
+                }),
+            pool.query(`
+                SELECT c.id, c.name, c.slug, c.icon
+                FROM business_categories c
+                JOIN business_category_assignments bca ON bca.category_id = c.id
+                WHERE bca.business_id = $1
+                ORDER BY c.name
+            `, [req.businessId]).catch(err => {
+                console.warn('Business profile categories unavailable:', err.message);
+                return { rows: [] };
+            }),
+            pool.query(`
+                SELECT
+                    (SELECT COUNT(*) FROM products WHERE business_id = $1 AND is_active = true) AS product_count,
+                    (SELECT COUNT(*) FROM orders WHERE business_id = $1) AS order_count,
+                    (SELECT COALESCE(SUM(total), 0) FROM orders WHERE business_id = $1
+                     AND status IN ('confirmed', 'shipped', 'delivered', 'received', 'completed')) AS total_revenue
+            `, [req.businessId]).catch(err => {
+                console.warn('Business profile counts unavailable:', err.message);
+                return { rows: [] };
+            })
+        ]);
 
-        const categories = await pool.query(`
-            SELECT c.id, c.name, c.slug, c.icon
-            FROM business_categories c
-            JOIN business_category_assignments bca ON bca.category_id = c.id
-            WHERE bca.business_id = $1
-            ORDER BY c.name
-        `, [req.businessId]);
-
-        const business = result.rows[0];
+        const business = { ...result.rows[0], ...(counts.rows?.[0] || {}) };
 
         // C.8 / C.9 — expose activation + completeness flags explicitly
         // so the frontend does not have to re-derive them.
@@ -716,8 +730,8 @@ router.get('/profile', authMiddleware, businessAdminOnly, getBusinessIdFromToken
                 latitude: business.latitude || null,
                 longitude: business.longitude || null
             },
-            stats: stats.rows[0] || {},
-            categories: categories.rows
+            stats: stats.rows?.[0] || {},
+            categories: Array.isArray(categories.rows) ? categories.rows : []
         });
     } catch (err) {
         console.error('❌ Get business profile error:', err);

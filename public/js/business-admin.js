@@ -2823,13 +2823,15 @@ async function deleteProduct(id) {
 
 async function loadBusinessProfile() {
     if (!businessData) return;
+    const profileStatus = document.getElementById('profileStatus');
+    if (profileStatus) profileStatus.textContent = '';
 
     try {
         const res = await fetch('/api/business-admin/profile', {
             headers: { 'Authorization': `Bearer ${token}` }
         });
-        if (!res.ok) throw new Error('Failed to load profile');
         const data = await res.json();
+        if (!res.ok) throw new Error(data?.error || `Failed to load profile (${res.status})`);
         const business = data?.business;
         if (!business || typeof business !== 'object') {
             throw new Error(data?.error || 'Business profile data is missing. Please reload and try again.');
@@ -2911,7 +2913,11 @@ async function loadBusinessProfile() {
 
     } catch (err) {
         console.error('❌ Profile error:', err);
-        alert('Error loading profile');
+        const status = document.getElementById('profileStatus');
+        if (status) {
+            status.textContent = `Could not load profile details: ${err.message || 'Please try again.'}`;
+            status.style.color = '#b91c1c';
+        }
     }
 }
 
