@@ -522,6 +522,7 @@ function renderDetail(product, related) {
         ${p.image ? `<img src="${p.image}" alt="${p.name}">` : `<div class="no-image">\u2705??</div>`}
         <div class="related-info">
           <div class="related-name">${p.name}</div>
+          ${p.product_category_name ? `<div class="related-category">${p.product_category_icon || '📦'} ${escapeProductCardText(p.product_category_name)}</div>` : ''}
           ${p.description ? `<div class="related-description"><span class="related-description-text">${escapeProductCardText(p.description)}</span><button type="button" class="related-description-toggle" aria-expanded="false" onclick="event.stopPropagation(); toggleRelatedDescription(this)">More</button></div>` : ''}
           <div class="related-price">${p.price}</div>
         </div>
