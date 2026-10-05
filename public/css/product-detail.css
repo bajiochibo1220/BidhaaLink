@@ -957,6 +957,26 @@
   }
 }
 
+@media (max-width: 480px) {
+  .related-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .related-item img,
+  .related-item .no-image {
+    height: 110px;
+  }
+  .related-item .related-info {
+    padding: 8px 8px 10px;
+  }
+  .related-item .related-name {
+    font-size: .75rem;
+  }
+  .related-item .related-price {
+    font-size: .8rem;
+  }
+}
+
 /* ============================================================
    HEADER
    ============================================================ */
