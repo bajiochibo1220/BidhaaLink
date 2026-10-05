@@ -950,7 +950,7 @@ function renderBusinessProductGrid(products) {
         const description = String(p.description || '').trim();
         const descriptionHtml = description
             ? '<div class="product-description"><span class="product-description-text">' + escapeBusinessProductText(description) + '</span>'
-                + (description.length > 110 ? '<button type="button" class="product-description-toggle" aria-expanded="false" onclick="event.stopPropagation(); toggleBusinessProductDescription(this)">More</button>' : '')
+                + '<button type="button" class="product-description-toggle" aria-expanded="false" onclick="event.stopPropagation(); toggleBusinessProductDescription(this)" hidden>More</button>'
                 + '</div>'
             : '';
 
@@ -982,6 +982,12 @@ function renderBusinessProductGrid(products) {
             + '</div>'
             + '</div>';
     }).join('');
+
+    grid.querySelectorAll('.product-description').forEach(description => {
+        const text = description.querySelector('.product-description-text');
+        const toggle = description.querySelector('.product-description-toggle');
+        if (text && toggle) toggle.hidden = text.scrollHeight > text.clientHeight + 1;
+    });
 }
 
 function escapeBusinessProductText(value) {

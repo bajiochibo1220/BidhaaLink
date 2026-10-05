@@ -453,6 +453,7 @@
   font-weight: 700;
   cursor: pointer;
 }
+.related-description-toggle[hidden] { display: none; }
 
 .detail-info .services span {
   font-weight: 600;

@@ -522,7 +522,7 @@ function renderDetail(product, related) {
         ${p.image ? `<img src="${p.image}" alt="${p.name}">` : `<div class="no-image">\u2705??</div>`}
         <div class="related-info">
           <div class="related-name">${p.name}</div>
-          ${p.description ? `<div class="related-description"><span class="related-description-text">${escapeProductCardText(p.description)}</span>${String(p.description).length > 110 ? '<button type="button" class="related-description-toggle" aria-expanded="false" onclick="event.stopPropagation(); toggleRelatedDescription(this)">More</button>' : ''}</div>` : ''}
+          ${p.description ? `<div class="related-description"><span class="related-description-text">${escapeProductCardText(p.description)}</span><button type="button" class="related-description-toggle" aria-expanded="false" onclick="event.stopPropagation(); toggleRelatedDescription(this)" hidden>More</button></div>` : ''}
           <div class="related-price">${p.price}</div>
         </div>
       </div>
@@ -615,6 +615,11 @@ function renderDetail(product, related) {
   renderThankYouBand(product);
   wireColourGallery();
   updateArrowsVisibility();
+  document.querySelectorAll('.related-description').forEach(description => {
+    const text = description.querySelector('.related-description-text');
+    const toggle = description.querySelector('.related-description-toggle');
+    if (text && toggle) toggle.hidden = text.scrollHeight > text.clientHeight + 1;
+  });
 
   if (typeof writeVariantToUrl === 'function') writeVariantToUrl(tile);
   if (typeof renderMixedMediaToggle === 'function') renderMixedMediaToggle(tile);

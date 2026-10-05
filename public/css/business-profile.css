@@ -967,6 +967,7 @@ body.index-body {
   font-weight: 700;
   cursor: pointer;
 }
+.product-card .product-description-toggle[hidden] { display: none; }
 
 .product-card .product-price {
   font-weight: 700;
