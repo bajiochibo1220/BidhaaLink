@@ -880,7 +880,7 @@ body.index-body {
 
 .product-card .media-wrap {
   width: 100%;
-  height: 160px;
+  height: 200px;
   background: #f8fafc;
   overflow: hidden;
   position: relative;
@@ -928,6 +928,57 @@ body.index-body {
   padding: 10px 12px 12px;
 }
 
+.product-card-title-row {
+  display: block;
+  min-width: 0;
+  margin-bottom: 2px;
+}
+
+.product-card-title-row .name {
+  min-width: 0;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  min-height: 0;
+  margin: 0;
+}
+
+.product-card-price-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: nowrap;
+  gap: 8px;
+  min-width: 0;
+}
+
+.product-card-price-row .price {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* Category labels belong on category pages, not on individual shop tiles. */
+#productGrid .product-category-chip,
+#productGrid .related-category,
+#productGrid .product-match-category,
+#productGrid [class*="category-chip"] { display: none !important; }
+
+.product-card-price-row .product-description-toggle {
+  flex: 0 0 auto;
+  display: inline-block;
+  white-space: nowrap;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: #9a4a0a;
+  font: inherit;
+  font-size: .7rem;
+  font-weight: 700;
+  line-height: 1.2;
+  cursor: pointer;
+}
+
 .product-card .product-name {
   font-weight: 600;
   font-size: 0.85rem;
@@ -947,15 +998,11 @@ body.index-body {
 }
 .product-card .product-description { margin: 5px 0 8px; }
 .product-card .product-description-text {
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-  overflow: hidden;
+  display: none;
   overflow-wrap: anywhere;
 }
 .product-card .product-description.is-expanded .product-description-text {
   display: block;
-  -webkit-line-clamp: unset;
 }
 .product-card .product-description-toggle {
   display: inline;
@@ -1006,26 +1053,6 @@ body.index-body {
   padding: 1px 8px;
   border-radius: 10px;
   margin-top: 2px;
-}
-
-/* ============================================================
-   B.7 — Defined product-category chip on profile product cards
-   ============================================================ */
-.product-card .product-category-chip {
-  display: inline-block;
-  max-width: 100%;
-  margin: 2px 0 4px;
-  padding: 1px 8px;
-  border-radius: 10px;
-  background: #eff6ff;
-  color: #2563eb;
-  font-size: 0.55rem;
-  font-weight: 700;
-  letter-spacing: 0.02em;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  vertical-align: middle;
 }
 
 /* ===== CONTACT SECTION ===== */
@@ -1166,6 +1193,7 @@ body.index-body {
    RESPONSIVE
    ============================================================ */
 @media (max-width: 768px) {
+  .product-card .media-wrap { height: 180px; }
   .product-grid {
     grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
     gap: 10px;
@@ -1185,6 +1213,7 @@ body.index-body {
 }
 
 @media (max-width: 480px) {
+  .product-card .media-wrap { height: 160px; }
   .product-grid {
     grid-template-columns: 1fr 1fr;
     gap: 8px;

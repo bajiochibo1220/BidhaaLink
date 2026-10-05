@@ -948,16 +948,15 @@ function renderBusinessProductGrid(products) {
             : '';
 
         const ratingHtml = '';
-        const categoryHtml = p.product_category_name
-            ? '<div class="product-category-chip" title="' + p.product_category_name + '">' + (p.product_category_icon || '??') + ' ' + p.product_category_name + '</div>'
-            : '';
-
         const description = String(p.description || '').trim();
+        const titleHtml = '<div class="product-card-title-row"><div class="name">' + escapeBusinessProductText(p.name || '') + ' ' + (inCart ? '<span class="green-tick">?</span>' : '') + '</div>'
+            + '</div>';
         const descriptionHtml = description
-            ? '<div class="product-description"><span class="product-description-text">' + escapeBusinessProductText(description) + '</span>'
-                + '<button type="button" class="product-description-toggle" aria-expanded="false" onclick="event.stopPropagation(); toggleBusinessProductDescription(this)">More</button>'
-                + '</div>'
+            ? '<div class="product-description"><span class="product-description-text">' + escapeBusinessProductText(description) + '</span></div>'
             : '';
+        const priceHtml = '<div class="product-card-price-row"><div class="price">' + escapeBusinessProductText(p.price || '') + '</div>'
+            + (description ? '<button type="button" class="product-description-toggle" aria-expanded="false" onclick="event.stopPropagation(); toggleBusinessProductDescription(this)">More</button>' : '')
+            + '</div>';
 
         return '<div class="product-card">'
             + '<div class="media-wrap" onclick="location.href=\'/product-detail.html?id=' + p.id + '&business=' + businessSlug + '\'">'
@@ -970,10 +969,9 @@ function renderBusinessProductGrid(products) {
             + '<i id="bwishlist-icon-' + p.id + '" class="far fa-heart" onclick="event.stopPropagation(); toggleBusinessWishlist(' + p.id + ')" style="position:absolute; top:8px; left:8px; font-size:1.2rem; background:white; padding:4px; border-radius:50%; cursor:pointer; z-index:10;"></i>'
             + '</div>'
             + '<div class="info">'
-            + '<div class="name">' + p.name + ' ' + (inCart ? '<span class="green-tick">?</span>' : '') + '</div>'
-            + categoryHtml
+            + titleHtml
             + descriptionHtml
-            + '<div class="price">' + p.price + '</div>'
+            + priceHtml
             + ratingHtml
             + '<div class="actions">'
             + '<div class="qty-control">'
@@ -981,7 +979,7 @@ function renderBusinessProductGrid(products) {
             + '<span id="' + qtyId + '">1</span>'
             + '<button onclick="changeBusinessCardQty(' + p.id + ', 1)" ' + disabled + '>+</button>'
             + '</div>'
-            + '<button class="btn-add ' + btnClass + '" onclick="addBusinessCardToCart(' + p.id + ')" ' + disabled + '>'
+            + '<button class="btn-add ' + btnClass + '" onclick="addBusinessCardToCart(' + p.id + ', this)" ' + disabled + '>'
             + '<i class="fas fa-cart-plus"></i> ' + (onlineOrdersEnabled ? btnText : 'Not available')
             + '</button>'
             + '</div>'
@@ -1021,7 +1019,7 @@ function escapeBusinessProductText(value) {
 }
 
 function toggleBusinessProductDescription(button) {
-    const description = button.closest('.product-description');
+    const description = button.closest('.product-card')?.querySelector('.product-description');
     if (!description) return;
     const expanded = description.classList.toggle('is-expanded');
     button.textContent = expanded ? 'Less' : 'More';
@@ -1036,17 +1034,84 @@ function changeBusinessCardQty(productId, delta) {
     qtySpan.textContent = current;
 }
 
-function addBusinessCardToCart(productId) {
+function queueBusinessProductCartAfterAuth(productId, quantity) {
+    try {
+        const returnUrl = new URL('/product-detail.html', window.location.origin);
+        returnUrl.searchParams.set('id', String(productId));
+        if (businessData && businessData.slug) returnUrl.searchParams.set('business', businessData.slug);
+        returnUrl.searchParams.set('cartAdd', '1');
+        returnUrl.searchParams.set('cartProductId', String(productId));
+        returnUrl.searchParams.set('cartQty', String(quantity || 1));
+        localStorage.setItem('postLoginReturnToProduct', returnUrl.pathname + returnUrl.search);
+    } catch (error) {
+        console.error('Could not save the pending cart item:', error);
+    }
+    if (typeof window.openAuthModal === 'function') {
+        window.openAuthModal('login');
+    } else {
+        window.location.assign('/marketplace?auth=login');
+    }
+}
+
+async function addBusinessCardToCart(productId, button) {
     if (businessData && businessData.online_orders_enabled === false) {
         showToast('? This shop is not taking orders at the moment.', 'error');
         return;
     }
     const qtySpan = document.getElementById('bqty-' + productId);
     const qty = qtySpan ? parseInt(qtySpan.textContent) || 1 : 1;
-    if (typeof addToCart === 'function') {
-        addToCart(productId, qty);
+    const role = getViewerRole();
+    if (role === 'guest') {
+        queueBusinessProductCartAfterAuth(productId, qty);
+        return;
     }
-    if (qtySpan) qtySpan.textContent = '1';
+    if (role !== 'customer') {
+        showToast('Please use a customer account to add products to your cart.', 'error');
+        return;
+    }
+    const quantity = Math.max(1, Math.min(99, qty));
+    const originalButtonHtml = button ? button.innerHTML : '';
+    if (button) {
+        button.disabled = true;
+        button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Adding...';
+    }
+    try {
+        const response = await fetch('/api/cart/add', {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ product_id: Number(productId), variant_id: null, quantity })
+        });
+        const result = await response.json().catch(() => ({}));
+        if (response.status === 401) {
+            queueBusinessProductCartAfterAuth(productId, quantity);
+            return;
+        }
+        if (!response.ok || !result.success || !result.item) {
+            throw new Error(result.error || 'Unable to add this product to your cart.');
+        }
+
+        const cart = typeof getCart === 'function' ? getCart() : [];
+        const savedItem = result.item;
+        const existing = cart.find(item => Number(item.id) === Number(savedItem.id) && !(item.variant_id));
+        if (existing) Object.assign(existing, savedItem);
+        else cart.push(savedItem);
+        if (typeof saveCart === 'function') saveCart(cart);
+        if (qtySpan) qtySpan.textContent = '1';
+        if (button) {
+            button.classList.add('in-cart');
+            button.innerHTML = '<i class="fas fa-cart-plus"></i> Add More';
+        }
+        updateCartBadge();
+        showToast('Added to cart.', 'success');
+    } catch (error) {
+        showToast(error.message || 'Unable to add this product to your cart.', 'error');
+    } finally {
+        if (button && document.body.contains(button)) {
+            if (button.textContent.includes('Adding...')) button.innerHTML = originalButtonHtml;
+            button.disabled = false;
+        }
+    }
 }
 
 // ============================================================

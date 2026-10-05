@@ -265,7 +265,7 @@ function resolveVariant(variant, parent) {
         // Pricing — variant first, then parent.
         price: variant.price || p.price || null,
         old_price: variant.old_price || p.old_price || null,
-        discount_percent: variant.discount_percent || p.discount_percent || null,
+        discount_percent: variant.discount_percent || null,
 
         // Stock — variant first, then parent.
         stock: variant.stock !== null && variant.stock !== undefined
@@ -308,7 +308,7 @@ async function loadParentRow(client, productId) {
     const executor = client || pool;
     const { rows } = await executor.query(
         `SELECT id, image, video, video_poster_url,
-                price, old_price, discount_percent, stock
+                price, old_price, stock
            FROM products
           WHERE id = $1`,
         [productId]
@@ -1109,7 +1109,7 @@ async function listActiveVariantsForProducts(productIds) {
   if (missing.length === 0) return out;
 
   const { rows: parents } = await pool.query(
-    'SELECT id, image, video, video_poster_url, price, old_price, discount_percent, stock FROM products WHERE id = ANY($1::int[])',
+    'SELECT id, image, video, video_poster_url, price, old_price, stock FROM products WHERE id = ANY($1::int[])',
     [missing]
   );
   const parentById = new Map(parents.map(r => [Number(r.id), r]));

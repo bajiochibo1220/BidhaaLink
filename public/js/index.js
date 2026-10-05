@@ -1505,14 +1505,6 @@ function renderProductMatchCard(product) {
   const oldPrice = product.product_old_price
     ? `<span class="product-match-old-price">${formatProductPrice(product.product_old_price)}</span>`
     : '';
-  const discount = product.product_discount_percent
-    ? `<span class="product-match-discount">-${escapeProductText(product.product_discount_percent)}%</span>`
-    : '';
-
-  const categoryChip = product.product_category_name
-    ? `<span class="product-match-category">${escapeProductText(product.product_category_icon || '📦')} ${escapeProductText(product.product_category_name)}</span>`
-    : '';
-
   const matchedWordChip = product.matched_word
     ? `<span class="product-match-matched-word" title="Matched your search">SELLS: ${escapeProductText(product.matched_word)}</span>`
     : '';
@@ -1531,14 +1523,12 @@ function renderProductMatchCard(product) {
     <a class="product-match-card" href="${href}">
       <div class="product-match-media">
         <img src="${escapeProductAttr(image)}" alt="${escapeProductAttr(product.product_name)}" loading="lazy">
-        ${categoryChip}
       </div>
       <div class="product-match-body">
         <div class="product-match-name">${escapeProductText(product.product_name)}</div>
         <div class="product-match-price-row">
           <span class="product-match-price">${escapeProductText(price)}</span>
           ${oldPrice}
-          ${discount}
         </div>
         <div class="product-match-business">
           <span class="product-match-business-name">🏪 ${escapeProductText(product.business_name || 'Shop')}</span>

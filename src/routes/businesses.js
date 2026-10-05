@@ -1239,7 +1239,6 @@ router.get('/', async (req, res) => {
             product_name: row.product_name,
             product_price: row.product_price,
             product_old_price: row.product_old_price,
-            product_discount_percent: row.discount_percent,
             product_image: row.product_image || productFallbackImage(row.product_name),
             legacy_category: row.legacy_category,
             product_category_id: row.product_category_id,

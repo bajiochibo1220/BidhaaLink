@@ -434,15 +434,11 @@
   line-height: 1.4;
 }
 .related-description-text {
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-  overflow: hidden;
+  display: none;
   overflow-wrap: anywhere;
 }
 .related-description.is-expanded .related-description-text {
   display: block;
-  -webkit-line-clamp: unset;
 }
 .related-description-toggle {
   padding: 0;
@@ -454,6 +450,23 @@
   cursor: pointer;
 }
 .related-description-toggle[hidden] { display: none; }
+
+.related-title-row {
+  display: block;
+  min-width: 0;
+}
+.related-title-row .related-name {
+  min-width: 0;
+  -webkit-line-clamp: 2;
+  white-space: normal;
+  margin: 0;
+}
+.related-title-row .related-description-toggle {
+  display: block;
+  white-space: nowrap;
+  font-size: .7rem;
+  margin-top: 2px;
+}
 
 .detail-info .services span {
   font-weight: 600;
@@ -895,14 +908,67 @@
 .related-item img {
   display: block;
   width: 97%;
-  height: 160px;
+  height: 200px;
   margin: 0 auto;
   object-fit: contain;
   background: #f8fafc;
 }
 
+.related-media {
+  position: relative;
+}
+.related-image-preview {
+  position: absolute;
+  right: 7px;
+  bottom: 7px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 8px;
+  border: 0;
+  border-radius: 14px;
+  background: rgba(15, 23, 42, .82);
+  color: #fff;
+  font: inherit;
+  font-size: .65rem;
+  cursor: pointer;
+}
+.related-image-preview-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 3000;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 52px 16px 16px;
+  background: rgba(0, 0, 0, .9);
+}
+.related-image-preview-modal.active { display: flex; }
+.related-image-preview-modal img {
+  display: block;
+  max-width: min(96vw, 1200px);
+  max-height: 88vh;
+  object-fit: contain;
+  background: #fff;
+}
+.related-image-preview-close {
+  position: absolute;
+  top: 14px;
+  right: 18px;
+  width: 42px;
+  height: 42px;
+  border: 0;
+  border-radius: 50%;
+  background: #fff;
+  color: #111827;
+  font-size: 1.8rem;
+  line-height: 1;
+  cursor: pointer;
+}
+body.related-image-preview-open { overflow: hidden; }
+
 .related-item .no-image {
-  height: 160px;
+  height: 200px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -923,6 +989,14 @@
   -webkit-box-orient: vertical;
   overflow: hidden;
   margin-bottom: 2px;
+}
+
+.related-item .related-title-row .related-name {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  white-space: normal;
+  margin-bottom: 0;
 }
 
 .related-category {
@@ -946,6 +1020,67 @@
   color: #2563eb;
 }
 
+.related-purchase-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 4px;
+}
+.related-purchase-row .related-description-toggle {
+  flex: 0 0 auto;
+  white-space: nowrap;
+  font-size: .7rem;
+}
+.related-cart-actions {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 7px;
+}
+.related-qty-control {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  padding: 3px;
+  border-radius: 7px;
+  background: #f1f5f9;
+}
+.related-qty-control button {
+  width: 25px;
+  height: 25px;
+  border: 0;
+  border-radius: 50%;
+  background: #fff;
+  color: #0f172a;
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+}
+.related-qty-control button:hover { background: #dbeafe; color: #1d4ed8; }
+.related-qty-control span {
+  min-width: 18px;
+  text-align: center;
+  font-size: .75rem;
+  font-weight: 700;
+}
+.related-add-to-cart {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 7px 9px;
+  border: 0;
+  border-radius: 7px;
+  background: #2563eb;
+  color: #fff;
+  font: inherit;
+  font-size: .75rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.related-add-to-cart:hover { background: #1d4ed8; }
+.related-add-to-cart:disabled { opacity: .65; cursor: wait; }
+
 @media (max-width: 768px) {
   .related-grid {
     grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
@@ -953,7 +1088,7 @@
   }
   .related-item img,
   .related-item .no-image {
-    height: 130px;
+    height: 180px;
   }
 }
 
@@ -964,7 +1099,7 @@
   }
   .related-item img,
   .related-item .no-image {
-    height: 110px;
+    height: 160px;
   }
   .related-item .related-info {
     padding: 8px 8px 10px;

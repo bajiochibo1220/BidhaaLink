@@ -52,6 +52,11 @@
   </div>
 </div>
 
+<div class="related-image-preview-modal" id="relatedImagePreviewModal" role="dialog" aria-modal="true" aria-label="Product image preview" onclick="if (event.target === this) closeRelatedImagePreview()">
+  <button type="button" class="related-image-preview-close" aria-label="Close image preview" onclick="closeRelatedImagePreview()">&times;</button>
+  <img id="relatedImagePreviewImage" alt="Product image preview">
+</div>
+
 <!-- ===== BOTTOM NAV ===== -->
 <div class="bottom-nav">
   <a href="#" id="productBusinessHomeNav"><i class="fas fa-home"></i><span>Home</span></a>
