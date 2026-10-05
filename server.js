@@ -311,6 +311,10 @@ app.use((req, res, next) => {
 //  splash or redirect to /marketplace.
 // ============================================================
 
+app.get('/favicon.ico', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public/icons/pwa-180.png'));
+});
+
 app.use(express.static(path.join(__dirname, 'public/html'), { index: false }));
 app.use('/css', express.static(path.join(__dirname, 'public/css')));
 app.use('/js', express.static(path.join(__dirname, 'public/js')));

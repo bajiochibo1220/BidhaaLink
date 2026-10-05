@@ -837,7 +837,6 @@ async function loadBusinessProducts() {
         businessProductList = window.businessProductList;
 
         populateBusinessProductCategories();
-        populateDefinedProductCategories();
 
         console.log('Loaded ' + businessProductList.length + ' products for tab "' + tab + '"');
 
@@ -851,7 +850,6 @@ async function loadBusinessProducts() {
             window.businessProductList = allProducts;
             businessProductList = allProducts;
             populateBusinessProductCategories();
-            populateDefinedProductCategories();
             renderBusinessGrid();
         });
     } catch (err) {
@@ -1301,7 +1299,6 @@ window.isCustomerViewer = isCustomerViewer;
 window.isBusinessAdminViewer = isBusinessAdminViewer;
 
 window.renderBusinessProductGrid = renderBusinessProductGrid;
-window.populateDefinedProductCategories = populateDefinedProductCategories;
 window.populateBusinessProductCategories = populateBusinessProductCategories;
 window.businessFallbackImage = businessFallbackImage;
 
