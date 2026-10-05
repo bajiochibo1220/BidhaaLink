@@ -935,11 +935,16 @@ function renderBusinessProductGrid(products) {
         const disabled = !onlineOrdersEnabled ? 'disabled' : '';
 
         const thumbUrl = p.thumbnail_url || p.image || businessFallbackImage(p);
+        const fullVariantImage = Array.isArray(p.variants) ? p.variants.find(variant => variant && variant.image)?.image : '';
+        const fullImageUrl = p.image || fullVariantImage || p.thumbnail_url || businessFallbackImage(p);
         const thumbKind = p.thumbnail_kind || (p.image ? 'image' : 'placeholder');
         const fallbackForThisProduct = businessFallbackImage(p).replace(/'/g, "\\'");
         const imageHtml = '<img src="' + thumbUrl + '" alt="' + String(p.name).replace(/"/g, '&quot;') + '" loading="lazy" onerror="this.onerror=null;this.src=\'' + fallbackForThisProduct + '\'">';
         const videoPill = thumbKind === 'video'
             ? '<span class="video-pill"><i class="fas fa-play"></i> Video</span>'
+            : '';
+        const imagePreviewButton = thumbKind === 'image'
+            ? '<button type="button" class="product-image-preview" data-preview-src="' + escapeBusinessProductText(fullImageUrl) + '" data-preview-alt="' + escapeBusinessProductText(p.name || 'Product image') + '" aria-label="Preview full image of ' + escapeBusinessProductText(p.name || 'product') + '" onclick="event.stopPropagation(); openBusinessImagePreviewFromButton(this)"><i class="fas fa-expand-alt" aria-hidden="true"></i><span>Preview</span></button>'
             : '';
 
         const ratingHtml = '';
@@ -958,6 +963,7 @@ function renderBusinessProductGrid(products) {
             + '<div class="media-wrap" onclick="location.href=\'/product-detail.html?id=' + p.id + '&business=' + businessSlug + '\'">'
             + imageHtml
             + '<div class="quick-view-icon"><i class="fas fa-eye"></i></div>'
+            + imagePreviewButton
             + (p.isFlashSale ? '<div class="flash-badge">??</div>' : '')
             + (p.isNewArrival ? '<div class="new-badge">??</div>' : '')
             + videoPill
@@ -984,6 +990,31 @@ function renderBusinessProductGrid(products) {
     }).join('');
 
 }
+
+function openBusinessImagePreviewFromButton(button) {
+    if (!button) return;
+    const modal = document.getElementById('businessImagePreviewModal');
+    const image = document.getElementById('businessImagePreviewImage');
+    if (!modal || !image) return;
+    image.src = button.dataset.previewSrc || '';
+    image.alt = button.dataset.previewAlt || 'Product image';
+    image.loading = 'eager';
+    image.decoding = 'async';
+    modal.classList.add('active');
+    document.body.classList.add('image-preview-open');
+}
+
+function closeBusinessImagePreview() {
+    const modal = document.getElementById('businessImagePreviewModal');
+    const image = document.getElementById('businessImagePreviewImage');
+    if (modal) modal.classList.remove('active');
+    if (image) image.removeAttribute('src');
+    document.body.classList.remove('image-preview-open');
+}
+
+document.addEventListener('keydown', event => {
+    if (event.key === 'Escape') closeBusinessImagePreview();
+});
 
 function escapeBusinessProductText(value) {
     return String(value).replace(/[&<>"']/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[character]));
@@ -1330,6 +1361,8 @@ window.isCustomerViewer = isCustomerViewer;
 window.isBusinessAdminViewer = isBusinessAdminViewer;
 
 window.renderBusinessProductGrid = renderBusinessProductGrid;
+window.openBusinessImagePreviewFromButton = openBusinessImagePreviewFromButton;
+window.closeBusinessImagePreview = closeBusinessImagePreview;
 window.populateBusinessProductCategories = populateBusinessProductCategories;
 window.businessFallbackImage = businessFallbackImage;
 

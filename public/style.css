@@ -577,6 +577,65 @@ body {
   transition: opacity 0.2s;
 }
 
+.product-card .product-image-preview {
+  position: absolute;
+  right: 5px;
+  bottom: 5px;
+  z-index: 11;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: 0;
+  border-radius: 14px;
+  padding: 4px 7px;
+  background: rgba(15, 23, 42, 0.82);
+  color: #fff;
+  font-size: 0.62rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.product-card .product-image-preview:hover,
+.product-card .product-image-preview:focus-visible { background: #0f172a; }
+
+.business-image-preview-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 3000;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 16px 16px;
+  background: rgba(0, 0, 0, 0.9);
+}
+
+.business-image-preview-modal.active { display: flex; }
+.business-image-preview-modal img {
+  display: block;
+  max-width: min(96vw, 1200px);
+  max-height: 88vh;
+  object-fit: contain;
+  background: #fff;
+  filter: none;
+  opacity: 1;
+  mix-blend-mode: normal;
+}
+.business-image-preview-close {
+  position: absolute;
+  top: 14px;
+  right: 18px;
+  width: 42px;
+  height: 42px;
+  border: 0;
+  border-radius: 50%;
+  background: #fff;
+  color: #111827;
+  font-size: 1.8rem;
+  line-height: 1;
+  cursor: pointer;
+}
+body.image-preview-open { overflow: hidden; }
+
 .product-card .media-wrap:hover .quick-view-icon,
 .product-card .media-wrap:active .quick-view-icon {
   opacity: 1;
