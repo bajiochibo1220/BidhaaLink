@@ -353,6 +353,8 @@
 }
 
 .hero-description-track {
+  display: flex;
+  flex-direction: column;
   position: absolute;
   left: 16px;
   right: 16px;

@@ -577,17 +577,23 @@ function renderHeroDescriptionOverlay(business) {
     const description = document.createElement('span');
     description.className = 'hero-desc-tagline';
     description.textContent = tagline;
-    track.replaceChildren(description);
+    const repeatedDescription = description.cloneNode(true);
+    repeatedDescription.setAttribute('aria-hidden', 'true');
+    track.replaceChildren(description, repeatedDescription);
 
     overlay.style.display = '';
 
     requestAnimationFrame(() => {
         const overlayHeight = overlay.clientHeight;
-        const trackHeight = track.scrollHeight;
-        if (trackHeight <= overlayHeight - 4) return;
-        const overflow = trackHeight - overlayHeight;
-        track.style.setProperty('--hero-desc-scroll', '-' + overflow + 'px');
-        const durationSeconds = Math.min(90, Math.max(20, overflow / 40));
+        const descriptionHeight = description.getBoundingClientRect().height;
+        if (!overlayHeight || !descriptionHeight) return;
+
+        // Space the repeated copy so it enters exactly as the first
+        // copy completes one upward pass, keeping the loop seamless.
+        const travelDistance = Math.max(overlayHeight, descriptionHeight);
+        track.style.gap = Math.max(0, travelDistance - descriptionHeight) + 'px';
+        track.style.setProperty('--hero-desc-scroll', '-' + travelDistance + 'px');
+        const durationSeconds = Math.min(120, Math.max(22, travelDistance / 18));
         track.style.animationDuration = durationSeconds + 's';
         overlay.classList.add('is-scrolling');
     });
