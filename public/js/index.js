@@ -1992,11 +1992,6 @@ function renderBusinessCardShared(business, options) {
   // ---- Badges -------------------------------------------------
   const badges = [];
 
-  // Verified — Section "Verified badge" — full word + slow blink.
-  if (business.is_verified) {
-    badges.push('<span class="badge verified badge-verified-blink">✅ VERIFIED</span>');
-  }
-
   if (business.is_featured) {
     badges.push('<span class="badge featured">⭐ FEATURED</span>');
   }
@@ -3580,3 +3575,15 @@ console.log('✅ Index.js loaded successfully (Section 9 — customer workspace 
     return false;
   };
 })();
+
+
+window.toggleBidhaaLinkContact = function (event) {
+  if (event && typeof event.preventDefault === 'function') event.preventDefault();
+  var details = document.getElementById('platformContactDetails');
+  var toggle = event && event.currentTarget;
+  if (!details) return false;
+  details.hidden = !details.hidden;
+  if (toggle) toggle.setAttribute('aria-expanded', details.hidden ? 'false' : 'true');
+  if (!details.hidden) details.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  return false;
+};

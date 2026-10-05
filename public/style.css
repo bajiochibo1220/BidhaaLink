@@ -1,6 +1,10 @@
 /* ===== GOOGLE FONTS ===== */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
 
+html {
+  font-size: 106.25%; /* Slightly larger shared type scale across the platform. */
+}
+
 * {
   margin: 0;
   padding: 0;

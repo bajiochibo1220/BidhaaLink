@@ -410,7 +410,7 @@ function renderBusinessProfile() {
     renderHeroSearchTagChip(business);
 
     const verifiedBadge = document.getElementById('verifiedBadge');
-    if (verifiedBadge) verifiedBadge.style.display = business.is_verified ? 'block' : 'none';
+    if (verifiedBadge) verifiedBadge.style.display = 'none';
 
     const missionEl = document.getElementById('businessMission');
     const visionEl = document.getElementById('businessVision');
@@ -670,37 +670,41 @@ function renderOrdersPausedContactBlock() {
 // ============================================================
 
 function renderSocialLinks(business) {
-    const iconWhatsapp = document.getElementById('iconWhatsapp');
-    const iconTiktok = document.getElementById('iconTiktok');
-    const iconInstagram = document.getElementById('iconInstagram');
-    const iconFacebook = document.getElementById('iconFacebook');
-    const iconPhone = document.getElementById('iconPhone');
+    const links = [
+        ['iconWhatsapp', business.whatsapp ? 'https://wa.me/' + String(business.whatsapp).replace(/\D/g, '') : null],
+        ['iconTiktok', business.tiktok ? (String(business.tiktok).startsWith('http') ? business.tiktok : 'https://tiktok.com/@' + String(business.tiktok).replace(/^@/, '')) : null],
+        ['iconInstagram', business.instagram ? (String(business.instagram).startsWith('http') ? business.instagram : 'https://instagram.com/' + String(business.instagram).replace(/^@/, '')) : null],
+        ['iconFacebook', business.facebook ? (String(business.facebook).startsWith('http') ? business.facebook : 'https://facebook.com/' + String(business.facebook).replace(/^@/, '')) : null],
+        ['iconPhone', business.phone ? 'tel:' + String(business.phone).replace(/[^+\d]/g, '') : null],
+        ['iconEmail', business.email ? 'mailto:' + String(business.email).trim() : null],
+        ['iconWebsite', business.website ? (String(business.website).match(/^https?:\/\//i) ? String(business.website).trim() : 'https://' + String(business.website).trim()) : null]
+    ];
 
-    if (iconWhatsapp) {
-        if (business.whatsapp) { iconWhatsapp.href = 'https://wa.me/' + business.whatsapp.replace(/[^0-9]/g, ''); iconWhatsapp.style.display = 'inline-flex'; }
-        else iconWhatsapp.style.display = 'none';
+    let hasContact = false;
+    for (const [id, href] of links) {
+        const link = document.getElementById(id);
+        if (!link) continue;
+        if (href) {
+            link.href = href;
+            link.style.display = 'inline-flex';
+            hasContact = true;
+        } else {
+            link.removeAttribute('href');
+            link.style.display = 'none';
+        }
     }
-    if (iconTiktok) {
-        if (business.tiktok) { iconTiktok.href = 'https://tiktok.com/@' + business.tiktok.replace('@',''); iconTiktok.style.display = 'inline-flex'; }
-        else iconTiktok.style.display = 'none';
-    }
-    if (iconInstagram) {
-        if (business.instagram) { iconInstagram.href = 'https://instagram.com/' + business.instagram.replace('@',''); iconInstagram.style.display = 'inline-flex'; }
-        else iconInstagram.style.display = 'none';
-    }
-    if (iconFacebook) {
-        if (business.facebook) { iconFacebook.href = 'https://facebook.com/messages/t/' + business.facebook.replace('@',''); iconFacebook.style.display = 'inline-flex'; }
-        else iconFacebook.style.display = 'none';
-    }
-    if (iconPhone) {
-        if (business.phone) { iconPhone.href = 'tel:' + business.phone; iconPhone.style.display = 'inline-flex'; }
-        else iconPhone.style.display = 'none';
-    }
-    const contacts = document.getElementById('businessProfileContacts');
-    const hasContact = [business.whatsapp, business.tiktok, business.instagram, business.facebook, business.phone].some(Boolean);
-    if (contacts) contacts.style.display = hasContact ? 'block' : 'none';
-    const contactNav = document.getElementById('navBusinessContact');
-    if (contactNav) contactNav.style.display = hasContact ? 'flex' : 'none';
+
+    const contactSection = document.getElementById('businessProfileContacts');
+    const emptyHint = document.getElementById('businessContactEmpty');
+    const contactHeading = document.getElementById('businessContactHeading');
+    const navContact = document.getElementById('navBusinessContact');
+    const navLabel = document.getElementById('navBusinessContactLabel');
+    const businessName = String(business.business_name || 'Business').trim();
+    if (contactHeading) contactHeading.textContent = businessName + ' Contact';
+    if (navLabel) navLabel.textContent = businessName + ' Contact';
+    if (contactSection) contactSection.style.display = 'none';
+    if (emptyHint) emptyHint.style.display = hasContact ? 'none' : 'block';
+    if (navContact) navContact.style.display = 'flex';
 }
 
 // ============================================================
@@ -1322,6 +1326,8 @@ console.log('? Business Profile JS loaded successfully (Phase 2 — tabs wired, th
 function scrollToBusinessContact() {
     const contacts = document.getElementById('businessProfileContacts');
     if (!contacts) return;
-    contacts.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    contacts.style.display = 'block';
+    contacts.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    contacts.focus({ preventScroll: true });
 }
 window.scrollToBusinessContact = scrollToBusinessContact;

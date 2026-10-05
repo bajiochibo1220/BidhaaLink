@@ -558,9 +558,6 @@
 
         // ---- Badges ---------------------------------------------
         const badges = [];
-        if (business.is_verified) {
-            badges.push('<span class="badge verified badge-verified-blink">✅ VERIFIED</span>');
-        }
         if (business.is_featured) {
             badges.push('<span class="badge featured">⭐ FEATURED</span>');
         }
