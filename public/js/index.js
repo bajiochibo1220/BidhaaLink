@@ -154,7 +154,10 @@ let marketplaceFeedLoading = false;
 let marketplaceFeedObserver = null;
 let marketplaceFeedVideoObserver = null;
 let marketplaceFeedMediaObserver = null;
-let activeBusinessDescriptionButton = null;
+let marketplaceFeedRequestController = null;
+let marketplaceFeedGeneration = 0;
+let marketplaceSearchDebounceTimer = null;
+let activeBusinessDescription = null;
 
 // ------------------------------------------------------------
 // Section J — Marketplace ad slider state.
@@ -509,6 +512,7 @@ function bindLocationControls() {
       hideLocationBanner();
 
       loadBusinesses(true, { forceNearest: true });
+      loadMarketplaceFeed(true);
     });
   }
 
@@ -529,6 +533,7 @@ function bindLocationControls() {
       }
 
       loadBusinesses(true);
+      loadMarketplaceFeed(true);
     });
   }
 
@@ -550,6 +555,7 @@ function bindLocationControls() {
       clearFiltersBtn.hidden = true;
       updateLocationFiltersCount();
       loadBusinesses(true);
+      loadMarketplaceFeed(true);
     });
   }
 
@@ -557,6 +563,7 @@ function bindLocationControls() {
     sel.addEventListener('change', () => {
       updateLocationFiltersCount();
       loadBusinesses(true);
+      loadMarketplaceFeed(true);
     });
   });
 
@@ -659,6 +666,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
     businessSearch.addEventListener('input', event => {
       marketplaceSearchWasTyped ||= ['insertText', 'insertFromPaste'].includes(event.inputType);
+      clearTimeout(marketplaceSearchDebounceTimer);
+      marketplaceSearchDebounceTimer = setTimeout(() => searchBusinesses(), 350);
     });
 
     setTimeout(() => {
@@ -774,6 +783,7 @@ async function upgradeToPreciseLocationOnce() {
   const activeQuery = getCombinedSearchText();
   if (queryNeedsCustomerLocation(activeQuery)) {
     loadBusinesses(true);
+    loadMarketplaceFeed(true);
   }
 }
 
@@ -873,12 +883,18 @@ function setupMarketplacePaneToggles() {
 async function loadMarketplaceFeed(reset = false) {
   const list = document.getElementById('marketplaceFeedList');
   const loadMore = document.getElementById('marketplaceFeedLoadMore');
-  if (!list || marketplaceFeedLoading || (!reset && !marketplaceFeedHasMore)) return;
+  if (!list || (!reset && (marketplaceFeedLoading || !marketplaceFeedHasMore))) return;
   if (reset) {
+    marketplaceFeedRequestController?.abort();
+    marketplaceFeedRequestController = new AbortController();
+    marketplaceFeedGeneration += 1;
+    marketplaceFeedLoading = false;
     marketplaceFeedPage = 1;
     marketplaceFeedHasMore = true;
     list.replaceChildren();
   }
+  if (!marketplaceFeedRequestController) marketplaceFeedRequestController = new AbortController();
+  const generation = marketplaceFeedGeneration;
   marketplaceFeedLoading = true;
   if (loadMore) { loadMore.hidden = true; loadMore.disabled = true; }
   if (marketplaceFeedPage === 1 && !list.childElementCount) {
@@ -889,8 +905,18 @@ async function loadMarketplaceFeed(reset = false) {
   }
 
   try {
-    const response = await fetch(`/api/marketplace/feed?page=${marketplaceFeedPage}&limit=8`, { credentials: 'same-origin' });
+    const params = new URLSearchParams({ page: String(marketplaceFeedPage), limit: '8' });
+    const search = getCombinedSearchText();
+    if (search) params.set('search', search);
+    document.querySelectorAll('#locationFilters select').forEach(select => {
+      if (select.dataset.locationField && select.value) params.set(select.dataset.locationField, select.value);
+    });
+    const response = await fetch(`/api/marketplace/feed?${params}`, {
+      credentials: 'same-origin',
+      signal: marketplaceFeedRequestController.signal
+    });
     const data = await response.json().catch(() => ({}));
+    if (generation !== marketplaceFeedGeneration) return;
     if (!response.ok || !data.success) throw new Error(data.error || 'Could not load the feed.');
     if (marketplaceFeedPage === 1) list.replaceChildren();
     (Array.isArray(data.items) ? data.items : []).forEach(item => list.append(createMarketplaceFeedCard(item)));
@@ -908,6 +934,7 @@ async function loadMarketplaceFeed(reset = false) {
       loadMore.textContent = marketplaceFeedHasMore ? 'Load more' : 'You’re all caught up';
     }
   } catch (error) {
+    if (error.name === 'AbortError' || generation !== marketplaceFeedGeneration) return;
     console.error('Marketplace feed error:', error);
     if (marketplaceFeedPage === 1) {
       list.replaceChildren();
@@ -918,7 +945,7 @@ async function loadMarketplaceFeed(reset = false) {
     }
     if (loadMore) { loadMore.hidden = false; loadMore.disabled = false; loadMore.textContent = 'Retry'; }
   } finally {
-    marketplaceFeedLoading = false;
+    if (generation === marketplaceFeedGeneration) marketplaceFeedLoading = false;
   }
 }
 
@@ -927,6 +954,21 @@ function createMarketplaceFeedCard(item) {
   article.className = `marketplace-feed-card marketplace-feed-${item.item_type === 'service' ? 'service' : 'product'}`;
   const media = document.createElement('div');
   media.className = 'marketplace-feed-media';
+  let swipeStart = null;
+  media.addEventListener('pointerdown', event => {
+    if (event.pointerType !== 'touch' || !item.business_slug) return;
+    swipeStart = { x: event.clientX, y: event.clientY };
+  }, { passive: true });
+  media.addEventListener('pointerup', event => {
+    if (!swipeStart) return;
+    const dx = event.clientX - swipeStart.x;
+    const dy = event.clientY - swipeStart.y;
+    swipeStart = null;
+    if (window.matchMedia('(max-width: 640px)').matches && dx < -76 && Math.abs(dx) > Math.abs(dy) * 1.35) {
+      window.location.assign(`/business/${encodeURIComponent(item.business_slug)}`);
+    }
+  }, { passive: true });
+  media.addEventListener('pointercancel', () => { swipeStart = null; }, { passive: true });
   if (item.media_kind === 'video' && item.media_url) {
     const video = document.createElement('video');
     video.src = item.media_url;
@@ -1050,12 +1092,12 @@ function createMarketplaceFeedCard(item) {
     const more = document.createElement('button');
     more.type = 'button';
     more.className = 'marketplace-feed-more';
-    more.textContent = 'See more';
+    more.textContent = 'More';
     more.setAttribute('aria-expanded', 'false');
     more.addEventListener('click', () => {
       const expanded = description.classList.toggle('is-expanded');
       description.classList.toggle('is-collapsed', !expanded);
-      more.textContent = expanded ? 'See less' : 'See more';
+      more.textContent = expanded ? 'Less' : 'More';
       more.setAttribute('aria-expanded', String(expanded));
     });
     details.append(more);
@@ -2255,13 +2297,24 @@ function renderBusinessCardDescription(business) {
   `;
 }
 
-/**
- * Click handler for the "More / Less" link.
- *
- * Expands or collapses the description block that lives in the
- * same card as the clicked button. Stops the event from bubbling
- * to the card so the profile does not open.
- */
+function closeActiveBusinessDescription() {
+  const active = activeBusinessDescription;
+  if (!active) return;
+
+  if (active.panel) active.panel.remove();
+  if (active.inlineCard && active.description.isConnected) {
+    active.description.classList.remove('expanded');
+    active.description.classList.add('clamped');
+    active.description.after(active.button);
+  }
+  if (active.button.isConnected) {
+    active.button.textContent = 'More';
+    active.button.setAttribute('aria-expanded', 'false');
+  }
+  activeBusinessDescription = null;
+}
+
+/** Expand descriptions in place so Hide stays with the business listing. */
 function toggleCardDescription(event, button) {
   if (event && typeof event.stopPropagation === 'function') {
     event.stopPropagation();
@@ -2277,35 +2330,47 @@ function toggleCardDescription(event, button) {
 
   const description = card.querySelector('.business-description');
   if (!description) return;
-  let dialog = document.getElementById('businessDescriptionDialog');
-  if (!dialog) {
-    dialog = document.createElement('dialog');
-    dialog.id = 'businessDescriptionDialog';
-    dialog.className = 'business-description-dialog';
-    dialog.innerHTML = '<div class="business-description-dialog-head"><h2></h2><button type="button" aria-label="Hide description">Hide</button></div><div class="business-description-dialog-copy"></div>';
-    dialog.querySelector('button').addEventListener('click', () => dialog.close());
-    dialog.addEventListener('click', event => { if (event.target === dialog) dialog.close(); });
-    dialog.addEventListener('close', () => {
-      if (activeBusinessDescriptionButton) {
-        activeBusinessDescriptionButton.textContent = 'More';
-        activeBusinessDescriptionButton.setAttribute('aria-expanded', 'false');
-      }
-      activeBusinessDescriptionButton = null;
-    });
-    document.body.append(dialog);
-  }
-
-  if (activeBusinessDescriptionButton === button && dialog.open) {
-    dialog.close();
+  if (activeBusinessDescription?.button === button) {
+    closeActiveBusinessDescription();
     return;
   }
-  if (dialog.open) dialog.close();
-  activeBusinessDescriptionButton = button;
+
+  closeActiveBusinessDescription();
+  if (card.classList.contains('block-card')) {
+    // Category cards live inside a horizontal scroller that clips vertical
+    // overflow. Expand below that row so the full text remains readable inline.
+    const row = card.closest('.category-row');
+    if (!row) return;
+    const panel = document.createElement('section');
+    panel.className = 'business-description-inline-panel';
+    const header = document.createElement('div');
+    header.className = 'business-description-inline-header';
+    const heading = document.createElement('strong');
+    heading.textContent = `${card.querySelector('.block-card-name')?.textContent.trim() || 'Business'} description`;
+    const hide = document.createElement('button');
+    hide.type = 'button';
+    hide.className = 'card-description-hide';
+    hide.textContent = 'Hide';
+    hide.setAttribute('aria-label', 'Hide business description');
+    hide.addEventListener('click', closeActiveBusinessDescription);
+    const copy = document.createElement('div');
+    copy.className = 'business-description-inline-copy';
+    copy.textContent = description.textContent.trim();
+    header.append(heading, hide);
+    panel.append(header, copy);
+    row.insertAdjacentElement('afterend', panel);
+    button.textContent = 'Hide';
+    button.setAttribute('aria-expanded', 'true');
+    activeBusinessDescription = { button, description, panel, inlineCard: false };
+    return;
+  }
+
   button.textContent = 'Hide';
   button.setAttribute('aria-expanded', 'true');
-  dialog.querySelector('h2').textContent = card.querySelector('.business-name, .block-card-name')?.textContent.trim() || 'Business description';
-  dialog.querySelector('.business-description-dialog-copy').textContent = description.textContent.trim();
-  dialog.showModal();
+  description.classList.remove('clamped');
+  description.classList.add('expanded');
+  description.before(button);
+  activeBusinessDescription = { button, description, panel: null, inlineCard: true };
 }
 
 /**
@@ -2523,6 +2588,7 @@ function searchBusinesses() {
   lastSearchMode = null;
   renderProductMatches(true, []);
   loadBusinesses(true);
+  loadMarketplaceFeed(true);
 }
 
 function filterBusinesses() {
@@ -2533,6 +2599,7 @@ function filterBusinesses() {
   lastSearchMode = null;
   renderProductMatches(true, []);
   loadBusinesses(true);
+  loadMarketplaceFeed(true);
 }
 
 function loadMoreBusinesses() {

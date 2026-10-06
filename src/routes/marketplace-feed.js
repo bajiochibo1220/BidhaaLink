@@ -9,6 +9,10 @@ router.get('/', async (req, res) => {
   const limit = Number.isInteger(requestedLimit) ? Math.min(Math.max(requestedLimit, 1), 20) : 10;
   const page = Number.isInteger(requestedPage) ? Math.max(requestedPage, 1) : 1;
   const offset = (page - 1) * limit;
+  const search = String(req.query.search || '').trim().slice(0, 120);
+  const locationFilters = ['continent', 'country', 'county', 'sub_county', 'town', 'ward']
+    .map(field => [field, String(req.query[field] || '').trim().slice(0, 80)])
+    .filter(([, value]) => value);
 
   try {
     const result = await pool.query(`
@@ -38,6 +42,7 @@ router.get('/', async (req, res) => {
                  NULL::text AS price_unit,
                  0::int AS media_count,
                  p.created_at
+                 ,concat_ws(' ', to_jsonb(b)->>'continent', to_jsonb(b)->>'country', to_jsonb(b)->>'county', to_jsonb(b)->>'sub_county', to_jsonb(b)->>'town', to_jsonb(b)->>'ward') AS location_text
             FROM products p
             JOIN businesses b ON b.id = p.business_id
            WHERE p.is_active = TRUE AND b.is_active = TRUE
@@ -61,13 +66,23 @@ router.get('/', async (req, res) => {
                  s.price_unit::text AS price_unit,
                  GREATEST(jsonb_array_length(s.media) - 1, 0)::int AS media_count,
                  s.created_at
+                 ,concat_ws(' ', to_jsonb(b)->>'continent', to_jsonb(b)->>'country', to_jsonb(b)->>'county', to_jsonb(b)->>'sub_county', to_jsonb(b)->>'town', to_jsonb(b)->>'ward') AS location_text
             FROM business_services s
             JOIN businesses b ON b.id = s.business_id
            WHERE s.is_active = TRUE AND b.is_active = TRUE
         ) AS social_feed
-       ORDER BY created_at DESC, item_type ASC, item_id DESC
+       ORDER BY
+         CASE WHEN $3 <> '' AND location_text ILIKE '%' || $3 || '%' THEN 0 ELSE 1 END,
+         CASE WHEN $3 <> '' AND concat_ws(' ', title, description, business_name) ILIKE '%' || $3 || '%' THEN 0 ELSE 1 END,
+         CASE WHEN $4 <> '' AND location_text ILIKE '%' || $4 || '%' THEN 0 ELSE 1 END,
+         CASE WHEN $5 <> '' AND location_text ILIKE '%' || $5 || '%' THEN 0 ELSE 1 END,
+         CASE WHEN $6 <> '' AND location_text ILIKE '%' || $6 || '%' THEN 0 ELSE 1 END,
+         CASE WHEN $7 <> '' AND location_text ILIKE '%' || $7 || '%' THEN 0 ELSE 1 END,
+         CASE WHEN $8 <> '' AND location_text ILIKE '%' || $8 || '%' THEN 0 ELSE 1 END,
+         CASE WHEN $9 <> '' AND location_text ILIKE '%' || $9 || '%' THEN 0 ELSE 1 END,
+         created_at DESC, item_type ASC, item_id DESC
        LIMIT $1 OFFSET $2
-    `, [limit + 1, offset]);
+    `, [limit + 1, offset, search, ...locationFilters.map(([, value]) => value), ...Array(6 - locationFilters.length).fill('')]);
 
     const rows = result.rows;
     const hasMore = rows.length > limit;

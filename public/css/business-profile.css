@@ -57,6 +57,16 @@ body.index-body {
   background-size: 70px 70px, 70px 70px;
 }
 
+/* Keep the patterned marketplace canvas visible between profile sections. */
+html:has(body.index-body),
+body.index-body {
+  background-color: #e8d8b5 !important;
+  background-image:
+    repeating-linear-gradient(45deg, transparent 0 35px, rgba(139, 105, 58, .09) 35px 36px, transparent 36px 70px),
+    repeating-linear-gradient(-45deg, transparent 0 35px, rgba(139, 105, 58, .09) 35px 36px, transparent 36px 70px) !important;
+  background-size: 70px 70px, 70px 70px !important;
+}
+
 /* ===== BACK LINK TO MARKETPLACE ===== */
 .back-link {
   display: inline-block;

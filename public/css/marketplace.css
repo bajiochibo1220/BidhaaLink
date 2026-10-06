@@ -4088,57 +4088,132 @@ body.marketplace-pane-expanded { overflow: hidden; }
   body.marketplace-social-feed-active .marketplace-mobile-shortcuts { z-index: 1206; }
 }
 
-/* Long descriptions in narrow horizontal business cards open in a readable
-   sheet, so the row never clips the text or traps the customer in a tall card. */
-.business-description-dialog {
-  width: min(560px, calc(100vw - 28px));
-  max-width: 560px;
-  max-height: min(78dvh, 680px);
-  padding: 0;
-  overflow: hidden;
-  border: 1px solid #cbd5e1;
-  border-radius: 18px;
-  background: #fff;
-  color: #0f172a;
-  box-shadow: 0 24px 80px rgba(15, 23, 42, .32);
+/* Description expansion stays inline below its business card or row. */
+.business-description-inline-panel {
+  width: 100%;
+  min-width: 0;
+  margin: 10px 0 14px;
+  border: 1px solid #d7d2c8;
+  border-radius: 14px;
+  background: #e9e6df;
+  color: #263243;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, .16);
 }
-.business-description-dialog::backdrop { background: rgba(15, 23, 42, .58); backdrop-filter: blur(3px); }
-.business-description-dialog-head {
+.business-description-inline-header {
   position: sticky;
   top: 0;
-  z-index: 1;
+  z-index: 2;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 14px 16px;
-  border-bottom: 1px solid #e2e8f0;
-  background: #fff;
+  padding: 10px 14px;
+  border-bottom: 1px solid #d7d2c8;
+  background: #e9e6df;
+  color: #263243;
 }
-.business-description-dialog-head h2 { margin: 0; color: #0f172a; font-size: 1rem; }
-.business-description-dialog-head button {
+.business-description-inline-header strong { min-width: 0; font-size: .95rem; font-weight: 600; }
+.card-description-hide {
   flex: 0 0 auto;
-  min-height: 40px;
-  padding: 7px 14px;
-  border: 0;
+  min-height: 38px;
+  padding: 6px 14px;
+  border: 1px solid #c9c4ba;
   border-radius: 999px;
-  background: #2563eb;
-  color: #fff;
+  background: #dedbd4;
+  color: #344154;
   font: inherit;
-  font-weight: 800;
+  font-weight: 500;
   cursor: pointer;
 }
-.business-description-dialog-copy {
-  max-height: calc(min(78dvh, 680px) - 72px);
-  padding: 16px;
-  overflow-y: auto;
-  color: #334155;
-  font-size: .96rem;
-  line-height: 1.65;
+.marketplace-business-rail .card-description-more { color: #244f91; }
+.marketplace-business-rail .business-card .card-body .card-description-more[aria-expanded="true"] {
+  position: sticky;
+  top: 8px;
+  z-index: 2;
+  padding: 6px 10px;
+  border: 1px solid #c9c4ba;
+  border-radius: 999px;
+  background: #e9e6df;
+  color: #244f91;
+  text-decoration: none;
+}
+.business-description-inline-copy {
+  padding: 14px;
+  color: #364152;
+  font-size: .95rem;
+  line-height: 1.6;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
-  -webkit-overflow-scrolling: touch;
 }
+
+/* Vendor cards use a warm, eye-friendly light surface beside the black social feed. */
+.marketplace-business-rail .business-card,
+.marketplace-business-rail .block-card,
+.marketplace-business-rail .category-block {
+  border: 1px solid #d7d2c8;
+  border-radius: 16px;
+  background: #e9e6df;
+  color: #263243;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, .12);
+}
+.marketplace-business-rail .business-card:hover,
+.marketplace-business-rail .block-card:hover {
+  border-color: #c7c1b6;
+  background: #efede8;
+  box-shadow: 0 12px 30px rgba(15, 23, 42, .18);
+}
+.marketplace-business-rail .card-body,
+.marketplace-business-rail .block-card-body { background: transparent; color: #263243; }
+.marketplace-business-rail .business-name,
+.marketplace-business-rail .block-card-name,
+.marketplace-business-rail .category-block-title { color: #202b3b; }
+.marketplace-business-rail .business-card .card-body .business-name { color: #202b3b; }
+.marketplace-business-rail .business-card .card-body .business-location,
+.marketplace-business-rail .block-card-location,
+.marketplace-business-rail .business-card .card-body .business-description,
+.marketplace-business-rail .block-card .block-card-body .business-description,
+.marketplace-business-rail .block-card-meta,
+.marketplace-business-rail .business-card .card-body .business-stats { color: #596271; }
+.marketplace-business-rail .business-card .card-body .business-stats,
+.marketplace-business-rail .block-card-meta,
+.marketplace-business-rail .category-block-header { border-color: #d4d0c7; }
+.marketplace-business-rail .category-block-count,
+.marketplace-business-rail .category-row-arrow {
+  border-color: #d0cbc1;
+  background: #dedbd4;
+  color: #344154;
+}
+.marketplace-business-rail .business-ticker {
+  border-color: #d0cbc1;
+  background: linear-gradient(145deg, #efede8, #e2dfd8);
+  color: #344154;
+}
+.marketplace-business-rail .business-ticker::before { background: linear-gradient(180deg, #efede8, transparent); }
+.marketplace-business-rail .business-ticker::after { background: linear-gradient(0deg, #e2dfd8, transparent); }
+.marketplace-business-rail .business-search-tag-chip {
+  border-color: #276749;
+  background: #173326;
+  color: #bbf7d0;
+}
+.marketplace-business-rail .business-card .card-image,
+.marketplace-business-rail .block-card-media { background: #d8d5ce; }
+.marketplace-business-rail .business-card .card-image .no-image,
+.marketplace-business-rail .block-card-media .no-image { background: #d8d5ce; color: #536071; }
+.marketplace-business-rail .business-sells-banner { border-color: #365b46; background: #193326; color: #dcfce7; }
+.marketplace-business-rail .business-card .card-body .business-distance { background: #193326; color: #bbf7d0; }
+.marketplace-business-rail .category-load-more { border-color: #c9c4ba; background: #dedbd4; color: #344154; }
+
+/* Black matte on every feed card, including normal (not expanded) scrolling. */
+.marketplace-feed,
+.marketplace-feed-heading,
+.marketplace-feed-scroll,
+.marketplace-feed-list,
+.marketplace-feed-card,
+.marketplace-feed-media { background: #000 !important; }
+.marketplace-feed-heading h2,
+.marketplace-feed-heading p { color: #fff; }
+.marketplace-feed-heading { border-color: #292929; }
+.marketplace-feed-heading button { border-color: #454545; background: #111; color: #fff; }
 
 /* Black, minimal phone theme while the social feed is in its immersive view. */
 @media (max-width: 640px) {
