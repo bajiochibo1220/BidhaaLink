@@ -140,6 +140,7 @@ let ordersData = [];
 let productsData = [];
 let businessCategories = [];
 let productCategories = [];
+let businessServices = [];
 let socket = null;
 let statsInterval = null;
 let currentFilterStatus = null;
@@ -402,6 +403,7 @@ async function verifyBusinessAccess() {
             'ads',
             'products',
             'productcategories',
+            'services',
             'profile',
             'payments',
             'delivery',
@@ -1282,6 +1284,7 @@ function navigateTo(section) {
         ads: 'Ad Management',
         products: 'Products',
         productcategories: 'Product Categories',
+        services: 'Other Services You Sell',
         messages: 'Messages',
         myshop: 'My Shop',
         profile: 'Business Profile Setup',
@@ -1345,6 +1348,9 @@ function navigateTo(section) {
             if (openProductsCategoriesTab) {
                 loadProductCategorySection();
             }
+            break;
+        case 'services':
+            loadBusinessServices();
             break;
         case 'messages':
             loadBusinessAdminReplies();
@@ -4249,6 +4255,145 @@ async function logout() {
     localStorage.removeItem('businessName');
     window.location.href = '/';
 }
+// ============================================================
+//  DISPLAY-ONLY BUSINESS SERVICES
+// ============================================================
+
+function toggleBusinessServicePrice() {
+    const negotiable = document.getElementById('businessServicePricingMode')?.value === 'negotiable';
+    const wrap = document.getElementById('businessServicePriceWrap');
+    const price = document.getElementById('businessServicePrice');
+    if (wrap) wrap.style.display = negotiable ? 'none' : '';
+    if (price) {
+        price.required = !negotiable;
+        if (negotiable) price.value = '';
+    }
+}
+
+function resetBusinessServiceForm() {
+    document.getElementById('businessServiceForm')?.reset();
+    const id = document.getElementById('businessServiceId');
+    const title = document.getElementById('businessServiceFormTitle');
+    const submit = document.getElementById('businessServiceSubmit');
+    const cancel = document.getElementById('businessServiceCancel');
+    const status = document.getElementById('businessServiceStatus');
+    if (id) id.value = '';
+    if (title) title.textContent = 'Add a service';
+    if (submit) submit.innerHTML = '<i class="fas fa-plus"></i> Add service';
+    if (cancel) cancel.hidden = true;
+    if (status) status.textContent = '';
+    toggleBusinessServicePrice();
+}
+
+async function loadBusinessServices() {
+    const list = document.getElementById('businessServicesAdminList');
+    if (!list) return;
+    list.innerHTML = '<p class="empty-msg">Loading your services...</p>';
+    try {
+        const response = await fetch('/api/business-admin/services', { credentials: 'same-origin', cache: 'no-store' });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok || !data.success) throw new Error(data.error || 'Unable to load services.');
+        businessServices = Array.isArray(data.services) ? data.services : [];
+        renderBusinessServicesAdminList();
+    } catch (error) {
+        list.innerHTML = `<p style="color:#b91c1c;">${escapeHtml(error.message || 'Unable to load services.')}</p>`;
+    }
+}
+
+function renderBusinessServicesAdminList() {
+    const list = document.getElementById('businessServicesAdminList');
+    if (!list) return;
+    if (!businessServices.length) {
+        list.innerHTML = '<p class="empty-msg">You have not added any services yet.</p>';
+        return;
+    }
+    list.innerHTML = businessServices.map(service => {
+        const price = service.pricing_mode === 'negotiable'
+            ? 'Available for negotiation'
+            : `Ksh ${Number(service.price || 0).toLocaleString('en-KE', { maximumFractionDigits: 2 })}`;
+        return `<article style="display:flex;justify-content:space-between;gap:14px;align-items:flex-start;flex-wrap:wrap;padding:14px;border:1px solid #e2e8f0;border-radius:10px;margin:8px 0;background:#fff;">
+            <div style="min-width:220px;flex:1;">
+                <strong>${escapeHtml(service.name)}</strong>
+                <span style="margin-left:8px;font-size:.7rem;font-weight:700;color:${service.is_active ? '#15803d' : '#64748b'};">${service.is_active ? 'VISIBLE' : 'HIDDEN'}</span>
+                <div style="margin-top:4px;color:#166534;font-weight:700;font-size:.86rem;">${escapeHtml(price)}</div>
+                ${service.description ? `<p style="white-space:pre-wrap;margin:6px 0 0;color:#64748b;font-size:.8rem;">${escapeHtml(service.description)}</p>` : ''}
+            </div>
+            <div style="display:flex;gap:6px;">
+                <button type="button" class="btn-secondary" onclick="editBusinessService(${Number(service.id)})">Edit</button>
+                <button type="button" class="btn-secondary" onclick="deleteBusinessService(${Number(service.id)})" style="color:#b91c1c;">Delete</button>
+            </div>
+        </article>`;
+    }).join('');
+}
+
+function editBusinessService(serviceId) {
+    const service = businessServices.find(item => Number(item.id) === Number(serviceId));
+    if (!service) return;
+    document.getElementById('businessServiceId').value = service.id;
+    document.getElementById('businessServiceName').value = service.name || '';
+    document.getElementById('businessServiceDescription').value = service.description || '';
+    document.getElementById('businessServicePricingMode').value = service.pricing_mode || 'fixed';
+    document.getElementById('businessServicePrice').value = service.price ?? '';
+    document.getElementById('businessServiceActive').checked = service.is_active !== false;
+    document.getElementById('businessServiceFormTitle').textContent = 'Edit service';
+    document.getElementById('businessServiceSubmit').innerHTML = '<i class="fas fa-save"></i> Save changes';
+    document.getElementById('businessServiceCancel').hidden = false;
+    toggleBusinessServicePrice();
+    document.getElementById('businessServiceForm').scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+async function saveBusinessService(event) {
+    event.preventDefault();
+    const id = document.getElementById('businessServiceId').value;
+    const status = document.getElementById('businessServiceStatus');
+    const submit = document.getElementById('businessServiceSubmit');
+    const pricingMode = document.getElementById('businessServicePricingMode').value;
+    const payload = {
+        name: document.getElementById('businessServiceName').value.trim(),
+        description: document.getElementById('businessServiceDescription').value.trim(),
+        pricing_mode: pricingMode,
+        price: pricingMode === 'fixed' ? document.getElementById('businessServicePrice').value : null,
+        is_active: document.getElementById('businessServiceActive').checked
+    };
+    if (submit) { submit.disabled = true; submit.textContent = id ? 'Saving...' : 'Adding...'; }
+    if (status) { status.textContent = ''; status.style.color = ''; }
+    try {
+        const response = await fetch(id ? `/api/business-admin/services/${id}` : '/api/business-admin/services', {
+            method: id ? 'PUT' : 'POST',
+            credentials: 'same-origin',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok || !data.success) throw new Error(data.error || 'Unable to save this service.');
+        resetBusinessServiceForm();
+        await loadBusinessServices();
+        if (status) { status.textContent = 'Service saved.'; status.style.color = '#15803d'; }
+    } catch (error) {
+        if (status) { status.textContent = error.message || 'Unable to save this service.'; status.style.color = '#b91c1c'; }
+    } finally {
+        if (submit) submit.disabled = false;
+        if (submit && document.getElementById('businessServiceId').value) submit.innerHTML = '<i class="fas fa-save"></i> Save changes';
+        else if (submit) submit.innerHTML = '<i class="fas fa-plus"></i> Add service';
+    }
+}
+
+async function deleteBusinessService(serviceId) {
+    if (!window.confirm('Delete this service from your public shop?')) return;
+    try {
+        const response = await fetch(`/api/business-admin/services/${serviceId}`, { method: 'DELETE', credentials: 'same-origin' });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok || !data.success) throw new Error(data.error || 'Unable to delete this service.');
+        businessServices = businessServices.filter(item => Number(item.id) !== Number(serviceId));
+        renderBusinessServicesAdminList();
+        showToast('Service deleted.', 'success');
+    } catch (error) {
+        showToast(error.message || 'Unable to delete this service.', 'error');
+    }
+}
+
+document.addEventListener('DOMContentLoaded', toggleBusinessServicePrice);
+
 // ============================================================
 //  CONTACT ADMIN — send a message to the platform admin
 // ============================================================

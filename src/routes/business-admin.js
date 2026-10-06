@@ -3509,4 +3509,104 @@ router.post('/cancel-deletion', authMiddleware, businessAdminOnly, getBusinessId
     }
 });
 
+// Display-only service listings are separate from products and orders.
+function normaliseBusinessService(body = {}) {
+    const name = String(body.name || '').trim();
+    const description = String(body.description || '').trim();
+    const pricingMode = body.pricing_mode === 'negotiable' ? 'negotiable' : body.pricing_mode;
+    const price = pricingMode === 'fixed' ? Number(body.price) : null;
+    if (!name || name.length > 120) return { error: 'Service name is required and must be 120 characters or fewer.' };
+    if (description.length > 2000) return { error: 'Description must be 2,000 characters or fewer.' };
+    if (!['fixed', 'negotiable'].includes(pricingMode)) return { error: 'Choose a fixed price or negotiable pricing.' };
+    if (pricingMode === 'fixed' && (!Number.isFinite(price) || price < 0 || price > 999999999)) {
+        return { error: 'Enter a valid service price.' };
+    }
+    return {
+        value: {
+            name,
+            description,
+            pricing_mode: pricingMode,
+            price,
+            is_active: body.is_active !== false && body.is_active !== 'false'
+        }
+    };
+}
+
+router.get('/services', authMiddleware, businessAdminOnly, getBusinessIdFromToken, async (req, res) => {
+    try {
+        const result = await pool.query(
+            'SELECT id, name, description, pricing_mode, price, is_active, display_order, created_at, updated_at FROM business_services WHERE business_id = $1 ORDER BY display_order, id',
+            [req.businessId]
+        );
+        res.json({ success: true, services: result.rows });
+    } catch (err) {
+        console.error('Get business services error:', err);
+        logError(err, 'Get business services');
+        res.status(500).json({ error: 'Unable to load your services.' });
+    }
+});
+
+router.post('/services', authMiddleware, businessAdminOnly, getBusinessIdFromToken, async (req, res) => {
+    try {
+        const normalised = normaliseBusinessService(req.body);
+        if (normalised.error) return res.status(400).json({ error: normalised.error });
+        const count = await pool.query('SELECT COUNT(*)::int AS count FROM business_services WHERE business_id = $1', [req.businessId]);
+        if (count.rows[0].count >= 50) return res.status(409).json({ error: 'You can list up to 50 services.' });
+        const result = await pool.query(`
+            INSERT INTO business_services (business_id, name, description, pricing_mode, price, is_active, display_order)
+            SELECT $1, $2, $3, $4, $5, $6, COALESCE(MAX(display_order), 0) + 1
+              FROM business_services WHERE business_id = $1
+            RETURNING *
+        `, [req.businessId, normalised.value.name, normalised.value.description, normalised.value.pricing_mode, normalised.value.price, normalised.value.is_active]);
+        await logAdminActivity(req.userId, 'CREATE_BUSINESS_SERVICE', { businessId: req.businessId, serviceId: result.rows[0].id });
+        res.status(201).json({ success: true, service: result.rows[0] });
+    } catch (err) {
+        console.error('Create business service error:', err);
+        logError(err, 'Create business service');
+        res.status(500).json({ error: 'Unable to save this service.' });
+    }
+});
+
+router.put('/services/:id', authMiddleware, businessAdminOnly, getBusinessIdFromToken, async (req, res) => {
+    try {
+        const serviceId = Number.parseInt(req.params.id, 10);
+        if (!Number.isSafeInteger(serviceId) || serviceId <= 0) return res.status(400).json({ error: 'Invalid service.' });
+        const normalised = normaliseBusinessService(req.body);
+        if (normalised.error) return res.status(400).json({ error: normalised.error });
+        const value = normalised.value;
+        const result = await pool.query(`
+            UPDATE business_services
+               SET name = $1, description = $2, pricing_mode = $3, price = $4,
+                   is_active = $5, updated_at = NOW()
+             WHERE id = $6 AND business_id = $7
+            RETURNING *
+        `, [value.name, value.description, value.pricing_mode, value.price, value.is_active, serviceId, req.businessId]);
+        if (!result.rows.length) return res.status(404).json({ error: 'Service not found.' });
+        await logAdminActivity(req.userId, 'UPDATE_BUSINESS_SERVICE', { businessId: req.businessId, serviceId });
+        res.json({ success: true, service: result.rows[0] });
+    } catch (err) {
+        console.error('Update business service error:', err);
+        logError(err, 'Update business service');
+        res.status(500).json({ error: 'Unable to update this service.' });
+    }
+});
+
+router.delete('/services/:id', authMiddleware, businessAdminOnly, getBusinessIdFromToken, async (req, res) => {
+    try {
+        const serviceId = Number.parseInt(req.params.id, 10);
+        if (!Number.isSafeInteger(serviceId) || serviceId <= 0) return res.status(400).json({ error: 'Invalid service.' });
+        const result = await pool.query(
+            'DELETE FROM business_services WHERE id = $1 AND business_id = $2 RETURNING id',
+            [serviceId, req.businessId]
+        );
+        if (!result.rows.length) return res.status(404).json({ error: 'Service not found.' });
+        await logAdminActivity(req.userId, 'DELETE_BUSINESS_SERVICE', { businessId: req.businessId, serviceId });
+        res.json({ success: true });
+    } catch (err) {
+        console.error('Delete business service error:', err);
+        logError(err, 'Delete business service');
+        res.status(500).json({ error: 'Unable to delete this service.' });
+    }
+});
+
 module.exports = router;

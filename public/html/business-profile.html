@@ -283,6 +283,12 @@
 
     <!-- ===== PRODUCTS SECTION ===== -->
     <div class="products-section" id="products">
+      <div class="shop-tabs shop-type-tabs" id="shopTypeTabs" role="tablist" aria-label="Shop products or services">
+        <button type="button" class="shop-tab is-active" data-shop-type="products" role="tab" aria-selected="true" onclick="switchBusinessShopType('products')"><i class="fas fa-box"></i> Finished Products</button>
+        <button type="button" class="shop-tab" data-shop-type="services" role="tab" aria-selected="false" onclick="switchBusinessShopType('services')"><i class="fas fa-screwdriver-wrench"></i> Other Services</button>
+      </div>
+
+      <div id="businessProductsPanel" class="business-listing-panel">
       <div class="section-header">
         <h2>📦 Our Products</h2>
         <div class="products-filters">
@@ -292,6 +298,17 @@
       <div class="shop-tabs" id="shopTabs" role="tablist" aria-label="Filter products by media"><button type="button" class="shop-tab is-active" data-shop-tab="all" role="tab" aria-selected="true" onclick="switchShopTab('all')"><i class="fas fa-th"></i> All</button><button type="button" class="shop-tab" data-shop-tab="image" role="tab" aria-selected="false" onclick="switchShopTab('image')"><i class="fas fa-image"></i> Images</button><button type="button" class="shop-tab" data-shop-tab="video" role="tab" aria-selected="false" onclick="switchShopTab('video')"><i class="fas fa-video"></i> Videos</button></div>
       <div class="shop-tab-empty" id="shopTabEmptyImages" hidden>This business has not uploaded any product images yet.</div><div class="shop-tab-empty" id="shopTabEmptyVideos" hidden>This business has not uploaded any product videos yet.</div>
       <div class="product-grid" id="productGrid"></div>
+      </div>
+
+      <div id="businessServicesPanel" class="business-listing-panel" hidden>
+        <div class="section-header">
+          <div>
+            <h2>Other Services</h2>
+            <p style="font-size:.82rem;color:#64748b;margin:4px 0 0;">Services are arranged directly with the business and are not checkout items.</p>
+          </div>
+        </div>
+        <div class="business-services-grid" id="businessServicesGrid"><p style="color:#94a3b8;">Loading services...</p></div>
+      </div>
     </div>
 
     <!-- ===== CONTACT ===== -->

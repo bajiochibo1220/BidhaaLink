@@ -643,6 +643,10 @@
         <span class="badge" id="productBadge">0</span>
       </div>
 
+      <div class="menu-item" data-section="services" onclick="navigateTo('services')">
+        <i class="fas fa-screwdriver-wrench"></i> Other Services You Sell
+      </div>
+
       <div class="menu-item" data-section="messages" onclick="navigateTo('messages')">
         <i class="fas fa-comment"></i> Messages
       </div>
@@ -722,6 +726,60 @@
           <input type="text" id="orderFilterSearch" placeholder="Search orders..." onkeyup="filterOrders()" style="padding:6px 12px; border:1px solid #d1d5db; border-radius:6px; flex:1; min-width:150px;">
         </div>
         <div id="ordersListContainer"><p class="empty-msg">Loading orders...</p></div>
+      </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- SECTION: DISPLAY-ONLY SERVICES                              -->
+    <!-- ============================================================ -->
+    <div class="section" id="section-services">
+      <div class="section-header">
+        <div>
+          <h2>Other Services You Sell</h2>
+          <p style="font-size:0.82rem;color:#64748b;margin:4px 0 0;">List services such as installation, repairs, or delivery. Customers can view and contact you about them; services are not checkout items.</p>
+        </div>
+        <button type="button" class="btn-secondary" onclick="loadBusinessServices()"><i class="fas fa-sync-alt"></i> Refresh</button>
+      </div>
+
+      <div class="settings-section">
+        <h3 id="businessServiceFormTitle">Add a service</h3>
+        <form id="businessServiceForm" onsubmit="saveBusinessService(event)">
+          <input type="hidden" id="businessServiceId" value="">
+          <div class="form-row">
+            <div class="full">
+              <label for="businessServiceName">Service name *</label>
+              <input id="businessServiceName" type="text" maxlength="120" required placeholder="e.g. Window installation">
+            </div>
+            <div class="full">
+              <label for="businessServiceDescription">Description</label>
+              <textarea id="businessServiceDescription" rows="3" maxlength="2000" placeholder="Explain what the service includes, where you offer it, or any conditions."></textarea>
+            </div>
+            <div>
+              <label for="businessServicePricingMode">Pricing</label>
+              <select id="businessServicePricingMode" onchange="toggleBusinessServicePrice()">
+                <option value="fixed">Set a price</option>
+                <option value="negotiable">Available for negotiation</option>
+              </select>
+            </div>
+            <div id="businessServicePriceWrap">
+              <label for="businessServicePrice">Price (Ksh) *</label>
+              <input id="businessServicePrice" type="number" min="0" max="999999999" step="0.01" placeholder="e.g. 2500">
+            </div>
+            <div class="full checkbox-group">
+              <label><input type="checkbox" id="businessServiceActive" checked> Show this service on my public shop</label>
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;">
+            <button type="submit" class="btn-save" id="businessServiceSubmit"><i class="fas fa-plus"></i> Add service</button>
+            <button type="button" class="btn-secondary" id="businessServiceCancel" onclick="resetBusinessServiceForm()" hidden>Cancel edit</button>
+          </div>
+          <p id="businessServiceStatus" role="status" style="font-size:0.82rem;margin:8px 0 0;"></p>
+        </form>
+      </div>
+
+      <div class="settings-section">
+        <h3>Your services</h3>
+        <div id="businessServicesAdminList"><p class="empty-msg">Your services will appear here.</p></div>
       </div>
     </div>
 

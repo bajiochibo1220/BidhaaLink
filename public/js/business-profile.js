@@ -65,12 +65,17 @@ if (typeof window.isOwnBusiness === 'undefined') {
 if (typeof window.businessProductTab === 'undefined') {
     window.businessProductTab = 'all';
 }
+if (typeof window.businessShopType === 'undefined') {
+    window.businessShopType = new URLSearchParams(window.location.search).get('shop') === 'services' ? 'services' : 'products';
+}
 
 const DEFAULT_ORDERS_PAUSED_MESSAGE = 'This business is not currently accepting online orders. Please contact them directly.';
 
 let businessSlug = window.businessSlug;
 let businessData = window.businessData;
 let businessProductList = window.businessProductList;
+let businessServiceList = [];
+let businessServicesLoaded = false;
 let businessSlideIndex = window.businessSlideIndex;
 let businessSlideTimer = window.businessSlideTimer;
 let businessMap = window.businessMap;
@@ -87,6 +92,89 @@ let isOwnBusiness = window.isOwnBusiness;
 // ============================================================
 
 const VALID_PRODUCT_TABS = ['all', 'image', 'video'];
+
+function renderBusinessShopType() {
+    const type = window.businessShopType === 'services' ? 'services' : 'products';
+    const productsPanel = document.getElementById('businessProductsPanel');
+    const servicesPanel = document.getElementById('businessServicesPanel');
+    if (productsPanel) productsPanel.hidden = type !== 'products';
+    if (servicesPanel) servicesPanel.hidden = type !== 'services';
+    document.querySelectorAll('#shopTypeTabs [data-shop-type]').forEach(button => {
+        const active = button.dataset.shopType === type;
+        button.classList.toggle('is-active', active);
+        button.setAttribute('aria-selected', active ? 'true' : 'false');
+    });
+}
+
+function switchBusinessShopType(type) {
+    if (!['products', 'services'].includes(type)) return;
+    window.businessShopType = type;
+    renderBusinessShopType();
+    const url = new URL(window.location.href);
+    if (type === 'services') url.searchParams.set('shop', 'services');
+    else url.searchParams.delete('shop');
+    window.history.replaceState({}, '', `${url.pathname}${url.search}${url.hash}`);
+    if (type === 'services' && !businessServicesLoaded) loadPublicBusinessServices();
+}
+
+async function loadPublicBusinessServices() {
+    const grid = document.getElementById('businessServicesGrid');
+    if (!businessSlug || !grid) return;
+    grid.innerHTML = '<p style="color:#94a3b8;">Loading services...</p>';
+    try {
+        const response = await fetch(`/api/businesses/${encodeURIComponent(businessSlug)}/services`);
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(data.error || 'Could not load services.');
+        businessServiceList = Array.isArray(data.services) ? data.services : [];
+        businessServicesLoaded = true;
+        renderPublicBusinessServices();
+    } catch (error) {
+        grid.innerHTML = '<p style="color:#b91c1c;">Services could not be loaded. Please try again later.</p>';
+        console.warn('Business services could not be loaded:', error.message);
+    }
+}
+
+function renderPublicBusinessServices() {
+    const grid = document.getElementById('businessServicesGrid');
+    if (!grid) return;
+    if (!businessServiceList.length) {
+        grid.innerHTML = '<p style="color:#64748b;">This business has not listed any services yet.</p>';
+        return;
+    }
+    grid.innerHTML = businessServiceList.map(service => {
+        const price = service.pricing_mode === 'negotiable'
+            ? 'Available for negotiation'
+            : `Ksh ${Number(service.price || 0).toLocaleString('en-KE', { maximumFractionDigits: 2 })}`;
+        return `<article class="business-service-card">
+            <h3>${escapeBusinessProductText(service.name)}</h3>
+            <div class="business-service-price">${escapeBusinessProductText(price)}</div>
+            ${service.description ? `<p>${escapeBusinessProductText(service.description)}</p>` : ''}
+            <button type="button" class="business-service-contact" onclick="contactBusinessService(${Number(service.id)})"><i class="fas fa-comment-dots"></i> Ask about this service</button>
+        </article>`;
+    }).join('');
+}
+
+function contactBusinessService(serviceId) {
+    const service = businessServiceList.find(item => Number(item.id) === Number(serviceId));
+    if (!service) return;
+    const business = businessData || {};
+    const number = String(business.whatsapp || '').replace(/\D/g, '');
+    const price = service.pricing_mode === 'negotiable'
+        ? 'Price: available for negotiation'
+        : `Price: Ksh ${Number(service.price || 0).toLocaleString('en-KE', { maximumFractionDigits: 2 })}`;
+    if (number) {
+        const message = `Hi ${business.business_name || ''}, I am interested in your service: ${service.name}. ${price}`;
+        window.open(`https://wa.me/${number}?text=${encodeURIComponent(message)}`, '_blank', 'noopener');
+        return;
+    }
+    const contacts = document.getElementById('businessProfileContacts');
+    if (contacts) contacts.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    if (typeof showToast === 'function') {
+        showToast(business.whatsapp || business.phone || business.email
+            ? 'Use the business contact options below to ask about this service.'
+            : 'This business has not added contact details yet.', 'info');
+    }
+}
 
 function readProductTabFromUrl() {
     const params = new URLSearchParams(window.location.search);
@@ -266,6 +354,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     window.businessProductTab = readProductTabFromUrl();
     renderProductTabs(window.businessProductTab);
+    renderBusinessShopType();
 
     if (typeof updateNavigation === 'function') {
         updateNavigation();
@@ -350,7 +439,7 @@ async function loadBusinessProfile() {
         if (contentEl) contentEl.style.display = 'block';
 
         renderBusinessProfile();
-        await loadBusinessProducts();
+        await Promise.all([loadBusinessProducts(), loadPublicBusinessServices()]);
         buildBusinessSlider();
 
         if (isCustomerViewer()) {
@@ -1409,6 +1498,9 @@ window.renderProductTabs = renderProductTabs;
 window.readProductTabFromUrl = readProductTabFromUrl;
 window.writeProductTabToUrl = writeProductTabToUrl;
 window.getActiveProductTab = getActiveProductTab;
+window.switchBusinessShopType = switchBusinessShopType;
+window.loadPublicBusinessServices = loadPublicBusinessServices;
+window.contactBusinessService = contactBusinessService;
 
 window.changeBusinessCardQty = changeBusinessCardQty;
 window.addBusinessCardToCart = addBusinessCardToCart;
