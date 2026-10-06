@@ -2298,6 +2298,17 @@ function togglePwd(inputId, btn) {
 //  HANDLE LOGIN
 // ============================================================
 
+function redirectToPendingServiceConversation() {
+  try {
+    const pending = JSON.parse(localStorage.getItem('postLoginServiceConversation') || 'null');
+    if (!pending || typeof pending.businessSlug !== 'string' || !pending.businessSlug.trim()) return false;
+    window.location.assign(`/business/${encodeURIComponent(pending.businessSlug)}?serviceChat=1`);
+    return true;
+  } catch (_) {
+    return false;
+  }
+}
+
 async function handleLogin() {
   const username = document.getElementById('loginUsername').value.trim();
   const password = document.getElementById('loginPassword').value;
@@ -2363,6 +2374,7 @@ async function handleLogin() {
         closeAuthModal();
         showToast('✅ Welcome back, ' + (data.customer?.name || data.name || 'User') + '!', 'success');
         checkAuthState();
+        if (redirectToPendingServiceConversation()) return;
         const returnToProduct = localStorage.getItem('postLoginReturnToProduct');
         if (returnToProduct && returnToProduct.startsWith('/product-detail.html')) {
           localStorage.removeItem('postLoginReturnToProduct');
@@ -2498,6 +2510,7 @@ async function handleCustomerRegister() {
       }
 
       checkAuthState();
+      if (redirectToPendingServiceConversation()) return;
       const returnToProduct = localStorage.getItem('postLoginReturnToProduct');
       if (returnToProduct && returnToProduct.startsWith('/product-detail.html')) {
         localStorage.removeItem('postLoginReturnToProduct');
@@ -3142,6 +3155,9 @@ async function getWorkspaceSource(role, section, _subsection) {
     return `/account.html?embedded=1&section=${encodeURIComponent(section)}`;
   }
 
+  if (role === 'business_admin' && section === 'messages') {
+    return '/business-admin.html?embedded=1&section=messages';
+  }
   if (section === 'messages') return '/seller-chat.html?embedded=1';
 
   if (section === 'preview') {

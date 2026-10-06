@@ -37,6 +37,14 @@ function setupSocketHandlers(io) {
     if (socket.customerId) {
       socket.join(`customer_${socket.customerId}`);
     }
+    if (socket.customerId && socket.role === 'business_admin') {
+      pool.query('SELECT business_id FROM admin_users WHERE id = $1', [socket.customerId])
+        .then(result => {
+          const businessId = result.rows[0]?.business_id;
+          if (businessId) socket.join(`business_${businessId}`);
+        })
+        .catch(err => logError(err, 'Join business service conversation room'));
+    }
 
     // ---- Chat Message ----
     socket.on('chat-message', async (data) => {

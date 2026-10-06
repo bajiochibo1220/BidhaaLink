@@ -73,6 +73,9 @@ let businessProductList = window.businessProductList;
 let businessServicesList = [];
 let businessDisplayedProducts = null;
 let businessProductGridColumnCount = 0;
+let businessServicesExpandedBreakIndex = null;
+let businessServicesPanelElement = null;
+let businessServicesSelectedIndex = 0;
 let businessSlideIndex = window.businessSlideIndex;
 let businessSlideTimer = window.businessSlideTimer;
 let businessMap = window.businessMap;
@@ -128,6 +131,8 @@ function renderProductTabs(activeTab) {
 function switchShopTab(tab) {
     if (!VALID_PRODUCT_TABS.includes(tab)) return;
     if (tab === getActiveProductTab()) return;
+    closeBusinessServicesPanel();
+    businessServicesPanelElement = null;
     window.businessProductTab = tab;
     renderProductTabs(tab);
     writeProductTabToUrl(tab);
@@ -379,6 +384,8 @@ async function loadPublicBusinessServices() {
         const data = await response.json();
         businessServicesList = Array.isArray(data.services) ? data.services : [];
         renderBusinessProductGrid(businessDisplayedProducts || businessProductList || []);
+        openSharedBusinessServiceTarget();
+        resumePostLoginBusinessServiceConversation();
     } catch (error) {
         console.warn('Could not load public business services:', error);
         businessServicesList = [];
@@ -403,21 +410,349 @@ function getBusinessServiceMedia(service) {
         typeof item.url === 'string' && (activeTab === 'all' || item.kind === activeTab));
 }
 
+function getVisibleBusinessServices() {
+    const activeTab = getActiveProductTab();
+    return businessServicesList.filter(service => activeTab === 'all' || getBusinessServiceMedia(service).length > 0);
+}
+
+function getBusinessServicePriceLabel(service) {
+    const unitLabels = { per_service: 'per job', per_item: 'per item', per_hour: 'per hour', per_day: 'per day' };
+    return service.pricing_mode === 'negotiable'
+        ? "Let's talk"
+        : `Ksh ${Number(service.price || 0).toLocaleString('en-KE', { maximumFractionDigits: 2 })} ${unitLabels[service.price_unit] || unitLabels.per_service}`;
+}
+
+function normaliseBusinessContactNumber(raw) {
+    let digits = String(raw || '').replace(/\D/g, '');
+    if (digits.startsWith('0')) digits = `254${digits.slice(1)}`;
+    else if (digits.length === 9 && /^[17]/.test(digits)) digits = `254${digits}`;
+    return digits.length >= 10 && digits.length <= 15 ? digits : '';
+}
+
+function createBusinessServiceInquiryLink(service, className = 'business-service-inquiry-link', mediaItem = null) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = className;
+    const price = getBusinessServicePriceLabel(service);
+    button.textContent = service.pricing_mode === 'negotiable' ? "Let's talk" : `${price} · Let's talk`;
+    button.setAttribute('aria-label', `${price}. Choose how to contact the business about ${service.name || 'this service'}`);
+    button.addEventListener('click', () => openBusinessServiceContactOptions(service, mediaItem));
+    return button;
+}
+
+function buildServiceInquiryMessage(service) {
+    return `Can we have a talk about this service please?\nService: ${service.name || 'Service'}\nPrice: ${getBusinessServicePriceLabel(service)}`;
+}
+
+function openBusinessServiceContactOptions(service, mediaItem = null) {
+    document.getElementById('businessServiceContactDialog')?.remove();
+    const dialog = document.createElement('dialog');
+    dialog.id = 'businessServiceContactDialog';
+    dialog.className = 'business-service-contact-dialog';
+    dialog.setAttribute('aria-labelledby', 'businessServiceContactTitle');
+
+    const panel = document.createElement('div');
+    panel.className = 'business-service-contact-panel';
+    const header = document.createElement('div');
+    header.className = 'business-service-contact-header';
+    const heading = document.createElement('div');
+    const title = document.createElement('h2');
+    title.id = 'businessServiceContactTitle';
+    title.textContent = "Let's talk";
+    const serviceName = document.createElement('p');
+    serviceName.textContent = `${service.name || 'Service'} · ${getBusinessServicePriceLabel(service)}`;
+    heading.append(title, serviceName);
+    const close = document.createElement('button');
+    close.type = 'button';
+    close.className = 'business-service-contact-close';
+    close.setAttribute('aria-label', 'Close contact options');
+    close.textContent = '×';
+    close.addEventListener('click', () => dialog.close());
+    header.append(heading, close);
+    panel.appendChild(header);
+
+    const intro = document.createElement('p');
+    intro.className = 'business-service-contact-intro';
+    intro.textContent = 'Choose how you would like to contact this business. Your message will mention this service.';
+    panel.appendChild(intro);
+
+    const messagePreview = document.createElement('p');
+    messagePreview.className = 'business-service-contact-message-preview';
+    messagePreview.textContent = buildServiceInquiryMessage(service);
+    panel.appendChild(messagePreview);
+
+    if (mediaItem?.url && ['image', 'video'].includes(mediaItem.kind)) {
+        const attachment = document.createElement('div');
+        attachment.className = 'business-service-contact-attachment';
+        if (mediaItem.kind === 'image') {
+            const image = document.createElement('img');
+            image.src = mediaItem.url;
+            image.alt = mediaItem.caption || `${service.name || 'Service'} photo selected for your message`;
+            attachment.appendChild(image);
+        } else {
+            const video = document.createElement('video');
+            video.src = mediaItem.url;
+            video.controls = true;
+            video.playsInline = true;
+            video.preload = 'metadata';
+            attachment.appendChild(video);
+        }
+        const caption = document.createElement('span');
+        caption.textContent = mediaItem.caption || `This ${mediaItem.kind} will be included with your in-app message and linked in WhatsApp or SMS.`;
+        attachment.appendChild(caption);
+        panel.appendChild(attachment);
+    }
+
+    const whatsappPhone = normaliseBusinessContactNumber(businessData?.whatsapp || businessData?.phone);
+    const smsPhone = normaliseBusinessContactNumber(businessData?.phone);
+    const externalText = buildServiceInquiryMessage(service) + (mediaItem?.url ? `\nService ${mediaItem.kind}: ${mediaItem.url}` : '');
+    const choices = document.createElement('div');
+    choices.className = 'business-service-contact-choices';
+    [
+        { method: 'whatsapp', label: 'WhatsApp', icon: 'fab fa-whatsapp', hint: 'Open a WhatsApp chat', disabled: !whatsappPhone },
+        { method: 'sms', label: 'SMS', icon: 'fas fa-comment-sms', hint: 'Send the message by text', disabled: !smsPhone },
+        { method: 'inapp', label: 'In-app conversation', icon: 'fas fa-comments', hint: 'Keep the conversation in BidhaaLink', disabled: false }
+    ].forEach(option => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'business-service-contact-option';
+        button.disabled = option.disabled;
+        const icon = document.createElement('i');
+        icon.className = option.icon;
+        icon.setAttribute('aria-hidden', 'true');
+        const text = document.createElement('span');
+        const label = document.createElement('strong');
+        label.textContent = option.label;
+        const hint = document.createElement('small');
+        hint.textContent = option.disabled ? 'This business has not added a phone number' : option.hint;
+        text.append(label, hint);
+        const arrow = document.createElement('i');
+        arrow.className = 'fas fa-chevron-right';
+        arrow.setAttribute('aria-hidden', 'true');
+        button.append(icon, text, arrow);
+        button.addEventListener('click', async () => {
+            if (option.method === 'whatsapp') {
+                window.open(`https://wa.me/${whatsappPhone}?text=${encodeURIComponent(externalText)}`, '_blank', 'noopener');
+                dialog.close();
+            } else if (option.method === 'sms') {
+                const international = `+${smsPhone}`;
+                const bodySeparator = /iPhone|iPad|iPod/i.test(navigator.userAgent) ? '&' : '?';
+                window.location.href = `sms:${international}${bodySeparator}body=${encodeURIComponent(externalText)}`;
+                dialog.close();
+            } else {
+                button.disabled = true;
+                hint.textContent = 'Starting your conversation…';
+                await startBusinessServiceConversation(service, mediaItem, button, hint);
+            }
+        });
+        choices.appendChild(button);
+    });
+    panel.appendChild(choices);
+    dialog.appendChild(panel);
+    dialog.addEventListener('click', event => { if (event.target === dialog) dialog.close(); });
+    dialog.addEventListener('close', () => dialog.remove(), { once: true });
+    document.body.appendChild(dialog);
+    if (typeof dialog.showModal === 'function') dialog.showModal();
+    else dialog.setAttribute('open', '');
+}
+
+async function startBusinessServiceConversation(service, mediaItem, button, hint) {
+    const pending = {
+        businessSlug: businessSlug || businessData?.slug || '',
+        serviceId: service.id,
+        serviceName: service.name || 'Service',
+        mediaUrl: mediaItem?.url || null,
+        mediaKind: mediaItem?.kind || null,
+        mediaCaption: mediaItem?.caption || null
+    };
+    try {
+        const response = await fetch('/api/service-conversations/customer/conversations', {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(pending)
+        });
+        const data = await response.json().catch(() => ({}));
+        if (response.status === 401) {
+            localStorage.setItem('postLoginServiceConversation', JSON.stringify(pending));
+            const dialog = document.getElementById('businessServiceContactDialog');
+            if (dialog?.open) dialog.close();
+            if (typeof window.openAuthModal === 'function') window.openAuthModal('login');
+            else if (typeof window.top?.openAuthModal === 'function') window.top.openAuthModal('login');
+            else window.location.assign('/marketplace?auth=login');
+            return;
+        }
+        if (!response.ok || !data.conversationId) throw new Error(data.error || 'Could not start the conversation.');
+        localStorage.removeItem('postLoginServiceConversation');
+        window.location.assign(`/account.html?section=messages&serviceConversation=${encodeURIComponent(data.conversationId)}`);
+    } catch (error) {
+        console.error('Start business service conversation error:', error);
+        if (hint) hint.textContent = error.message || 'Could not start the conversation. Please try again.';
+        if (button) button.disabled = false;
+        if (!hint && typeof window.showToast === 'function') window.showToast(error.message || 'Could not start the conversation. Please try again.', 'error');
+    }
+}
+
+function buildBusinessServiceShareUrl(service, mediaItem = null) {
+    const slug = businessSlug || businessData?.slug;
+    if (!slug || !service?.id) return window.location.href;
+    const url = new URL(`/business/${encodeURIComponent(slug)}`, window.location.origin);
+    url.searchParams.set('serviceId', String(service.id));
+    if (mediaItem?.url && ['image', 'video'].includes(mediaItem.kind)) {
+        url.searchParams.set('serviceMedia', mediaItem.url);
+        url.searchParams.set('serviceMediaKind', mediaItem.kind);
+    }
+    return url.href;
+}
+
+function showInlineBusinessServiceChoices(service, mediaItem, trigger, panel) {
+    const willOpen = panel.hidden;
+    document.querySelectorAll('.business-service-contact-options:not([hidden])').forEach(openPanel => {
+        if (openPanel !== panel) {
+            openPanel.hidden = true;
+            openPanel.parentElement?.querySelector('.business-service-inquiry-trigger')?.setAttribute('aria-expanded', 'false');
+        }
+    });
+    panel.hidden = !willOpen;
+    trigger.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+    if (!willOpen) return;
+
+    const whatsappPhone = normaliseBusinessContactNumber(businessData?.whatsapp || businessData?.phone);
+    const smsPhone = normaliseBusinessContactNumber(businessData?.phone);
+    const serviceUrl = buildBusinessServiceShareUrl(service, mediaItem);
+    const externalText = `${buildServiceInquiryMessage(service)}\nView this service: ${serviceUrl}`;
+    const mediaNote = panel.querySelector('.business-service-contact-media-note');
+    if (mediaNote) {
+        mediaNote.textContent = mediaItem?.url
+            ? `This ${mediaItem.kind} will be attached to the in-app message. The service link in WhatsApp or SMS opens this same ${mediaItem.kind}.`
+            : 'Your message will include a link back to this service.';
+    }
+
+    panel.querySelectorAll('[data-contact-method]').forEach(choice => {
+        const method = choice.dataset.contactMethod;
+        const phone = method === 'whatsapp' ? whatsappPhone : smsPhone;
+        choice.disabled = method !== 'inapp' && !phone;
+        const hint = choice.querySelector('small');
+        if (hint) hint.textContent = choice.disabled
+            ? 'This business has not added a phone number'
+            : method === 'whatsapp' ? 'Open a WhatsApp chat' : method === 'sms' ? 'Open a text message' : 'Chat privately on BidhaaLink';
+        choice.onclick = async () => {
+            if (method === 'whatsapp') {
+                window.location.assign(`https://wa.me/${whatsappPhone}?text=${encodeURIComponent(externalText)}`);
+            } else if (method === 'sms') {
+                const separator = /iPhone|iPad|iPod/i.test(navigator.userAgent) ? '&' : '?';
+                window.location.assign(`sms:+${smsPhone}${separator}body=${encodeURIComponent(externalText)}`);
+            } else {
+                choice.disabled = true;
+                const status = panel.querySelector('.business-service-contact-status');
+                if (status) status.textContent = 'Starting your conversation…';
+                await startBusinessServiceConversation(service, mediaItem, choice, status);
+            }
+        };
+    });
+}
+
+// Keep the channel choices beside the exact service/media card the customer tapped.
+function createBusinessServiceInquiryLink(service, className = 'business-service-inquiry-link', mediaItem = null) {
+    const wrapper = document.createElement('div');
+    wrapper.className = `business-service-contact-wrap ${className}`;
+    const trigger = document.createElement('button');
+    trigger.type = 'button';
+    trigger.className = 'business-service-inquiry-trigger';
+    const price = getBusinessServicePriceLabel(service);
+    trigger.textContent = service.pricing_mode === 'negotiable' ? "Let's talk" : `${price} · Let's talk`;
+    trigger.setAttribute('aria-label', `${price}. Choose WhatsApp, SMS, or an in-app conversation about ${service.name || 'this service'}`);
+    trigger.setAttribute('aria-expanded', 'false');
+    trigger.addEventListener('click', () => showInlineBusinessServiceChoices(service, mediaItem, trigger, options));
+
+    const options = document.createElement('div');
+    options.className = 'business-service-contact-options';
+    options.hidden = true;
+    const mediaNote = document.createElement('p');
+    mediaNote.className = 'business-service-contact-media-note';
+    mediaNote.textContent = mediaItem?.url
+        ? `This ${mediaItem.kind} will be attached to your message.`
+        : 'Your message will include a link back to this service.';
+    options.appendChild(mediaNote);
+    [
+        { method: 'whatsapp', label: 'WhatsApp', icon: 'fab fa-whatsapp', hint: 'Open a WhatsApp chat' },
+        { method: 'sms', label: 'SMS', icon: 'fas fa-comment-sms', hint: 'Open a text message' },
+        { method: 'inapp', label: 'In-app conversation', icon: 'fas fa-comments', hint: 'Chat privately on BidhaaLink' }
+    ].forEach(option => {
+        const choice = document.createElement('button');
+        choice.type = 'button';
+        choice.className = 'business-service-contact-option';
+        choice.dataset.contactMethod = option.method;
+        const icon = document.createElement('i');
+        icon.className = option.icon;
+        icon.setAttribute('aria-hidden', 'true');
+        const copy = document.createElement('span');
+        const label = document.createElement('strong');
+        label.textContent = option.label;
+        const hint = document.createElement('small');
+        hint.textContent = option.hint;
+        copy.append(label, hint);
+        choice.append(icon, copy);
+        options.appendChild(choice);
+    });
+    const status = document.createElement('small');
+    status.className = 'business-service-contact-status';
+    status.setAttribute('aria-live', 'polite');
+    options.appendChild(status);
+    wrapper.append(trigger, options);
+    return wrapper;
+}
+
+function openSharedBusinessServiceTarget() {
+    const params = new URLSearchParams(window.location.search);
+    const serviceId = params.get('serviceId');
+    if (!serviceId || window.__openedSharedBusinessServiceTarget) return;
+    const services = getVisibleBusinessServices();
+    const index = services.findIndex(service => String(service.id) === String(serviceId));
+    if (index < 0) return;
+    const prompt = document.querySelector('.business-services-teaser-button');
+    if (!prompt) return;
+    window.__openedSharedBusinessServiceTarget = true;
+    businessServicesSelectedIndex = index;
+    const breakIndex = Number(prompt.dataset.serviceBreakIndex);
+    toggleBusinessServicesAt(breakIndex);
+    const mediaUrl = params.get('serviceMedia');
+    if (mediaUrl) requestAnimationFrame(() => {
+        const media = businessServicesPanelElement?.querySelectorAll('.business-service-media');
+        const target = Array.from(media || []).find(figure => figure.dataset.mediaUrl === mediaUrl);
+        target?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+}
+
+function resumePostLoginBusinessServiceConversation() {
+    const raw = localStorage.getItem('postLoginServiceConversation');
+    if (!raw) return;
+    let pending;
+    try { pending = JSON.parse(raw); } catch (_) { localStorage.removeItem('postLoginServiceConversation'); return; }
+    if (!pending?.businessSlug || pending.businessSlug !== businessSlug || !businessServicesList.length) return;
+    const service = businessServicesList.find(item => String(item.id) === String(pending.serviceId));
+    if (!service) {
+        localStorage.removeItem('postLoginServiceConversation');
+        return;
+    }
+    startBusinessServiceConversation(service, pending.mediaUrl ? {
+        url: pending.mediaUrl, kind: pending.mediaKind, caption: pending.mediaCaption
+    } : null, null, null);
+}
+
 function createBusinessServiceCard(service) {
     const card = document.createElement('article');
     card.className = 'business-service-card';
+    const mediaItems = getBusinessServiceMedia(service);
 
     const heading = document.createElement('h3');
     heading.className = 'business-service-title';
     heading.textContent = service.name || 'Service';
     card.appendChild(heading);
 
-    const unitLabels = { per_service: 'per job', per_item: 'per item', per_hour: 'per hour', per_day: 'per day' };
     const price = document.createElement('p');
-    price.className = 'business-service-price';
-    price.textContent = service.pricing_mode === 'negotiable'
-        ? 'Available for negotiation'
-        : `Ksh ${Number(service.price || 0).toLocaleString('en-KE', { maximumFractionDigits: 2 })} ${unitLabels[service.price_unit] || unitLabels.per_service}`;
+    price.className = 'business-service-price business-service-price-action';
+    price.appendChild(createBusinessServiceInquiryLink(service, 'business-service-inquiry-link', mediaItems[0] || null));
     card.appendChild(price);
 
     if (service.service_area) {
@@ -433,11 +768,44 @@ function createBusinessServiceCard(service) {
         card.appendChild(description);
     }
 
-    const mediaItems = getBusinessServiceMedia(service);
     if (mediaItems.length) {
+        const mediaSection = document.createElement('section');
+        mediaSection.className = 'business-service-media-section';
+        const mediaHeading = document.createElement('h4');
+        mediaHeading.textContent = 'Photos & videos';
+        mediaSection.appendChild(mediaHeading);
+
+        const controls = document.createElement('div');
+        controls.className = 'business-service-media-controls';
+        const counter = document.createElement('span');
+        counter.className = 'business-service-media-counter';
+        counter.textContent = `1 / ${mediaItems.length}`;
+        controls.appendChild(counter);
+        const scrollerId = `businessServiceMediaScroll-${String(service.id || service.name || 'service').replace(/[^a-zA-Z0-9_-]/g, '')}`;
+        const upButton = document.createElement('button');
+        upButton.type = 'button';
+        upButton.className = 'business-service-media-scroll-button';
+        upButton.setAttribute('aria-label', 'Scroll to previous service photo or video');
+        upButton.innerHTML = '<i class="fas fa-arrow-up" aria-hidden="true"></i>';
+        upButton.addEventListener('click', () => scrollBusinessServiceMedia(scrollerId, -1));
+        controls.appendChild(upButton);
+        const downButton = document.createElement('button');
+        downButton.type = 'button';
+        downButton.className = 'business-service-media-scroll-button';
+        downButton.setAttribute('aria-label', 'Scroll to next service photo or video');
+        downButton.innerHTML = '<i class="fas fa-arrow-down" aria-hidden="true"></i>';
+        downButton.addEventListener('click', () => scrollBusinessServiceMedia(scrollerId, 1));
+        controls.appendChild(downButton);
+        mediaSection.appendChild(controls);
+
+        const scroller = document.createElement('div');
+        scroller.className = 'business-service-media-scroll';
+        scroller.id = scrollerId;
+        scroller.tabIndex = 0;
+        scroller.setAttribute('aria-label', 'Scroll vertically through this service’s photos and videos');
         const gallery = document.createElement('div');
         gallery.className = 'business-service-gallery';
-        mediaItems.forEach(item => {
+        mediaItems.forEach((item, index) => {
             let mediaUrl;
             try {
                 mediaUrl = new URL(item.url, window.location.origin);
@@ -455,38 +823,299 @@ function createBusinessServiceCard(service) {
                 video.setAttribute('aria-label', item.caption || `${service.name || 'Service'} example video`);
                 figure.appendChild(video);
             } else {
+                const openButton = document.createElement('button');
+                openButton.type = 'button';
+                openButton.className = 'business-service-photo-trigger';
+                openButton.setAttribute('aria-label', `Open full photo${item.caption ? `: ${item.caption}` : ` from ${service.name || 'this service'}`}`);
                 const image = document.createElement('img');
                 image.src = mediaUrl.href;
                 image.alt = item.caption || `${service.name || 'Service'} example photo`;
                 image.loading = 'lazy';
                 image.decoding = 'async';
-                figure.appendChild(image);
+                openButton.appendChild(image);
+                openButton.addEventListener('click', () => openBusinessServicePhotoViewer(service.id, item.url));
+                figure.appendChild(openButton);
             }
+            figure.appendChild(createBusinessServiceInquiryLink(service, 'business-service-inquiry-link business-service-media-inquiry', item));
             if (item.caption) {
                 const caption = document.createElement('figcaption');
                 caption.textContent = item.caption;
                 figure.appendChild(caption);
             }
+            figure.dataset.mediaIndex = String(index);
+            figure.dataset.mediaUrl = item.url;
             gallery.appendChild(figure);
         });
-        if (gallery.childElementCount) card.appendChild(gallery);
+        scroller.appendChild(gallery);
+        mediaSection.appendChild(scroller);
+        scroller.addEventListener('scroll', () => {
+            const slideHeight = scroller.clientHeight || 1;
+            const activeIndex = Math.min(mediaItems.length - 1, Math.max(0, Math.round(scroller.scrollTop / slideHeight)));
+            counter.textContent = `${activeIndex + 1} / ${mediaItems.length}`;
+        }, { passive: true });
+        card.appendChild(mediaSection);
     }
     return card;
 }
 
-function createBusinessServicesInterstitial(services) {
+function scrollBusinessServiceMedia(scrollerId, direction) {
+    const scroller = document.getElementById(scrollerId);
+    if (!scroller) return;
+    scroller.scrollBy({ top: direction * scroller.clientHeight, behavior: 'smooth' });
+}
+
+function openBusinessServicePhotoViewer(serviceId, mediaUrl) {
+    const dialog = document.getElementById('businessServicePhotoViewer');
+    const scroller = document.getElementById('businessServicePhotoViewerScroll');
+    const title = document.getElementById('businessServicePhotoViewerTitle');
+    const count = document.getElementById('businessServicePhotoViewerCount');
+    if (!dialog || !scroller) return;
+
+    const activeTab = getActiveProductTab();
+    const services = businessServicesList.filter(service => activeTab === 'all' || getBusinessServiceMedia(service).length > 0);
+    const photos = [];
+    services.forEach(service => getBusinessServiceMedia(service).filter(item => item.kind === 'image').forEach(item => {
+        try {
+            const url = new URL(item.url, window.location.origin);
+            if (['http:', 'https:'].includes(url.protocol)) photos.push({ service, item, url: url.href });
+        } catch (_) { /* Skip invalid saved URLs. */ }
+    }));
+    const startIndex = Math.max(0, photos.findIndex(photo =>
+        String(photo.service.id) === String(serviceId) && photo.item.url === mediaUrl));
+    if (!photos.length) return;
+
+    scroller.replaceChildren();
+    photos.forEach((photo, index) => {
+        const slide = document.createElement('figure');
+        slide.className = 'business-service-photo-slide';
+        const image = document.createElement('img');
+        image.src = photo.url;
+        image.alt = photo.item.caption || `${photo.service.name || 'Service'} past-work photo`;
+        image.loading = index === startIndex ? 'eager' : 'lazy';
+        image.decoding = 'async';
+        slide.appendChild(image);
+        const caption = document.createElement('figcaption');
+        const serviceName = document.createElement('strong');
+        serviceName.textContent = photo.service.name || 'Service';
+        caption.appendChild(serviceName);
+        if (photo.item.caption) {
+            caption.appendChild(document.createTextNode(` · ${photo.item.caption}`));
+        }
+        slide.appendChild(caption);
+        slide.appendChild(createBusinessServiceInquiryLink(photo.service, 'business-service-inquiry-link business-service-viewer-inquiry', photo.item));
+        scroller.appendChild(slide);
+    });
+
+    if (title) title.textContent = photos[startIndex].service.name || 'Service photos';
+    if (count) count.textContent = `${startIndex + 1} / ${photos.length}`;
+    scroller.onscroll = () => {
+        const visibleIndex = Math.min(photos.length - 1, Math.max(0, Math.round(scroller.scrollTop / scroller.clientHeight)));
+        if (count) count.textContent = `${visibleIndex + 1} / ${photos.length}`;
+        if (title) title.textContent = photos[visibleIndex]?.service.name || 'Service photos';
+    };
+    if (typeof dialog.showModal === 'function') dialog.showModal();
+    else dialog.setAttribute('open', '');
+    requestAnimationFrame(() => scroller.children[startIndex]?.scrollIntoView({ block: 'start' }));
+}
+
+function closeBusinessServicePhotoViewer() {
+    const dialog = document.getElementById('businessServicePhotoViewer');
+    if (!dialog) return;
+    if (typeof dialog.close === 'function' && dialog.open) dialog.close();
+    else dialog.removeAttribute('open');
+}
+
+function createBusinessServicesTeaser(index) {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'business-services-teaser';
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'business-services-teaser-button';
+    button.dataset.serviceBreakIndex = String(index);
+    button.setAttribute('aria-controls', 'businessServicesExpandedPanel');
+    button.setAttribute('aria-expanded', 'false');
+    button.addEventListener('click', () => toggleBusinessServicesAt(index));
+
+    const icon = document.createElement('span');
+    icon.className = 'business-services-teaser-icon';
+    icon.innerHTML = '<i class="fas fa-sparkles" aria-hidden="true"></i>';
+    button.appendChild(icon);
+
+    const copy = document.createElement('span');
+    copy.className = 'business-services-teaser-copy';
+    const message = document.createElement('span');
+    message.className = 'business-services-teaser-message';
+    message.textContent = 'We offer these services also';
+    copy.appendChild(message);
+    button.appendChild(copy);
+
+    const count = document.createElement('span');
+    count.className = 'business-services-teaser-count';
+    count.textContent = `${businessServicesList.length} ${businessServicesList.length === 1 ? 'service' : 'services'}`;
+    button.appendChild(count);
+    const arrow = document.createElement('span');
+    arrow.className = 'business-services-teaser-arrow';
+    arrow.innerHTML = '<i class="fas fa-arrow-right" aria-hidden="true"></i>';
+    button.appendChild(arrow);
+    wrapper.appendChild(button);
+    const slot = document.createElement('div');
+    slot.className = 'business-services-expand-slot';
+    slot.id = `businessServicesPanelSlot-${index}`;
+    wrapper.appendChild(slot);
+    return wrapper;
+}
+
+function createBusinessServicesPanel() {
     const section = document.createElement('section');
-    section.className = 'business-services-interstitial';
+    section.className = 'business-services-expanded-panel';
+    section.id = 'businessServicesExpandedPanel';
     section.setAttribute('aria-label', 'Other services offered by this business');
     const header = document.createElement('div');
-    header.className = 'business-services-interstitial-heading';
-    header.innerHTML = '<span aria-hidden="true">🛠️</span><div><h2>Other Services Offered</h2><p>Contact the business to discuss these services. They are not checkout items.</p></div>';
+    header.className = 'business-services-expanded-heading';
+    const title = document.createElement('h2');
+    title.textContent = 'Other Services We Offer';
+    header.appendChild(title);
+    const close = document.createElement('button');
+    close.type = 'button';
+    close.className = 'business-services-expanded-close';
+    close.textContent = 'Close services';
+    close.addEventListener('click', closeBusinessServicesPanel);
+    header.appendChild(close);
     section.appendChild(header);
-    const cards = document.createElement('div');
-    cards.className = 'business-services-interstitial-cards';
-    services.forEach(service => cards.appendChild(createBusinessServiceCard(service)));
-    section.appendChild(cards);
+    const note = document.createElement('p');
+    note.className = 'business-services-expanded-note';
+    note.textContent = 'Contact the business to discuss these services. They are not checkout items.';
+    section.appendChild(note);
+    const layout = document.createElement('div');
+    layout.className = 'business-services-master-detail';
+    const detail = document.createElement('div');
+    detail.className = 'business-services-selected-detail';
+    detail.id = 'businessServiceDetailPanel';
+    detail.setAttribute('role', 'tabpanel');
+    const listSide = document.createElement('aside');
+    listSide.className = 'business-services-list-side';
+    const listHeader = document.createElement('div');
+    listHeader.className = 'business-services-list-header';
+    const listTitle = document.createElement('h3');
+    listTitle.textContent = 'Services';
+    listHeader.appendChild(listTitle);
+    const listScrollControls = document.createElement('div');
+    listScrollControls.className = 'business-services-list-scroll-controls';
+    const scrollListUp = document.createElement('button');
+    scrollListUp.type = 'button';
+    scrollListUp.setAttribute('aria-label', 'Scroll service list up');
+    scrollListUp.innerHTML = '<i class="fas fa-chevron-up" aria-hidden="true"></i>';
+    scrollListUp.addEventListener('click', () => scrollBusinessServiceList(-1));
+    const scrollListDown = document.createElement('button');
+    scrollListDown.type = 'button';
+    scrollListDown.setAttribute('aria-label', 'Scroll service list down');
+    scrollListDown.innerHTML = '<i class="fas fa-chevron-down" aria-hidden="true"></i>';
+    scrollListDown.addEventListener('click', () => scrollBusinessServiceList(1));
+    listScrollControls.append(scrollListUp, scrollListDown);
+    listHeader.appendChild(listScrollControls);
+    listSide.appendChild(listHeader);
+
+    const list = document.createElement('div');
+    list.className = 'business-services-list-items';
+    list.setAttribute('role', 'tablist');
+    list.setAttribute('aria-label', 'Choose a service to view');
+    list.setAttribute('aria-orientation', 'vertical');
+    const services = getVisibleBusinessServices();
+    services.forEach((service, index) => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'business-services-list-button';
+        button.id = `businessServiceTab-${index}`;
+        button.setAttribute('role', 'tab');
+        button.setAttribute('aria-controls', detail.id);
+        button.setAttribute('aria-selected', index === businessServicesSelectedIndex ? 'true' : 'false');
+        button.tabIndex = index === businessServicesSelectedIndex ? 0 : -1;
+        button.addEventListener('keydown', event => {
+            if (!['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) return;
+            event.preventDefault();
+            const tabs = Array.from(list.querySelectorAll('[role="tab"]'));
+            const current = tabs.indexOf(button);
+            const next = event.key === 'Home' ? 0
+                : event.key === 'End' ? tabs.length - 1
+                    : (current + (event.key === 'ArrowDown' ? 1 : -1) + tabs.length) % tabs.length;
+            tabs[next]?.focus();
+            selectBusinessServiceInPanel(next);
+        });
+        const name = document.createElement('span');
+        name.className = 'business-services-list-name';
+        name.textContent = service.name || 'Service';
+        button.appendChild(name);
+        const price = document.createElement('span');
+        price.className = 'business-services-list-price';
+        const units = { per_service: 'per job', per_item: 'per item', per_hour: 'per hour', per_day: 'per day' };
+        price.textContent = service.pricing_mode === 'negotiable'
+            ? 'Flexible price'
+            : `Ksh ${Number(service.price || 0).toLocaleString('en-KE', { maximumFractionDigits: 2 })} ${units[service.price_unit] || units.per_service}`;
+        button.appendChild(price);
+        button.addEventListener('click', () => selectBusinessServiceInPanel(index));
+        list.appendChild(button);
+    });
+    listSide.appendChild(list);
+    layout.append(detail, listSide);
+    section.appendChild(layout);
+    if (services.length) renderSelectedBusinessService(services, detail, list);
     return section;
+}
+
+function renderSelectedBusinessService(services = getVisibleBusinessServices(), detail = null, list = null) {
+    if (!businessServicesPanelElement && (!detail || !list)) return;
+    detail = detail || businessServicesPanelElement.querySelector('#businessServiceDetailPanel');
+    list = list || businessServicesPanelElement.querySelector('.business-services-list-items');
+    if (!detail || !list || !services.length) return;
+    businessServicesSelectedIndex = Math.max(0, Math.min(businessServicesSelectedIndex, services.length - 1));
+    detail.replaceChildren(createBusinessServiceCard(services[businessServicesSelectedIndex]));
+    list.querySelectorAll('[role="tab"]').forEach((button, index) => {
+        const selected = index === businessServicesSelectedIndex;
+        button.setAttribute('aria-selected', selected ? 'true' : 'false');
+        button.tabIndex = selected ? 0 : -1;
+    });
+    detail.setAttribute('aria-labelledby', `businessServiceTab-${businessServicesSelectedIndex}`);
+}
+
+function selectBusinessServiceInPanel(index) {
+    businessServicesSelectedIndex = index;
+    renderSelectedBusinessService();
+}
+
+function scrollBusinessServiceList(direction) {
+    const list = businessServicesPanelElement?.querySelector('.business-services-list-items');
+    if (!list) return;
+    list.scrollBy({ top: direction * Math.max(140, Math.round(list.clientHeight * 0.75)), behavior: 'smooth' });
+}
+
+function updateBusinessServicesTeaserStates() {
+    document.querySelectorAll('.business-services-teaser-button').forEach(button => {
+        const isExpanded = Number(button.dataset.serviceBreakIndex) === businessServicesExpandedBreakIndex;
+        button.setAttribute('aria-expanded', isExpanded ? 'true' : 'false');
+    });
+}
+
+function toggleBusinessServicesAt(index) {
+    if (businessServicesExpandedBreakIndex === index) {
+        closeBusinessServicesPanel();
+        return;
+    }
+    const slot = document.getElementById(`businessServicesPanelSlot-${index}`);
+    if (!slot) return;
+    if (!businessServicesPanelElement) businessServicesPanelElement = createBusinessServicesPanel();
+    businessServicesExpandedBreakIndex = index;
+    slot.appendChild(businessServicesPanelElement);
+    updateBusinessServicesTeaserStates();
+    businessServicesPanelElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+function closeBusinessServicesPanel() {
+    businessServicesPanelElement?.querySelectorAll('video').forEach(video => video.pause());
+    businessServicesPanelElement?.remove();
+    businessServicesExpandedBreakIndex = null;
+    businessServicesSelectedIndex = 0;
+    renderSelectedBusinessService();
+    updateBusinessServicesTeaserStates();
 }
 
 window.addEventListener('resize', () => {
@@ -1055,8 +1684,8 @@ function renderBusinessProductGrid(products, emptyStateText = 'No products avail
         if (activeTab === 'all') return true;
         return getBusinessServiceMedia(service).length > 0;
     });
-    const productRowsPerServiceBreak = 3;
-    const productsPerServiceBreak = columns * productRowsPerServiceBreak;
+    // Insert one services prompt after each complete responsive product row.
+    const productsPerServiceRow = columns;
     const renderedProducts = [];
 
     const cart = typeof getCart === 'function' ? getCart() : [];
@@ -1126,26 +1755,30 @@ function renderBusinessProductGrid(products, emptyStateText = 'No products avail
     productTemplate.innerHTML = productMarkup;
     renderedProducts.push(...Array.from(productTemplate.content.children));
     const content = document.createDocumentFragment();
-    let serviceIndex = 0;
+    let serviceBreakIndex = 0;
     if (!renderedProducts.length) {
         const emptyMessage = document.createElement('p');
         emptyMessage.className = 'business-product-empty';
         emptyMessage.textContent = emptyStateText;
         content.appendChild(emptyMessage);
-        if (visibleServices.length) content.appendChild(createBusinessServicesInterstitial(visibleServices));
+        if (visibleServices.length) content.appendChild(createBusinessServicesTeaser(serviceBreakIndex++));
     } else {
         renderedProducts.forEach((productCard, index) => {
             content.appendChild(productCard);
-            const reachedThreeRows = (index + 1) % productsPerServiceBreak === 0;
-            if (reachedThreeRows && serviceIndex < visibleServices.length) {
-                content.appendChild(createBusinessServicesInterstitial([visibleServices[serviceIndex++]]));
+            const reachedProductRow = (index + 1) % productsPerServiceRow === 0;
+            if (reachedProductRow && visibleServices.length) {
+                content.appendChild(createBusinessServicesTeaser(serviceBreakIndex++));
             }
         });
-        if (serviceIndex < visibleServices.length) {
-            content.appendChild(createBusinessServicesInterstitial(visibleServices.slice(serviceIndex)));
-        }
+        if (serviceBreakIndex === 0 && visibleServices.length) content.appendChild(createBusinessServicesTeaser(serviceBreakIndex++));
     }
     grid.replaceChildren(content);
+    if (businessServicesExpandedBreakIndex !== null) {
+        const expandedSlot = document.getElementById(`businessServicesPanelSlot-${businessServicesExpandedBreakIndex}`);
+        if (expandedSlot && businessServicesPanelElement) expandedSlot.appendChild(businessServicesPanelElement);
+        else if (!expandedSlot) closeBusinessServicesPanel();
+    }
+    updateBusinessServicesTeaserStates();
 }
 
 function openBusinessImagePreviewFromButton(button) {

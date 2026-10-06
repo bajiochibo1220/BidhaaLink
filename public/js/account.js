@@ -92,6 +92,8 @@ let allOrders = [];
 let currentFilterStatus = null;
 let returnsMap = {};
 let currentSection = 'home';
+let activeCustomerServiceConversationId = null;
+let customerServiceConversationPollTimer = null;
 
 // Section D — cached location state for this page.
 let customerLocationState = {
@@ -267,6 +269,9 @@ function initSocket() {
             loadDashboardContent();
             loadOrdersContent();
         }
+    });
+    socket.on('service-conversation-message', () => {
+        if (currentSection === 'messages') loadCustomerServiceConversations(activeCustomerServiceConversationId);
     });
     socket.on('order-status-updated', () => {
         if (currentSection === 'home' || currentSection === 'orders') {
@@ -1296,7 +1301,7 @@ function loadPaymentsContent() {
 //  MESSAGES CONTENT
 // ============================================================
 
-function loadMessagesContent() {
+function loadLegacyMessagesContent() {
     console.log('💬 Loading messages content...');
     const container = document.getElementById('messagesPanelContent');
     if (!container) return;
@@ -1372,6 +1377,238 @@ function loadMessagesContent() {
 //  auto-cancels any pending deletion if the customer logs back
 //  in within 30 days.
 // ============================================================
+
+// Private service conversations (separate from marketplace support history).
+function loadMessagesContent() {
+    const container = document.getElementById('messagesPanelContent');
+    if (!container) return;
+    container.innerHTML = `
+      <section class="customer-service-chat">
+        <div class="customer-service-chat-heading">
+          <div><h3>Service conversations</h3><p>Chat privately with businesses about a service and its photos or videos.</p></div>
+          <button type="button" class="customer-service-chat-refresh" id="customerServiceConversationRefresh">Refresh</button>
+        </div>
+        <div class="customer-service-chat-layout">
+          <div id="customerServiceConversationList" class="customer-service-chat-list" aria-label="Service conversations"><p class="customer-service-chat-empty">Loading conversations…</p></div>
+          <div id="customerServiceConversationThread" class="customer-service-chat-thread" aria-live="polite"><p class="customer-service-chat-empty">Choose a business conversation.</p></div>
+        </div>
+      </section>
+      <details class="customer-legacy-message-history"><summary>Marketplace support history</summary><div id="customerLegacyMessages"><p class="customer-service-chat-empty">Loading…</p></div></details>`;
+    document.getElementById('customerServiceConversationRefresh')?.addEventListener('click', () => loadCustomerServiceConversations(activeCustomerServiceConversationId));
+    loadCustomerServiceConversations(new URLSearchParams(window.location.search).get('serviceConversation'));
+    loadCustomerLegacyMessageHistory();
+    if (!customerServiceConversationPollTimer) {
+        customerServiceConversationPollTimer = setInterval(() => {
+            if (currentSection === 'messages') loadCustomerServiceConversations(activeCustomerServiceConversationId);
+        }, 15000);
+    }
+}
+
+async function loadCustomerLegacyMessageHistory() {
+    const target = document.getElementById('customerLegacyMessages');
+    if (!target) return;
+    try {
+        const response = await fetch('/api/chat/customer', { credentials: 'same-origin', cache: 'no-store' });
+        const messages = response.ok ? await response.json() : [];
+        target.replaceChildren();
+        if (!Array.isArray(messages) || !messages.length) {
+            target.appendChild(Object.assign(document.createElement('p'), { className: 'customer-service-chat-empty', textContent: 'No marketplace support messages.' }));
+            return;
+        }
+        messages.forEach(message => {
+            const item = document.createElement('article');
+            item.className = 'customer-legacy-message';
+            const meta = document.createElement('small');
+            meta.textContent = `${message.from_user || 'Message'}${message.timestamp ? ` · ${new Date(message.timestamp).toLocaleString()}` : ''}`;
+            const body = document.createElement('p');
+            body.textContent = message.message || '';
+            item.append(meta, body);
+            target.appendChild(item);
+        });
+    } catch (_) {
+        target.replaceChildren(Object.assign(document.createElement('p'), { className: 'customer-service-chat-empty is-error', textContent: 'Could not load support history.' }));
+    }
+}
+
+async function loadCustomerServiceConversations(selectedId = activeCustomerServiceConversationId) {
+    const list = document.getElementById('customerServiceConversationList');
+    const thread = document.getElementById('customerServiceConversationThread');
+    if (!list || !thread) return;
+    const draft = thread.querySelector('.customer-service-chat-reply textarea')?.value || '';
+    try {
+        const response = await fetch('/api/service-conversations/customer/conversations', { credentials: 'same-origin', cache: 'no-store' });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(data.error || 'Could not load conversations.');
+        const conversations = Array.isArray(data.conversations) ? data.conversations : [];
+        const unreadCount = conversations.reduce((total, item) => total + (Number(item.unread_count) || 0), 0);
+        const badge = document.getElementById('messageBadgeNav');
+        if (badge) {
+            badge.textContent = String(unreadCount);
+            badge.classList.toggle('show', unreadCount > 0);
+        }
+        const countLabel = document.getElementById('messageCountLabel');
+        if (countLabel) countLabel.textContent = `(${unreadCount} unread)`;
+        list.replaceChildren();
+        if (!conversations.length) {
+            list.appendChild(Object.assign(document.createElement('p'), { className: 'customer-service-chat-empty', textContent: 'No service conversations yet. Choose “Let’s talk” on a service to start one.' }));
+            thread.replaceChildren(Object.assign(document.createElement('p'), { className: 'customer-service-chat-empty', textContent: 'Your service messages will appear here.' }));
+            return;
+        }
+        conversations.forEach(conversation => {
+            const item = document.createElement('button');
+            item.type = 'button';
+            item.className = 'customer-service-chat-conversation';
+            item.dataset.conversationId = String(conversation.id);
+            item.classList.toggle('is-selected', String(conversation.id) === String(selectedId));
+            const business = document.createElement('strong');
+            business.textContent = conversation.business_name || 'Business';
+            const service = document.createElement('span');
+            service.textContent = conversation.service_name || 'Service';
+            const preview = document.createElement('small');
+            preview.textContent = conversation.last_message || 'Service inquiry';
+            const meta = document.createElement('small');
+            meta.className = 'customer-service-chat-meta';
+            meta.textContent = conversation.last_message_at ? new Date(conversation.last_message_at).toLocaleString() : '';
+            item.append(business, service, preview, meta);
+            item.addEventListener('click', () => openCustomerServiceConversation(conversation.id));
+            list.appendChild(item);
+        });
+        const targetId = conversations.some(item => String(item.id) === String(selectedId)) ? selectedId : conversations[0].id;
+        await openCustomerServiceConversation(targetId);
+        const input = thread.querySelector('.customer-service-chat-reply textarea');
+        if (input && draft) input.value = draft;
+    } catch (error) {
+        console.error('Load customer service conversations error:', error);
+        list.replaceChildren(Object.assign(document.createElement('p'), { className: 'customer-service-chat-empty is-error', textContent: error.message || 'Could not load conversations.' }));
+    }
+}
+
+function addCustomerConversationMedia(parent, message) {
+    if (!message.media_url || !['image', 'video'].includes(message.media_kind)) return;
+    let url;
+    try { url = new URL(message.media_url, window.location.origin); } catch (_) { return; }
+    if (!['http:', 'https:'].includes(url.protocol)) return;
+    if (message.media_kind === 'image') {
+        const link = document.createElement('a');
+        link.href = url.href;
+        link.target = '_blank';
+        link.rel = 'noopener noreferrer';
+        const image = document.createElement('img');
+        image.src = url.href;
+        image.alt = message.media_caption || 'Service image shared in this conversation';
+        image.loading = 'lazy';
+        link.appendChild(image);
+        parent.appendChild(link);
+    } else {
+        const video = document.createElement('video');
+        video.src = url.href;
+        video.controls = true;
+        video.preload = 'metadata';
+        video.playsInline = true;
+        video.setAttribute('aria-label', message.media_caption || 'Service video shared in this conversation');
+        parent.appendChild(video);
+    }
+    if (message.media_caption) parent.appendChild(Object.assign(document.createElement('small'), { className: 'customer-service-chat-caption', textContent: message.media_caption }));
+}
+
+function buildCustomerServiceReturnUrl(conversation, message = null) {
+    if (!conversation?.business_slug || !conversation?.service_id) return null;
+    const url = new URL(`/business/${encodeURIComponent(conversation.business_slug)}`, window.location.origin);
+    url.searchParams.set('serviceId', String(conversation.service_id));
+    if (message?.media_url && ['image', 'video'].includes(message.media_kind)) {
+        url.searchParams.set('serviceMedia', message.media_url);
+        url.searchParams.set('serviceMediaKind', message.media_kind);
+    }
+    return url.href;
+}
+
+async function openCustomerServiceConversation(conversationId) {
+    const list = document.getElementById('customerServiceConversationList');
+    const thread = document.getElementById('customerServiceConversationThread');
+    if (!thread) return;
+    activeCustomerServiceConversationId = conversationId;
+    list?.querySelectorAll('.customer-service-chat-conversation').forEach(item => item.classList.toggle('is-selected', item.dataset.conversationId === String(conversationId)));
+    thread.replaceChildren(Object.assign(document.createElement('p'), { className: 'customer-service-chat-empty', textContent: 'Loading conversation…' }));
+    try {
+        const response = await fetch(`/api/service-conversations/customer/conversations/${encodeURIComponent(conversationId)}`, { credentials: 'same-origin', cache: 'no-store' });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(data.error || 'Could not open conversation.');
+        const header = document.createElement('div');
+        header.className = 'customer-service-chat-thread-heading';
+        const names = document.createElement('div');
+        const business = document.createElement('strong');
+        business.textContent = data.conversation.business_name || 'Business';
+        const service = document.createElement('small');
+        service.textContent = data.conversation.service_name || 'Service';
+        names.append(business, service);
+        const refresh = document.createElement('button');
+        refresh.type = 'button';
+        refresh.textContent = 'Refresh';
+        refresh.addEventListener('click', () => openCustomerServiceConversation(conversationId));
+        header.append(names, refresh);
+        const messages = document.createElement('div');
+        messages.className = 'customer-service-chat-messages';
+        (Array.isArray(data.messages) ? data.messages : []).forEach((message, index) => {
+            const bubble = document.createElement('article');
+            bubble.className = `customer-service-chat-bubble ${message.sender_type === 'customer' ? 'is-own' : ''}`;
+            const sender = document.createElement('strong');
+            sender.textContent = message.sender_type === 'customer' ? 'You' : (data.conversation.business_name || 'Business');
+            const body = document.createElement('p');
+            body.textContent = message.body || '';
+            const time = document.createElement('small');
+            time.textContent = message.created_at ? new Date(message.created_at).toLocaleString() : '';
+            bubble.append(sender, body);
+            addCustomerConversationMedia(bubble, message);
+            if (index === 0) {
+                const returnUrl = buildCustomerServiceReturnUrl(data.conversation, message);
+                if (returnUrl) {
+                    const serviceLink = document.createElement('a');
+                    serviceLink.className = 'customer-service-return-link';
+                    serviceLink.href = returnUrl;
+                    serviceLink.textContent = message.media_kind ? 'View this service and selected media' : 'View this service';
+                    bubble.appendChild(serviceLink);
+                }
+            }
+            bubble.appendChild(time);
+            messages.appendChild(bubble);
+        });
+        const form = document.createElement('form');
+        form.className = 'customer-service-chat-reply';
+        const input = document.createElement('textarea');
+        input.name = 'message';
+        input.rows = 2;
+        input.maxLength = 2000;
+        input.required = true;
+        input.placeholder = 'Write a message to the business…';
+        const send = document.createElement('button');
+        send.type = 'submit';
+        send.textContent = 'Send';
+        form.append(input, send);
+        form.addEventListener('submit', async event => {
+            event.preventDefault();
+            const message = input.value.trim();
+            if (!message) return;
+            send.disabled = true;
+            try {
+                const sent = await fetch(`/api/service-conversations/customer/conversations/${encodeURIComponent(conversationId)}/messages`, {
+                    method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message })
+                });
+                const sentData = await sent.json().catch(() => ({}));
+                if (!sent.ok) throw new Error(sentData.error || 'Your message could not be sent.');
+                input.value = '';
+                await loadCustomerServiceConversations(conversationId);
+            } catch (error) {
+                send.disabled = false;
+                window.alert(error.message || 'Your message could not be sent.');
+            }
+        });
+        thread.replaceChildren(header, messages, form);
+        messages.scrollTop = messages.scrollHeight;
+    } catch (error) {
+        console.error('Open customer service conversation error:', error);
+        thread.replaceChildren(Object.assign(document.createElement('p'), { className: 'customer-service-chat-empty is-error', textContent: error.message || 'Could not open conversation.' }));
+    }
+}
 
 function openCustomerDeletionStepA() {
     resetCustomerDeletionState();

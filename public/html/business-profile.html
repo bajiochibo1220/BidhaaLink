@@ -95,8 +95,8 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
   <!-- Page-Specific Styles -->
-  <link rel="stylesheet" href="/css/business-profile.css">
-  <link rel="stylesheet" href="/css/product-detail.css">
+  <link rel="stylesheet" href="/css/business-profile.css?v=service-contact-choices-20261006">
+  <link rel="stylesheet" href="/css/product-detail.css?v=product-media-fill-20261006">
   <script src="/js/cookie-auth-client.js"></script>
 </head>
 <body class="index-body">
@@ -331,6 +331,17 @@
   <button type="button" class="business-image-preview-close" aria-label="Close image preview" onclick="closeBusinessImagePreview()">&times;</button>
   <img id="businessImagePreviewImage" alt="Product image preview">
 </div>
+
+<dialog class="business-service-photo-viewer" id="businessServicePhotoViewer" aria-label="Service work photos" onclick="if (event.target === this) closeBusinessServicePhotoViewer()">
+  <div class="business-service-photo-viewer-header">
+    <div>
+      <strong id="businessServicePhotoViewerTitle">Service photos</strong>
+      <span id="businessServicePhotoViewerCount" aria-live="polite"></span>
+    </div>
+    <button type="button" aria-label="Close service photo viewer" onclick="closeBusinessServicePhotoViewer()">&times;</button>
+  </div>
+  <div class="business-service-photo-viewer-scroll" id="businessServicePhotoViewerScroll" tabindex="0" aria-label="Scroll vertically through service photos"></div>
+</dialog>
 
 <!-- ============================================================ -->
 <!-- BOTTOM NAVIGATION - DYNAMIC -->
@@ -591,8 +602,8 @@
 <script src="/socket.io/socket.io.js"></script>
 <script src="/js/cart-store.js"></script>
 <script src="/js/navigation.js"></script>
-<script src="/js/business-profile.js"></script>
-<script src="/js/index.js"></script>
+<script src="/js/business-profile.js?v=service-contact-choices-20261006"></script>
+<script src="/js/index.js?v=service-chat-routing-20261006"></script>
 <script src="/js/legal.js"></script>
 
 <script>

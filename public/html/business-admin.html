@@ -87,7 +87,7 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 
   <!-- Page-Specific Styles -->
-  <link rel="stylesheet" href="/css/business-admin.css">
+  <link rel="stylesheet" href="/css/business-admin.css?v=service-chat-inbox-20261006">
   <link rel="stylesheet" href="/css/ad-management.css">
   <script>if (new URLSearchParams(window.location.search).get('embedded') === '1') document.documentElement.classList.add('embedded');</script>
 
@@ -781,14 +781,16 @@
               <input id="businessServiceArea" type="text" maxlength="160" placeholder="e.g. Nairobi, at the customer's location, or within 20 km">
             </div>
             <div>
-              <label for="businessServiceImages">Past-work photos</label>
-              <input id="businessServiceImages" type="file" accept="image/jpeg,image/png,image/webp,image/gif" multiple onchange="renderBusinessServiceMediaPreview()">
-              <small>Add as many photos as you need. Each file can be up to 50 MB. Describe what each photo shows.</small>
+              <span style="display:block;font-weight:700;margin-bottom:6px;">Past-work photos</span>
+              <input id="businessServiceImages" type="file" accept="image/jpeg,image/png,image/webp,image/gif" multiple hidden onchange="addBusinessServiceMediaFiles('image', this.files)">
+              <button type="button" class="btn-secondary" aria-controls="businessServiceImages" onclick="document.getElementById('businessServiceImages').click()"><i class="fas fa-image"></i> Add image</button>
+              <small>Select several images at once or repeat this button. No count cap; 50 MB per image. Each can have an optional description.</small>
             </div>
             <div>
-              <label for="businessServiceVideos">Past-work videos</label>
-              <input id="businessServiceVideos" type="file" accept="video/mp4,video/webm" multiple onchange="renderBusinessServiceMediaPreview()">
-              <small>Add as many MP4 or WebM videos as you need. Each file can be up to 50 MB. Describe what each video shows.</small>
+              <span style="display:block;font-weight:700;margin-bottom:6px;">Past-work videos</span>
+              <input id="businessServiceVideos" type="file" accept="video/mp4,video/webm" multiple hidden onchange="addBusinessServiceMediaFiles('video', this.files)">
+              <button type="button" class="btn-secondary" aria-controls="businessServiceVideos" onclick="document.getElementById('businessServiceVideos').click()"><i class="fas fa-video"></i> Add video</button>
+              <small>Select several videos at once or repeat this button. No count cap; 50 MB per video. Each can have an optional description.</small>
             </div>
             <div class="full">
               <div id="businessServiceMediaPreview" aria-live="polite"></div>
@@ -822,6 +824,26 @@
     <div class="section" id="section-messages">
       <div class="section-header">
         <h2>💬 Messages</h2>
+      </div>
+
+      <div class="settings-section service-chat-admin">
+        <div class="service-chat-admin-heading">
+          <div>
+            <h3>Service conversations</h3>
+            <p>Private chats started by customers from your service photos, videos, or service cards.</p>
+          </div>
+          <button type="button" class="btn-secondary" onclick="loadBusinessServiceConversations()">
+            <i class="fas fa-rotate"></i> Refresh
+          </button>
+        </div>
+        <div class="service-chat-admin-layout">
+          <div id="businessServiceConversationInbox" class="service-chat-admin-inbox" aria-label="Service conversations">
+            <p class="service-chat-empty">Loading conversations…</p>
+          </div>
+          <div id="businessServiceConversationThread" class="service-chat-admin-thread" aria-live="polite">
+            <p class="service-chat-empty">Choose a conversation to read and reply.</p>
+          </div>
+        </div>
       </div>
 
       <div class="settings-section">
@@ -2127,7 +2149,7 @@
 <script src="/socket.io/socket.io.js"></script>
 <script src="/js/cookie-auth-client.js"></script>
 <script src="/js/business-admin-variants.js"></script>
-<script src="/js/business-admin.js"></script>
+<script src="/js/business-admin.js?v=service-chat-inbox-20261006"></script>
 <script src="/js/ad-management.js"></script>
 
 <!-- Section 7 — inline helper for the read-only search tag copy button. -->

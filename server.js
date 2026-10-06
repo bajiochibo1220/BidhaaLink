@@ -88,6 +88,7 @@ const returnsRoutes = require('./src/routes/returns');
 
 const businessesRoutes = require('./src/routes/businesses');
 const businessAdminRoutes = require('./src/routes/business-admin');
+const serviceConversationRoutes = require('./src/routes/service-conversations');
 
 // ============================================================
 //  CONTACT ADMIN ROUTE (Complaints Inbox, public side)
@@ -469,6 +470,7 @@ app.use('/api/promo', analyticsRoutes);
 
 app.use('/api/businesses', businessesRoutes);
 app.use('/api/business-admin', businessAdminRoutes);
+app.use('/api/service-conversations', serviceConversationRoutes);
 
 // ============================================================
 //  CONTACT ADMIN ROUTES (Complaints Inbox, public side)

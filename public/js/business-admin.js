@@ -144,8 +144,12 @@ let businessServices = [];
 let businessServiceEditingMedia = [];
 let businessServiceRemovedMedia = new Set();
 let businessServicePreviewUrls = [];
+let businessServiceNewImages = [];
+let businessServiceNewVideos = [];
 let businessServiceMediaCaptions = new Map();
 const businessServiceFileCaptions = new WeakMap();
+let selectedBusinessServiceConversationId = null;
+let businessServiceConversationPollTimer = null;
 let socket = null;
 let statsInterval = null;
 let currentFilterStatus = null;
@@ -1182,6 +1186,15 @@ function initSocket() {
         socket.on('new-order-chat-message', function(msg) {
             if (currentSection === 'orders') {
                 loadOrders();
+            }
+        });
+        socket.on('service-conversation-message', function() {
+            if (currentSection === 'messages') {
+                const draft = document.querySelector('#businessServiceConversationThread .service-chat-reply-form textarea')?.value || '';
+                loadBusinessServiceConversations(selectedBusinessServiceConversationId).then(() => {
+                    const input = document.querySelector('#businessServiceConversationThread .service-chat-reply-form textarea');
+                    if (input && draft) input.value = draft;
+                });
             }
         });
     } catch (err) {
@@ -4292,10 +4305,21 @@ function resetBusinessServiceForm() {
     businessServiceEditingMedia = [];
     businessServiceRemovedMedia.clear();
     businessServiceMediaCaptions.clear();
+    businessServiceNewImages = [];
+    businessServiceNewVideos = [];
     document.getElementById('businessServiceImages').value = '';
     document.getElementById('businessServiceVideos').value = '';
     renderBusinessServiceMediaPreview();
     toggleBusinessServicePrice();
+}
+
+function addBusinessServiceMediaFiles(kind, fileList) {
+    const files = Array.from(fileList || []);
+    const destination = kind === 'video' ? businessServiceNewVideos : businessServiceNewImages;
+    destination.push(...files);
+    const input = document.getElementById(kind === 'video' ? 'businessServiceVideos' : 'businessServiceImages');
+    if (input) input.value = '';
+    renderBusinessServiceMediaPreview();
 }
 
 function renderBusinessServiceMediaPreview() {
@@ -4306,8 +4330,8 @@ function renderBusinessServiceMediaPreview() {
     businessServicePreviewUrls = [];
     preview.replaceChildren();
 
-    const images = Array.from(document.getElementById('businessServiceImages')?.files || []);
-    const videos = Array.from(document.getElementById('businessServiceVideos')?.files || []);
+    const images = businessServiceNewImages;
+    const videos = businessServiceNewVideos;
 
     const addTile = (media, source, isNew, fileIndex = -1) => {
         const tile = document.createElement('div');
@@ -4390,13 +4414,8 @@ function renderBusinessServiceMediaPreview() {
 }
 
 function removeBusinessServiceSelectedFile(kind, fileIndex) {
-    const input = document.getElementById(kind === 'video' ? 'businessServiceVideos' : 'businessServiceImages');
-    if (!input || !window.DataTransfer) return;
-    const transfer = new DataTransfer();
-    Array.from(input.files).forEach((file, index) => {
-        if (index !== fileIndex) transfer.items.add(file);
-    });
-    input.files = transfer.files;
+    const selectedFiles = kind === 'video' ? businessServiceNewVideos : businessServiceNewImages;
+    selectedFiles.splice(fileIndex, 1);
     renderBusinessServiceMediaPreview();
 }
 
@@ -4461,6 +4480,8 @@ function editBusinessService(serviceId) {
     businessServiceEditingMedia = Array.isArray(service.media) ? service.media.slice() : [];
     businessServiceRemovedMedia.clear();
     businessServiceMediaCaptions = new Map(businessServiceEditingMedia.map(media => [media.url, media.caption || '']));
+    businessServiceNewImages = [];
+    businessServiceNewVideos = [];
     document.getElementById('businessServiceImages').value = '';
     document.getElementById('businessServiceVideos').value = '';
     renderBusinessServiceMediaPreview();
@@ -4487,8 +4508,8 @@ async function saveBusinessService(event) {
     payload.append('is_active', String(document.getElementById('businessServiceActive').checked));
     payload.append('remove_media', JSON.stringify([...businessServiceRemovedMedia]));
 
-    const imageFiles = Array.from(document.getElementById('businessServiceImages').files || []);
-    const videoFiles = Array.from(document.getElementById('businessServiceVideos').files || []);
+    const imageFiles = businessServiceNewImages.slice();
+    const videoFiles = businessServiceNewVideos.slice();
     payload.append('media_captions', JSON.stringify(Object.fromEntries(businessServiceMediaCaptions)));
     imageFiles.forEach(file => {
         payload.append('service_images', file, file.name);
@@ -4636,6 +4657,12 @@ async function submitBusinessContactAdmin() {
 }
 
 async function loadBusinessAdminReplies() {
+    loadBusinessServiceConversations();
+    if (!businessServiceConversationPollTimer) {
+        businessServiceConversationPollTimer = setInterval(() => {
+            if (currentSection === 'messages') loadBusinessServiceConversations(selectedBusinessServiceConversationId);
+        }, 15000);
+    }
     const listEl = document.getElementById('businessAdminRepliesList');
     if (!listEl) return;
 
@@ -4693,6 +4720,192 @@ async function loadBusinessAdminReplies() {
         }).join('');
     } catch (err) {
         listEl.innerHTML = '<p style="font-size:0.8rem; color:#ef4444; margin:0;">Could not load your messages right now.</p>';
+    }
+}
+
+async function loadBusinessServiceConversations(selectedId = selectedBusinessServiceConversationId) {
+    const inbox = document.getElementById('businessServiceConversationInbox');
+    const thread = document.getElementById('businessServiceConversationThread');
+    if (!inbox || !thread) return;
+    const draft = thread.querySelector('.service-chat-reply-form textarea')?.value || '';
+    inbox.replaceChildren(Object.assign(document.createElement('p'), { className: 'service-chat-empty', textContent: 'Loading conversations…' }));
+    try {
+        const response = await fetch('/api/service-conversations/business/conversations', {
+            credentials: 'same-origin', cache: 'no-store'
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(data.error || 'Could not load service conversations.');
+        const conversations = Array.isArray(data.conversations) ? data.conversations : [];
+        inbox.replaceChildren();
+        if (!conversations.length) {
+            inbox.appendChild(Object.assign(document.createElement('p'), {
+                className: 'service-chat-empty', textContent: 'No service conversations yet. New customer inquiries will appear here.'
+            }));
+            thread.replaceChildren(Object.assign(document.createElement('p'), {
+                className: 'service-chat-empty', textContent: 'When a customer starts a conversation from a service, it will appear here.'
+            }));
+            selectedBusinessServiceConversationId = null;
+            return;
+        }
+        conversations.forEach(conversation => {
+            const item = document.createElement('button');
+            item.type = 'button';
+            item.className = 'service-chat-conversation-item';
+            item.dataset.conversationId = String(conversation.id);
+            item.classList.toggle('is-selected', String(conversation.id) === String(selectedId));
+            item.setAttribute('aria-current', String(conversation.id) === String(selectedId) ? 'true' : 'false');
+            const title = document.createElement('strong');
+            title.textContent = conversation.customer_name || 'Customer';
+            const service = document.createElement('span');
+            service.textContent = conversation.service_name || 'Service conversation';
+            const latest = document.createElement('small');
+            latest.textContent = conversation.last_message || 'Service inquiry';
+            const meta = document.createElement('span');
+            meta.className = 'service-chat-conversation-meta';
+            const time = document.createElement('small');
+            time.textContent = conversation.last_message_at ? new Date(conversation.last_message_at).toLocaleString() : '';
+            meta.appendChild(time);
+            if (Number(conversation.unread_count) > 0) {
+                const unread = document.createElement('b');
+                unread.textContent = String(conversation.unread_count);
+                unread.className = 'service-chat-unread-count';
+                meta.appendChild(unread);
+            }
+            item.append(title, service, latest, meta);
+            item.addEventListener('click', () => openBusinessServiceConversation(conversation.id));
+            inbox.appendChild(item);
+        });
+        const targetId = conversations.some(item => String(item.id) === String(selectedId)) ? selectedId : conversations[0].id;
+        await openBusinessServiceConversation(targetId);
+        const input = thread.querySelector('.service-chat-reply-form textarea');
+        if (input && draft) input.value = draft;
+    } catch (error) {
+        console.error('Load business service conversations error:', error);
+        inbox.replaceChildren(Object.assign(document.createElement('p'), {
+            className: 'service-chat-empty is-error', textContent: error.message || 'Could not load conversations.'
+        }));
+    }
+}
+
+function appendBusinessServiceChatMedia(container, message) {
+    if (!message.media_url || !['image', 'video'].includes(message.media_kind)) return;
+    let url;
+    try { url = new URL(message.media_url, window.location.origin); } catch (_) { return; }
+    if (!['http:', 'https:'].includes(url.protocol)) return;
+    if (message.media_kind === 'image') {
+        const anchor = document.createElement('a');
+        anchor.href = url.href;
+        anchor.target = '_blank';
+        anchor.rel = 'noopener noreferrer';
+        const image = document.createElement('img');
+        image.src = url.href;
+        image.alt = message.media_caption || 'Service photo shared in this conversation';
+        image.loading = 'lazy';
+        anchor.appendChild(image);
+        container.appendChild(anchor);
+    } else {
+        const video = document.createElement('video');
+        video.src = url.href;
+        video.controls = true;
+        video.preload = 'metadata';
+        video.playsInline = true;
+        video.setAttribute('aria-label', message.media_caption || 'Service video shared in this conversation');
+        container.appendChild(video);
+    }
+    if (message.media_caption) {
+        const caption = document.createElement('small');
+        caption.className = 'service-chat-media-caption';
+        caption.textContent = message.media_caption;
+        container.appendChild(caption);
+    }
+}
+
+async function openBusinessServiceConversation(conversationId) {
+    const thread = document.getElementById('businessServiceConversationThread');
+    if (!thread) return;
+    selectedBusinessServiceConversationId = conversationId;
+    document.querySelectorAll('#businessServiceConversationInbox .service-chat-conversation-item').forEach(item => {
+        const selected = item.dataset.conversationId === String(conversationId);
+        item.classList.toggle('is-selected', selected);
+        item.setAttribute('aria-current', selected ? 'true' : 'false');
+    });
+    thread.replaceChildren(Object.assign(document.createElement('p'), { className: 'service-chat-empty', textContent: 'Loading conversation…' }));
+    try {
+        const response = await fetch(`/api/service-conversations/business/conversations/${encodeURIComponent(conversationId)}`, {
+            credentials: 'same-origin', cache: 'no-store'
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(data.error || 'Could not open conversation.');
+        const conversation = data.conversation;
+        const header = document.createElement('div');
+        header.className = 'service-chat-thread-heading';
+        const title = document.createElement('div');
+        const customerName = document.createElement('strong');
+        customerName.textContent = conversation.customer_name || 'Customer';
+        const serviceName = document.createElement('small');
+        serviceName.textContent = conversation.service_name || 'Service';
+        title.append(customerName, serviceName);
+        const refresh = document.createElement('button');
+        refresh.type = 'button';
+        refresh.className = 'btn-secondary';
+        refresh.textContent = 'Refresh';
+        refresh.addEventListener('click', () => openBusinessServiceConversation(conversationId));
+        header.append(title, refresh);
+        const messages = document.createElement('div');
+        messages.className = 'service-chat-messages';
+        (Array.isArray(data.messages) ? data.messages : []).forEach(message => {
+            const bubble = document.createElement('article');
+            bubble.className = `service-chat-bubble ${message.sender_type === 'business' ? 'is-business' : 'is-customer'}`;
+            const sender = document.createElement('strong');
+            sender.textContent = message.sender_type === 'business' ? 'You' : (conversation.customer_name || 'Customer');
+            const body = document.createElement('p');
+            body.textContent = message.body || '';
+            const time = document.createElement('small');
+            time.textContent = message.created_at ? new Date(message.created_at).toLocaleString() : '';
+            bubble.append(sender, body);
+            appendBusinessServiceChatMedia(bubble, message);
+            bubble.appendChild(time);
+            messages.appendChild(bubble);
+        });
+        const form = document.createElement('form');
+        form.className = 'service-chat-reply-form';
+        const input = document.createElement('textarea');
+        input.name = 'message';
+        input.maxLength = 2000;
+        input.rows = 2;
+        input.required = true;
+        input.placeholder = 'Write a reply…';
+        const send = document.createElement('button');
+        send.type = 'submit';
+        send.className = 'btn-save';
+        send.innerHTML = '<i class="fas fa-paper-plane" aria-hidden="true"></i> Send';
+        form.append(input, send);
+        form.addEventListener('submit', async event => {
+            event.preventDefault();
+            const message = input.value.trim();
+            if (!message) return;
+            send.disabled = true;
+            try {
+                const sent = await fetch(`/api/service-conversations/business/conversations/${encodeURIComponent(conversationId)}/messages`, {
+                    method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message })
+                });
+                const sentData = await sent.json().catch(() => ({}));
+                if (!sent.ok) throw new Error(sentData.error || 'Message could not be sent.');
+                input.value = '';
+                await loadBusinessServiceConversations(conversationId);
+            } catch (error) {
+                if (typeof showToast === 'function') showToast(error.message || 'Message could not be sent.', 'error');
+                send.disabled = false;
+            }
+        });
+        thread.replaceChildren(header, messages, form);
+        messages.scrollTop = messages.scrollHeight;
+    } catch (error) {
+        console.error('Open business service conversation error:', error);
+        thread.replaceChildren(Object.assign(document.createElement('p'), {
+            className: 'service-chat-empty is-error', textContent: error.message || 'Could not open this conversation.'
+        }));
     }
 }
 // ============================================================
