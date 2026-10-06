@@ -2928,6 +2928,7 @@ const MARKETPLACE_WORKSPACE = Object.freeze({
       { id: 'dashboard', label: 'Dashboard', icon: 'fa-chart-pie' },
       { id: 'orders', label: 'Orders', icon: 'fa-box' },
       { id: 'products', label: 'Products', icon: 'fa-tags' },
+      { id: 'services', label: 'Services You Also Offer', icon: 'fa-screwdriver-wrench' },
       { id: 'ads', label: 'Manage Ads', icon: 'fa-bullhorn' },
       { id: 'customers', label: 'Customers', icon: 'fa-users' },
       { id: 'messages', label: 'Messages', icon: 'fa-comment' },

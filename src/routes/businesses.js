@@ -1525,6 +1525,25 @@ router.get('/:slug', async (req, res) => {
     }
 });
 
+// Public service listings are informational only; they are not checkout items.
+router.get('/:slug/services', async (req, res) => {
+    try {
+        const result = await pool.query(`
+            SELECT s.id, s.name, s.description, s.pricing_mode, s.price,
+                   s.price_unit, s.service_area, s.media
+              FROM business_services s
+              JOIN businesses b ON b.id = s.business_id
+             WHERE b.slug = $1 AND b.is_active = true AND s.is_active = true
+             ORDER BY s.display_order, s.id
+        `, [req.params.slug]);
+        res.json({ success: true, services: result.rows });
+    } catch (err) {
+        console.error('Get public business services error:', err);
+        logError(err, 'Get public business services');
+        res.status(500).json({ error: 'Unable to load business services.' });
+    }
+});
+
 // ============================================================
 //  GET BUSINESS ORDER SETTINGS (Public)
 // ============================================================
@@ -1994,23 +2013,6 @@ router.get('/:slug/products', async (req, res) => {
 // ============================================================
 //  GET BUSINESS REVIEWS (Public)
 // ============================================================
-router.get('/:slug/services', async (req, res) => {
-    try {
-        const result = await pool.query(`
-            SELECT s.id, s.name, s.description, s.pricing_mode, s.price, s.display_order
-              FROM business_services s
-              JOIN businesses b ON b.id = s.business_id
-             WHERE b.slug = $1 AND b.is_active = TRUE AND s.is_active = TRUE
-             ORDER BY s.display_order, s.id
-        `, [req.params.slug]);
-        res.json({ success: true, services: result.rows });
-    } catch (err) {
-        console.error('Get public business services error:', err);
-        logError(err, 'Get public business services');
-        res.status(500).json({ error: 'Unable to load this business\'s services.' });
-    }
-});
-
 router.get('/:slug/reviews', async (req, res) => {
     try {
         const { slug } = req.params;

@@ -65,17 +65,14 @@ if (typeof window.isOwnBusiness === 'undefined') {
 if (typeof window.businessProductTab === 'undefined') {
     window.businessProductTab = 'all';
 }
-if (typeof window.businessShopType === 'undefined') {
-    window.businessShopType = new URLSearchParams(window.location.search).get('shop') === 'services' ? 'services' : 'products';
-}
-
 const DEFAULT_ORDERS_PAUSED_MESSAGE = 'This business is not currently accepting online orders. Please contact them directly.';
 
 let businessSlug = window.businessSlug;
 let businessData = window.businessData;
 let businessProductList = window.businessProductList;
-let businessServiceList = [];
-let businessServicesLoaded = false;
+let businessServicesList = [];
+let businessDisplayedProducts = null;
+let businessProductGridColumnCount = 0;
 let businessSlideIndex = window.businessSlideIndex;
 let businessSlideTimer = window.businessSlideTimer;
 let businessMap = window.businessMap;
@@ -92,89 +89,6 @@ let isOwnBusiness = window.isOwnBusiness;
 // ============================================================
 
 const VALID_PRODUCT_TABS = ['all', 'image', 'video'];
-
-function renderBusinessShopType() {
-    const type = window.businessShopType === 'services' ? 'services' : 'products';
-    const productsPanel = document.getElementById('businessProductsPanel');
-    const servicesPanel = document.getElementById('businessServicesPanel');
-    if (productsPanel) productsPanel.hidden = type !== 'products';
-    if (servicesPanel) servicesPanel.hidden = type !== 'services';
-    document.querySelectorAll('#shopTypeTabs [data-shop-type]').forEach(button => {
-        const active = button.dataset.shopType === type;
-        button.classList.toggle('is-active', active);
-        button.setAttribute('aria-selected', active ? 'true' : 'false');
-    });
-}
-
-function switchBusinessShopType(type) {
-    if (!['products', 'services'].includes(type)) return;
-    window.businessShopType = type;
-    renderBusinessShopType();
-    const url = new URL(window.location.href);
-    if (type === 'services') url.searchParams.set('shop', 'services');
-    else url.searchParams.delete('shop');
-    window.history.replaceState({}, '', `${url.pathname}${url.search}${url.hash}`);
-    if (type === 'services' && !businessServicesLoaded) loadPublicBusinessServices();
-}
-
-async function loadPublicBusinessServices() {
-    const grid = document.getElementById('businessServicesGrid');
-    if (!businessSlug || !grid) return;
-    grid.innerHTML = '<p style="color:#94a3b8;">Loading services...</p>';
-    try {
-        const response = await fetch(`/api/businesses/${encodeURIComponent(businessSlug)}/services`);
-        const data = await response.json().catch(() => ({}));
-        if (!response.ok) throw new Error(data.error || 'Could not load services.');
-        businessServiceList = Array.isArray(data.services) ? data.services : [];
-        businessServicesLoaded = true;
-        renderPublicBusinessServices();
-    } catch (error) {
-        grid.innerHTML = '<p style="color:#b91c1c;">Services could not be loaded. Please try again later.</p>';
-        console.warn('Business services could not be loaded:', error.message);
-    }
-}
-
-function renderPublicBusinessServices() {
-    const grid = document.getElementById('businessServicesGrid');
-    if (!grid) return;
-    if (!businessServiceList.length) {
-        grid.innerHTML = '<p style="color:#64748b;">This business has not listed any services yet.</p>';
-        return;
-    }
-    grid.innerHTML = businessServiceList.map(service => {
-        const price = service.pricing_mode === 'negotiable'
-            ? 'Available for negotiation'
-            : `Ksh ${Number(service.price || 0).toLocaleString('en-KE', { maximumFractionDigits: 2 })}`;
-        return `<article class="business-service-card">
-            <h3>${escapeBusinessProductText(service.name)}</h3>
-            <div class="business-service-price">${escapeBusinessProductText(price)}</div>
-            ${service.description ? `<p>${escapeBusinessProductText(service.description)}</p>` : ''}
-            <button type="button" class="business-service-contact" onclick="contactBusinessService(${Number(service.id)})"><i class="fas fa-comment-dots"></i> Ask about this service</button>
-        </article>`;
-    }).join('');
-}
-
-function contactBusinessService(serviceId) {
-    const service = businessServiceList.find(item => Number(item.id) === Number(serviceId));
-    if (!service) return;
-    const business = businessData || {};
-    const number = String(business.whatsapp || '').replace(/\D/g, '');
-    const price = service.pricing_mode === 'negotiable'
-        ? 'Price: available for negotiation'
-        : `Price: Ksh ${Number(service.price || 0).toLocaleString('en-KE', { maximumFractionDigits: 2 })}`;
-    if (number) {
-        const message = `Hi ${business.business_name || ''}, I am interested in your service: ${service.name}. ${price}`;
-        window.open(`https://wa.me/${number}?text=${encodeURIComponent(message)}`, '_blank', 'noopener');
-        return;
-    }
-    const contacts = document.getElementById('businessProfileContacts');
-    if (contacts) contacts.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    if (typeof showToast === 'function') {
-        showToast(business.whatsapp || business.phone || business.email
-            ? 'Use the business contact options below to ask about this service.'
-            : 'This business has not added contact details yet.', 'info');
-    }
-}
 
 function readProductTabFromUrl() {
     const params = new URLSearchParams(window.location.search);
@@ -354,8 +268,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
     window.businessProductTab = readProductTabFromUrl();
     renderProductTabs(window.businessProductTab);
-    renderBusinessShopType();
-
     if (typeof updateNavigation === 'function') {
         updateNavigation();
     }
@@ -439,7 +351,8 @@ async function loadBusinessProfile() {
         if (contentEl) contentEl.style.display = 'block';
 
         renderBusinessProfile();
-        await Promise.all([loadBusinessProducts(), loadPublicBusinessServices()]);
+        loadPublicBusinessServices();
+        await loadBusinessProducts();
         buildBusinessSlider();
 
         if (isCustomerViewer()) {
@@ -457,6 +370,132 @@ async function loadBusinessProfile() {
         showError('Error loading business', err.message);
     }
 }
+
+async function loadPublicBusinessServices() {
+    if (!businessSlug) return;
+    try {
+        const response = await fetch(`/api/businesses/${encodeURIComponent(businessSlug)}/services`, { cache: 'no-store' });
+        if (!response.ok) throw new Error(`Service request failed (${response.status})`);
+        const data = await response.json();
+        businessServicesList = Array.isArray(data.services) ? data.services : [];
+        renderBusinessProductGrid(businessDisplayedProducts || businessProductList || []);
+    } catch (error) {
+        console.warn('Could not load public business services:', error);
+        businessServicesList = [];
+        renderBusinessProductGrid(businessDisplayedProducts || businessProductList || []);
+    }
+}
+
+function getBusinessProductGridColumns(grid) {
+    if (!grid || !grid.isConnected) return 1;
+    const tracks = window.getComputedStyle(grid).gridTemplateColumns;
+    return Math.max(1, tracks.split(/\s+/).filter(Boolean).length);
+}
+
+function getBusinessServiceMedia(service) {
+    let media = service?.media;
+    if (typeof media === 'string') {
+        try { media = JSON.parse(media); } catch (_) { media = []; }
+    }
+    if (!Array.isArray(media)) return [];
+    const activeTab = getActiveProductTab();
+    return media.filter(item => item && ['image', 'video'].includes(item.kind) &&
+        typeof item.url === 'string' && (activeTab === 'all' || item.kind === activeTab));
+}
+
+function createBusinessServiceCard(service) {
+    const card = document.createElement('article');
+    card.className = 'business-service-card';
+
+    const heading = document.createElement('h3');
+    heading.className = 'business-service-title';
+    heading.textContent = service.name || 'Service';
+    card.appendChild(heading);
+
+    const unitLabels = { per_service: 'per job', per_item: 'per item', per_hour: 'per hour', per_day: 'per day' };
+    const price = document.createElement('p');
+    price.className = 'business-service-price';
+    price.textContent = service.pricing_mode === 'negotiable'
+        ? 'Available for negotiation'
+        : `Ksh ${Number(service.price || 0).toLocaleString('en-KE', { maximumFractionDigits: 2 })} ${unitLabels[service.price_unit] || unitLabels.per_service}`;
+    card.appendChild(price);
+
+    if (service.service_area) {
+        const area = document.createElement('p');
+        area.className = 'business-service-area';
+        area.textContent = `Available in: ${service.service_area}`;
+        card.appendChild(area);
+    }
+    if (service.description) {
+        const description = document.createElement('p');
+        description.className = 'business-service-description';
+        description.textContent = service.description;
+        card.appendChild(description);
+    }
+
+    const mediaItems = getBusinessServiceMedia(service);
+    if (mediaItems.length) {
+        const gallery = document.createElement('div');
+        gallery.className = 'business-service-gallery';
+        mediaItems.forEach(item => {
+            let mediaUrl;
+            try {
+                mediaUrl = new URL(item.url, window.location.origin);
+                if (!['http:', 'https:'].includes(mediaUrl.protocol)) return;
+            } catch (_) { return; }
+
+            const figure = document.createElement('figure');
+            figure.className = 'business-service-media';
+            if (item.kind === 'video') {
+                const video = document.createElement('video');
+                video.controls = true;
+                video.preload = 'metadata';
+                video.playsInline = true;
+                video.src = mediaUrl.href;
+                video.setAttribute('aria-label', item.caption || `${service.name || 'Service'} example video`);
+                figure.appendChild(video);
+            } else {
+                const image = document.createElement('img');
+                image.src = mediaUrl.href;
+                image.alt = item.caption || `${service.name || 'Service'} example photo`;
+                image.loading = 'lazy';
+                image.decoding = 'async';
+                figure.appendChild(image);
+            }
+            if (item.caption) {
+                const caption = document.createElement('figcaption');
+                caption.textContent = item.caption;
+                figure.appendChild(caption);
+            }
+            gallery.appendChild(figure);
+        });
+        if (gallery.childElementCount) card.appendChild(gallery);
+    }
+    return card;
+}
+
+function createBusinessServicesInterstitial(services) {
+    const section = document.createElement('section');
+    section.className = 'business-services-interstitial';
+    section.setAttribute('aria-label', 'Other services offered by this business');
+    const header = document.createElement('div');
+    header.className = 'business-services-interstitial-heading';
+    header.innerHTML = '<span aria-hidden="true">🛠️</span><div><h2>Other Services Offered</h2><p>Contact the business to discuss these services. They are not checkout items.</p></div>';
+    section.appendChild(header);
+    const cards = document.createElement('div');
+    cards.className = 'business-services-interstitial-cards';
+    services.forEach(service => cards.appendChild(createBusinessServiceCard(service)));
+    section.appendChild(cards);
+    return section;
+}
+
+window.addEventListener('resize', () => {
+    const grid = document.getElementById('productGrid');
+    const columns = getBusinessProductGridColumns(grid);
+    if (businessDisplayedProducts && columns !== businessProductGridColumnCount) {
+        renderBusinessProductGrid(businessDisplayedProducts);
+    }
+});
 
 function hideFollowButtonForNonCustomer() {
     const followBtn = document.getElementById('followBtn');
@@ -1004,19 +1043,26 @@ function renderBusinessGrid() {
     renderBusinessProductGrid(businessProductList || []);
 }
 
-function renderBusinessProductGrid(products) {
+function renderBusinessProductGrid(products, emptyStateText = 'No products available yet.') {
     const grid = document.getElementById('productGrid');
     if (!grid) return;
-
-    if (!products || products.length === 0) {
-        grid.innerHTML = '<p style="text-align:center;padding:40px;color:#94a3b8;">No products available yet.</p>';
-        return;
-    }
+    products = Array.isArray(products) ? products : [];
+    businessDisplayedProducts = products;
+    const columns = getBusinessProductGridColumns(grid);
+    businessProductGridColumnCount = columns;
+    const activeTab = getActiveProductTab();
+    const visibleServices = businessServicesList.filter(service => {
+        if (activeTab === 'all') return true;
+        return getBusinessServiceMedia(service).length > 0;
+    });
+    const productRowsPerServiceBreak = 3;
+    const productsPerServiceBreak = columns * productRowsPerServiceBreak;
+    const renderedProducts = [];
 
     const cart = typeof getCart === 'function' ? getCart() : [];
     const onlineOrdersEnabled = businessData.online_orders_enabled !== false;
 
-    grid.innerHTML = products.map(p => {
+    const productMarkup = products.map(p => {
         const inCart = cart.some(item => item.id === p.id);
         const btnText = inCart ? 'Add More' : 'Add to Cart';
         const btnClass = inCart ? 'in-cart' : '';
@@ -1076,6 +1122,30 @@ function renderBusinessProductGrid(products) {
             + '</div>';
     }).join('');
 
+    const productTemplate = document.createElement('template');
+    productTemplate.innerHTML = productMarkup;
+    renderedProducts.push(...Array.from(productTemplate.content.children));
+    const content = document.createDocumentFragment();
+    let serviceIndex = 0;
+    if (!renderedProducts.length) {
+        const emptyMessage = document.createElement('p');
+        emptyMessage.className = 'business-product-empty';
+        emptyMessage.textContent = emptyStateText;
+        content.appendChild(emptyMessage);
+        if (visibleServices.length) content.appendChild(createBusinessServicesInterstitial(visibleServices));
+    } else {
+        renderedProducts.forEach((productCard, index) => {
+            content.appendChild(productCard);
+            const reachedThreeRows = (index + 1) % productsPerServiceBreak === 0;
+            if (reachedThreeRows && serviceIndex < visibleServices.length) {
+                content.appendChild(createBusinessServicesInterstitial([visibleServices[serviceIndex++]]));
+            }
+        });
+        if (serviceIndex < visibleServices.length) {
+            content.appendChild(createBusinessServicesInterstitial(visibleServices.slice(serviceIndex)));
+        }
+    }
+    grid.replaceChildren(content);
 }
 
 function openBusinessImagePreviewFromButton(button) {
@@ -1228,7 +1298,7 @@ function filterBusinessProducts() {
     }
 
     if (products.length === 0) {
-        grid.innerHTML = '<p style="text-align:center;padding:40px;color:#94a3b8;">No products match your filters.</p>';
+        renderBusinessProductGrid([], 'No products match your filters.');
         return;
     }
 
@@ -1498,10 +1568,6 @@ window.renderProductTabs = renderProductTabs;
 window.readProductTabFromUrl = readProductTabFromUrl;
 window.writeProductTabToUrl = writeProductTabToUrl;
 window.getActiveProductTab = getActiveProductTab;
-window.switchBusinessShopType = switchBusinessShopType;
-window.loadPublicBusinessServices = loadPublicBusinessServices;
-window.contactBusinessService = contactBusinessService;
-
 window.changeBusinessCardQty = changeBusinessCardQty;
 window.addBusinessCardToCart = addBusinessCardToCart;
 window.goToMarketplaceCart = goToMarketplaceCart;

@@ -141,6 +141,11 @@ let productsData = [];
 let businessCategories = [];
 let productCategories = [];
 let businessServices = [];
+let businessServiceEditingMedia = [];
+let businessServiceRemovedMedia = new Set();
+let businessServicePreviewUrls = [];
+let businessServiceMediaCaptions = new Map();
+const businessServiceFileCaptions = new WeakMap();
 let socket = null;
 let statsInterval = null;
 let currentFilterStatus = null;
@@ -4262,8 +4267,10 @@ async function logout() {
 function toggleBusinessServicePrice() {
     const negotiable = document.getElementById('businessServicePricingMode')?.value === 'negotiable';
     const wrap = document.getElementById('businessServicePriceWrap');
+    const unitWrap = document.getElementById('businessServicePriceUnitWrap');
     const price = document.getElementById('businessServicePrice');
     if (wrap) wrap.style.display = negotiable ? 'none' : '';
+    if (unitWrap) unitWrap.style.display = negotiable ? 'none' : '';
     if (price) {
         price.required = !negotiable;
         if (negotiable) price.value = '';
@@ -4278,11 +4285,119 @@ function resetBusinessServiceForm() {
     const cancel = document.getElementById('businessServiceCancel');
     const status = document.getElementById('businessServiceStatus');
     if (id) id.value = '';
-    if (title) title.textContent = 'Add a service';
+    if (title) title.textContent = 'Add a service or offer';
     if (submit) submit.innerHTML = '<i class="fas fa-plus"></i> Add service';
     if (cancel) cancel.hidden = true;
     if (status) status.textContent = '';
+    businessServiceEditingMedia = [];
+    businessServiceRemovedMedia.clear();
+    businessServiceMediaCaptions.clear();
+    document.getElementById('businessServiceImages').value = '';
+    document.getElementById('businessServiceVideos').value = '';
+    renderBusinessServiceMediaPreview();
     toggleBusinessServicePrice();
+}
+
+function renderBusinessServiceMediaPreview() {
+    const preview = document.getElementById('businessServiceMediaPreview');
+    if (!preview) return;
+    preview.style.cssText = 'display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;';
+    businessServicePreviewUrls.forEach(url => URL.revokeObjectURL(url));
+    businessServicePreviewUrls = [];
+    preview.replaceChildren();
+
+    const images = Array.from(document.getElementById('businessServiceImages')?.files || []);
+    const videos = Array.from(document.getElementById('businessServiceVideos')?.files || []);
+
+    const addTile = (media, source, isNew, fileIndex = -1) => {
+        const tile = document.createElement('div');
+        tile.style.cssText = 'width:150px;padding:8px;border:1px solid #e2e8f0;border-radius:8px;background:#fff;';
+        let mediaEl;
+        if (media.kind === 'video') {
+            mediaEl = document.createElement('video');
+            mediaEl.controls = true;
+            mediaEl.preload = 'metadata';
+        } else {
+            mediaEl = document.createElement('img');
+            mediaEl.alt = media.name || 'Service past-work photo';
+        }
+        mediaEl.src = source;
+        mediaEl.style.cssText = 'display:block;width:100%;height:88px;object-fit:cover;border-radius:5px;background:#f1f5f9;';
+        tile.appendChild(mediaEl);
+
+        const label = document.createElement('div');
+        label.textContent = media.name || (media.kind === 'video' ? 'Past-work video' : 'Past-work photo');
+        label.style.cssText = 'overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.7rem;color:#475569;margin:5px 0;';
+        tile.appendChild(label);
+
+        const caption = document.createElement('textarea');
+        caption.rows = 2;
+        caption.maxLength = 500;
+        caption.placeholder = media.kind === 'video' ? 'Describe this video' : 'Describe this photo';
+        caption.value = isNew
+            ? (businessServiceFileCaptions.get(media.file) || '')
+            : (businessServiceMediaCaptions.get(media.url) ?? media.caption ?? '');
+        caption.setAttribute('aria-label', caption.placeholder);
+        caption.style.cssText = 'box-sizing:border-box;width:100%;margin:4px 0;padding:5px;font-size:.75rem;resize:vertical;';
+        caption.addEventListener('input', () => {
+            if (isNew) businessServiceFileCaptions.set(media.file, caption.value);
+            else businessServiceMediaCaptions.set(media.url, caption.value);
+        });
+        tile.appendChild(caption);
+
+        if (isNew) {
+            const remove = document.createElement('button');
+            remove.type = 'button';
+            remove.textContent = 'Remove selected file';
+            remove.style.cssText = 'border:0;background:none;color:#b91c1c;padding:0;font-size:.7rem;cursor:pointer;';
+            remove.addEventListener('click', () => removeBusinessServiceSelectedFile(media.kind, fileIndex));
+            tile.appendChild(remove);
+        } else {
+            const removeLabel = document.createElement('label');
+            removeLabel.style.cssText = 'display:flex;gap:5px;align-items:center;font-size:.72rem;color:#b91c1c;cursor:pointer;';
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.checked = businessServiceRemovedMedia.has(media.url);
+            checkbox.dataset.removeServiceMedia = media.url;
+            checkbox.addEventListener('change', () => {
+                if (checkbox.checked) businessServiceRemovedMedia.add(media.url);
+                else businessServiceRemovedMedia.delete(media.url);
+                tile.style.opacity = checkbox.checked ? '0.45' : '1';
+                renderBusinessServiceMediaPreview();
+            });
+            removeLabel.append(checkbox, document.createTextNode('Remove when saved'));
+            tile.appendChild(removeLabel);
+            if (checkbox.checked) tile.style.opacity = '0.45';
+        }
+        preview.appendChild(tile);
+    };
+
+    businessServiceEditingMedia.forEach(media => {
+        addTile(media, media.url, false);
+    });
+
+    images.forEach((file, index) => {
+        const url = URL.createObjectURL(file);
+        businessServicePreviewUrls.push(url);
+        addTile({ kind: 'image', name: file.name, file }, url, true, index);
+    });
+    videos.forEach((file, index) => {
+        const url = URL.createObjectURL(file);
+        businessServicePreviewUrls.push(url);
+        addTile({ kind: 'video', name: file.name, file }, url, true, index);
+    });
+
+}
+
+function removeBusinessServiceSelectedFile(kind, fileIndex) {
+    const input = document.getElementById(kind === 'video' ? 'businessServiceVideos' : 'businessServiceImages');
+    if (!input || !window.DataTransfer) return;
+    const transfer = new DataTransfer();
+    Array.from(input.files).forEach((file, index) => {
+        if (index !== fileIndex) transfer.items.add(file);
+    });
+    input.files = transfer.files;
+    renderBusinessServiceMediaPreview();
 }
 
 async function loadBusinessServices() {
@@ -4308,15 +4423,21 @@ function renderBusinessServicesAdminList() {
         return;
     }
     list.innerHTML = businessServices.map(service => {
+        const unitLabels = { per_service: 'per service/job', per_item: 'per item', per_hour: 'per hour', per_day: 'per day' };
+        const media = Array.isArray(service.media) ? service.media : [];
+        const photoCount = media.filter(item => item?.kind === 'image').length;
+        const videoCount = media.filter(item => item?.kind === 'video').length;
         const price = service.pricing_mode === 'negotiable'
             ? 'Available for negotiation'
-            : `Ksh ${Number(service.price || 0).toLocaleString('en-KE', { maximumFractionDigits: 2 })}`;
+            : `Ksh ${Number(service.price || 0).toLocaleString('en-KE', { maximumFractionDigits: 2 })} ${unitLabels[service.price_unit] || unitLabels.per_service}`;
         return `<article style="display:flex;justify-content:space-between;gap:14px;align-items:flex-start;flex-wrap:wrap;padding:14px;border:1px solid #e2e8f0;border-radius:10px;margin:8px 0;background:#fff;">
             <div style="min-width:220px;flex:1;">
                 <strong>${escapeHtml(service.name)}</strong>
-                <span style="margin-left:8px;font-size:.7rem;font-weight:700;color:${service.is_active ? '#15803d' : '#64748b'};">${service.is_active ? 'VISIBLE' : 'HIDDEN'}</span>
+                <span style="margin-left:8px;font-size:.7rem;font-weight:700;color:${service.is_active ? '#15803d' : '#64748b'};">${service.is_active ? 'ACTIVE' : 'PAUSED'}</span>
                 <div style="margin-top:4px;color:#166534;font-weight:700;font-size:.86rem;">${escapeHtml(price)}</div>
+                ${service.service_area ? `<div style="margin-top:4px;color:#475569;font-size:.78rem;"><i class="fas fa-location-dot"></i> ${escapeHtml(service.service_area)}</div>` : ''}
                 ${service.description ? `<p style="white-space:pre-wrap;margin:6px 0 0;color:#64748b;font-size:.8rem;">${escapeHtml(service.description)}</p>` : ''}
+                ${(photoCount || videoCount) ? `<div style="margin-top:7px;color:#475569;font-size:.76rem;"><i class="fas fa-photo-film"></i> Past work: ${photoCount} photo${photoCount === 1 ? '' : 's'} · ${videoCount} video${videoCount === 1 ? '' : 's'} <span style="color:#64748b;">(open Edit to preview)</span></div>` : ''}
             </div>
             <div style="display:flex;gap:6px;">
                 <button type="button" class="btn-secondary" onclick="editBusinessService(${Number(service.id)})">Edit</button>
@@ -4334,7 +4455,15 @@ function editBusinessService(serviceId) {
     document.getElementById('businessServiceDescription').value = service.description || '';
     document.getElementById('businessServicePricingMode').value = service.pricing_mode || 'fixed';
     document.getElementById('businessServicePrice').value = service.price ?? '';
+    document.getElementById('businessServicePriceUnit').value = service.price_unit || 'per_service';
+    document.getElementById('businessServiceArea').value = service.service_area || '';
     document.getElementById('businessServiceActive').checked = service.is_active !== false;
+    businessServiceEditingMedia = Array.isArray(service.media) ? service.media.slice() : [];
+    businessServiceRemovedMedia.clear();
+    businessServiceMediaCaptions = new Map(businessServiceEditingMedia.map(media => [media.url, media.caption || '']));
+    document.getElementById('businessServiceImages').value = '';
+    document.getElementById('businessServiceVideos').value = '';
+    renderBusinessServiceMediaPreview();
     document.getElementById('businessServiceFormTitle').textContent = 'Edit service';
     document.getElementById('businessServiceSubmit').innerHTML = '<i class="fas fa-save"></i> Save changes';
     document.getElementById('businessServiceCancel').hidden = false;
@@ -4348,21 +4477,35 @@ async function saveBusinessService(event) {
     const status = document.getElementById('businessServiceStatus');
     const submit = document.getElementById('businessServiceSubmit');
     const pricingMode = document.getElementById('businessServicePricingMode').value;
-    const payload = {
-        name: document.getElementById('businessServiceName').value.trim(),
-        description: document.getElementById('businessServiceDescription').value.trim(),
-        pricing_mode: pricingMode,
-        price: pricingMode === 'fixed' ? document.getElementById('businessServicePrice').value : null,
-        is_active: document.getElementById('businessServiceActive').checked
-    };
+    const payload = new FormData();
+    payload.append('name', document.getElementById('businessServiceName').value.trim());
+    payload.append('description', document.getElementById('businessServiceDescription').value.trim());
+    payload.append('pricing_mode', pricingMode);
+    payload.append('price', pricingMode === 'fixed' ? document.getElementById('businessServicePrice').value : '');
+    payload.append('price_unit', pricingMode === 'fixed' ? document.getElementById('businessServicePriceUnit').value : 'per_service');
+    payload.append('service_area', document.getElementById('businessServiceArea').value.trim());
+    payload.append('is_active', String(document.getElementById('businessServiceActive').checked));
+    payload.append('remove_media', JSON.stringify([...businessServiceRemovedMedia]));
+
+    const imageFiles = Array.from(document.getElementById('businessServiceImages').files || []);
+    const videoFiles = Array.from(document.getElementById('businessServiceVideos').files || []);
+    payload.append('media_captions', JSON.stringify(Object.fromEntries(businessServiceMediaCaptions)));
+    imageFiles.forEach(file => {
+        payload.append('service_images', file, file.name);
+        payload.append('service_image_captions', businessServiceFileCaptions.get(file) || '');
+    });
+    videoFiles.forEach(file => {
+        payload.append('service_videos', file, file.name);
+        payload.append('service_video_captions', businessServiceFileCaptions.get(file) || '');
+    });
+
     if (submit) { submit.disabled = true; submit.textContent = id ? 'Saving...' : 'Adding...'; }
     if (status) { status.textContent = ''; status.style.color = ''; }
     try {
         const response = await fetch(id ? `/api/business-admin/services/${id}` : '/api/business-admin/services', {
             method: id ? 'PUT' : 'POST',
             credentials: 'same-origin',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
+            body: payload
         });
         const data = await response.json().catch(() => ({}));
         if (!response.ok || !data.success) throw new Error(data.error || 'Unable to save this service.');
@@ -4379,7 +4522,7 @@ async function saveBusinessService(event) {
 }
 
 async function deleteBusinessService(serviceId) {
-    if (!window.confirm('Delete this service from your public shop?')) return;
+    if (!window.confirm('Delete this service offer and its attached media from your dashboard?')) return;
     try {
         const response = await fetch(`/api/business-admin/services/${serviceId}`, { method: 'DELETE', credentials: 'same-origin' });
         const data = await response.json().catch(() => ({}));

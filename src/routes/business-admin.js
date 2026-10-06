@@ -3513,29 +3513,117 @@ router.post('/cancel-deletion', authMiddleware, businessAdminOnly, getBusinessId
 function normaliseBusinessService(body = {}) {
     const name = String(body.name || '').trim();
     const description = String(body.description || '').trim();
+    const serviceArea = String(body.service_area || '').trim();
     const pricingMode = body.pricing_mode === 'negotiable' ? 'negotiable' : body.pricing_mode;
     const price = pricingMode === 'fixed' ? Number(body.price) : null;
     if (!name || name.length > 120) return { error: 'Service name is required and must be 120 characters or fewer.' };
     if (description.length > 2000) return { error: 'Description must be 2,000 characters or fewer.' };
+    if (serviceArea.length > 160) return { error: 'Service area must be 160 characters or fewer.' };
     if (!['fixed', 'negotiable'].includes(pricingMode)) return { error: 'Choose a fixed price or negotiable pricing.' };
     if (pricingMode === 'fixed' && (!Number.isFinite(price) || price < 0 || price > 999999999)) {
         return { error: 'Enter a valid service price.' };
     }
+    const allowedPriceUnits = ['per_service', 'per_item', 'per_hour', 'per_day'];
+    const priceUnit = pricingMode === 'fixed' ? String(body.price_unit || 'per_service') : 'per_service';
+    if (!allowedPriceUnits.includes(priceUnit)) return { error: 'Choose a valid price unit.' };
     return {
         value: {
             name,
             description,
             pricing_mode: pricingMode,
             price,
+            price_unit: priceUnit,
+            service_area: serviceArea,
             is_active: body.is_active !== false && body.is_active !== 'false'
         }
     };
 }
 
+const businessServiceMediaUpload = upload.fields([
+    { name: 'service_images' },
+    { name: 'service_videos' }
+]);
+
+function handleBusinessServiceMediaUpload(req, res, next) {
+    businessServiceMediaUpload(req, res, error => {
+        if (error) return res.status(400).json({ error: error.message || 'Could not read the selected service media.' });
+        next();
+    });
+}
+
+function normaliseBusinessServiceMedia(raw) {
+    let media = raw;
+    if (typeof media === 'string') {
+        try { media = JSON.parse(media); } catch (_) { media = []; }
+    }
+    if (!Array.isArray(media)) return [];
+    return media.filter(item => item && typeof item.url === 'string' && ['image', 'video'].includes(item.kind))
+        .map(item => ({ ...item, caption: String(item.caption || '').slice(0, 500) }));
+}
+
+function formValues(value) {
+    if (Array.isArray(value)) return value;
+    return value === undefined ? [] : [value];
+}
+
+function parseServiceMediaCaptions(raw) {
+    if (!raw) return {};
+    try {
+        const captions = typeof raw === 'string' ? JSON.parse(raw) : raw;
+        if (!captions || typeof captions !== 'object' || Array.isArray(captions)) return {};
+        return captions;
+    } catch (_) {
+        return {};
+    }
+}
+
+function parseServiceMediaRemovals(raw) {
+    if (raw === undefined || raw === null || raw === '') return new Set();
+    let values = raw;
+    if (typeof values === 'string') {
+        try { values = JSON.parse(values); } catch (_) { return null; }
+    }
+    if (!Array.isArray(values) || values.some(value => typeof value !== 'string')) return null;
+    return new Set(values);
+}
+
+async function uploadBusinessServiceMedia(req, businessId) {
+    const imageFiles = req.files?.service_images || [];
+    const videoFiles = req.files?.service_videos || [];
+    const imageCaptions = formValues(req.body.service_image_captions);
+    const videoCaptions = formValues(req.body.service_video_captions);
+    const allowedImageTypes = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
+    const allowedVideoTypes = new Set(['video/mp4', 'video/webm']);
+    if (imageFiles.some(file => !allowedImageTypes.has(file.mimetype)) ||
+        videoFiles.some(file => !allowedVideoTypes.has(file.mimetype))) {
+        throw Object.assign(new Error('Choose image files for photos and video files for videos.'), { status: 400 });
+    }
+
+    const uploadedImages = [];
+    for (const [index, file] of imageFiles.entries()) {
+        const url = await uploadToCloudinary(file.path, {
+            folder: `business_shop/${businessId}/services/images`,
+            resource_type: 'image'
+        });
+        uploadedImages.push({ url, kind: 'image', caption: String(imageCaptions[index] || '').slice(0, 500) });
+    }
+
+    const uploadedVideos = [];
+    for (const [index, file] of videoFiles.entries()) {
+        const url = await uploadToCloudinary(file.path, {
+            folder: `business_shop/${businessId}/services/videos`,
+            resource_type: 'video'
+        });
+        uploadedVideos.push({ url, kind: 'video', caption: String(videoCaptions[index] || '').slice(0, 500) });
+    }
+
+    return [...uploadedImages, ...uploadedVideos];
+}
+
 router.get('/services', authMiddleware, businessAdminOnly, getBusinessIdFromToken, async (req, res) => {
     try {
         const result = await pool.query(
-            'SELECT id, name, description, pricing_mode, price, is_active, display_order, created_at, updated_at FROM business_services WHERE business_id = $1 ORDER BY display_order, id',
+            'SELECT id, name, description, pricing_mode, price, price_unit, service_area, media, is_active, display_order, created_at, updated_at FROM business_services WHERE business_id = $1 ORDER BY display_order, id',
             [req.businessId]
         );
         res.json({ success: true, services: result.rows });
@@ -3546,47 +3634,68 @@ router.get('/services', authMiddleware, businessAdminOnly, getBusinessIdFromToke
     }
 });
 
-router.post('/services', authMiddleware, businessAdminOnly, getBusinessIdFromToken, async (req, res) => {
+router.post('/services', authMiddleware, businessAdminOnly, getBusinessIdFromToken, handleBusinessServiceMediaUpload, async (req, res) => {
     try {
         const normalised = normaliseBusinessService(req.body);
         if (normalised.error) return res.status(400).json({ error: normalised.error });
         const count = await pool.query('SELECT COUNT(*)::int AS count FROM business_services WHERE business_id = $1', [req.businessId]);
         if (count.rows[0].count >= 50) return res.status(409).json({ error: 'You can list up to 50 services.' });
+        const media = await uploadBusinessServiceMedia(req, req.businessId);
         const result = await pool.query(`
-            INSERT INTO business_services (business_id, name, description, pricing_mode, price, is_active, display_order)
-            SELECT $1, $2, $3, $4, $5, $6, COALESCE(MAX(display_order), 0) + 1
+            INSERT INTO business_services (business_id, name, description, pricing_mode, price, price_unit, service_area, media, is_active, display_order)
+            SELECT $1, $2, $3, $4, $5, $6, $7, $8::jsonb, $9, COALESCE(MAX(display_order), 0) + 1
               FROM business_services WHERE business_id = $1
             RETURNING *
-        `, [req.businessId, normalised.value.name, normalised.value.description, normalised.value.pricing_mode, normalised.value.price, normalised.value.is_active]);
+        `, [req.businessId, normalised.value.name, normalised.value.description, normalised.value.pricing_mode, normalised.value.price, normalised.value.price_unit, normalised.value.service_area, JSON.stringify(media), normalised.value.is_active]);
         await logAdminActivity(req.userId, 'CREATE_BUSINESS_SERVICE', { businessId: req.businessId, serviceId: result.rows[0].id });
         res.status(201).json({ success: true, service: result.rows[0] });
     } catch (err) {
         console.error('Create business service error:', err);
         logError(err, 'Create business service');
+        if (err.status === 400) return res.status(400).json({ error: err.message });
         res.status(500).json({ error: 'Unable to save this service.' });
     }
 });
 
-router.put('/services/:id', authMiddleware, businessAdminOnly, getBusinessIdFromToken, async (req, res) => {
+router.put('/services/:id', authMiddleware, businessAdminOnly, getBusinessIdFromToken, handleBusinessServiceMediaUpload, async (req, res) => {
     try {
         const serviceId = Number.parseInt(req.params.id, 10);
         if (!Number.isSafeInteger(serviceId) || serviceId <= 0) return res.status(400).json({ error: 'Invalid service.' });
         const normalised = normaliseBusinessService(req.body);
         if (normalised.error) return res.status(400).json({ error: normalised.error });
+        const currentResult = await pool.query(
+            'SELECT media FROM business_services WHERE id = $1 AND business_id = $2',
+            [serviceId, req.businessId]
+        );
+        if (!currentResult.rows.length) return res.status(404).json({ error: 'Service not found.' });
+
+        const removeMedia = parseServiceMediaRemovals(req.body.remove_media);
+        if (!removeMedia) return res.status(400).json({ error: 'Invalid media removal list.' });
+        const currentMedia = normaliseBusinessServiceMedia(currentResult.rows[0].media);
+        const mediaCaptions = parseServiceMediaCaptions(req.body.media_captions);
+        const retainedMedia = currentMedia
+            .filter(item => !removeMedia.has(item.url))
+            .map(item => ({ ...item, caption: String(mediaCaptions[item.url] ?? item.caption ?? '').slice(0, 500) }));
+        const uploadedImages = req.files?.service_images || [];
+        const uploadedVideos = req.files?.service_videos || [];
+        const uploadedMedia = await uploadBusinessServiceMedia(req, req.businessId);
+        const media = [...retainedMedia, ...uploadedMedia];
         const value = normalised.value;
         const result = await pool.query(`
             UPDATE business_services
                SET name = $1, description = $2, pricing_mode = $3, price = $4,
-                   is_active = $5, updated_at = NOW()
-             WHERE id = $6 AND business_id = $7
+                   price_unit = $5, service_area = $6, media = $7::jsonb,
+                   is_active = $8, updated_at = NOW()
+             WHERE id = $9 AND business_id = $10
             RETURNING *
-        `, [value.name, value.description, value.pricing_mode, value.price, value.is_active, serviceId, req.businessId]);
+        `, [value.name, value.description, value.pricing_mode, value.price, value.price_unit, value.service_area, JSON.stringify(media), value.is_active, serviceId, req.businessId]);
         if (!result.rows.length) return res.status(404).json({ error: 'Service not found.' });
         await logAdminActivity(req.userId, 'UPDATE_BUSINESS_SERVICE', { businessId: req.businessId, serviceId });
         res.json({ success: true, service: result.rows[0] });
     } catch (err) {
         console.error('Update business service error:', err);
         logError(err, 'Update business service');
+        if (err.status === 400) return res.status(400).json({ error: err.message });
         res.status(500).json({ error: 'Unable to update this service.' });
     }
 });

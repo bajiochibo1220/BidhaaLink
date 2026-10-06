@@ -644,7 +644,7 @@
       </div>
 
       <div class="menu-item" data-section="services" onclick="navigateTo('services')">
-        <i class="fas fa-screwdriver-wrench"></i> Other Services You Sell
+        <i class="fas fa-screwdriver-wrench"></i> Other Services You Offer/Sell
       </div>
 
       <div class="menu-item" data-section="messages" onclick="navigateTo('messages')">
@@ -693,6 +693,7 @@
         <h3 style="font-size:0.9rem; font-weight:700; margin-bottom:10px;">Quick actions</h3>
         <div class="quick-actions">
           <button class="btn-save" onclick="navigateTo('products')"><i class="fas fa-plus"></i> Add product</button>
+          <button class="btn-save" onclick="navigateTo('services')"><i class="fas fa-screwdriver-wrench"></i> Add service or offer</button>
           <button class="btn-save" onclick="navigateTo('orders')"><i class="fas fa-box"></i> Manage orders</button>
           <button class="btn-save" onclick="navigateTo('myshop')"><i class="fas fa-store"></i> My Shop</button>
           <button class="btn-save" onclick="openPublicPreview()"><i class="fas fa-eye"></i> Public preview</button>
@@ -735,27 +736,28 @@
     <div class="section" id="section-services">
       <div class="section-header">
         <div>
-          <h2>Other Services You Sell</h2>
-          <p style="font-size:0.82rem;color:#64748b;margin:4px 0 0;">List services such as installation, repairs, or delivery. Customers can view and contact you about them; services are not checkout items.</p>
+          <h2>Other Services You Offer/Sell</h2>
+          <p style="font-size:0.82rem;color:#64748b;margin:4px 0 0;">Configure offers such as welding, installation, repairs, or delivery. These are kept separate from finished products and cannot be ordered through checkout. Public display will be configured separately.</p>
         </div>
         <button type="button" class="btn-secondary" onclick="loadBusinessServices()"><i class="fas fa-sync-alt"></i> Refresh</button>
       </div>
 
       <div class="settings-section">
-        <h3 id="businessServiceFormTitle">Add a service</h3>
+        <h3 id="businessServiceFormTitle">Add a service or offer</h3>
         <form id="businessServiceForm" onsubmit="saveBusinessService(event)">
           <input type="hidden" id="businessServiceId" value="">
           <div class="form-row">
             <div class="full">
-              <label for="businessServiceName">Service name *</label>
+              <label for="businessServiceName">Service or offer name *</label>
               <input id="businessServiceName" type="text" maxlength="120" required placeholder="e.g. Window installation">
             </div>
             <div class="full">
               <label for="businessServiceDescription">Description</label>
-              <textarea id="businessServiceDescription" rows="3" maxlength="2000" placeholder="Explain what the service includes, where you offer it, or any conditions."></textarea>
+              <textarea id="businessServiceDescription" rows="3" maxlength="2000" placeholder="Explain exactly what is included, such as measuring, transport, installation, materials, or call-out fees."></textarea>
+              <small>Be clear about what the customer gets and what may cost extra.</small>
             </div>
             <div>
-              <label for="businessServicePricingMode">Pricing</label>
+              <label for="businessServicePricingMode">Price type</label>
               <select id="businessServicePricingMode" onchange="toggleBusinessServicePrice()">
                 <option value="fixed">Set a price</option>
                 <option value="negotiable">Available for negotiation</option>
@@ -765,8 +767,34 @@
               <label for="businessServicePrice">Price (Ksh) *</label>
               <input id="businessServicePrice" type="number" min="0" max="999999999" step="0.01" placeholder="e.g. 2500">
             </div>
+            <div id="businessServicePriceUnitWrap">
+              <label for="businessServicePriceUnit">Charge this price</label>
+              <select id="businessServicePriceUnit">
+                <option value="per_service">Per service / job</option>
+                <option value="per_item">Per item</option>
+                <option value="per_hour">Per hour</option>
+                <option value="per_day">Per day</option>
+              </select>
+            </div>
+            <div class="full">
+              <label for="businessServiceArea">Where do you offer this service? <span style="font-weight:400;color:#64748b;">(optional)</span></label>
+              <input id="businessServiceArea" type="text" maxlength="160" placeholder="e.g. Nairobi, at the customer's location, or within 20 km">
+            </div>
+            <div>
+              <label for="businessServiceImages">Past-work photos</label>
+              <input id="businessServiceImages" type="file" accept="image/jpeg,image/png,image/webp,image/gif" multiple onchange="renderBusinessServiceMediaPreview()">
+              <small>Add as many photos as you need. Each file can be up to 50 MB. Describe what each photo shows.</small>
+            </div>
+            <div>
+              <label for="businessServiceVideos">Past-work videos</label>
+              <input id="businessServiceVideos" type="file" accept="video/mp4,video/webm" multiple onchange="renderBusinessServiceMediaPreview()">
+              <small>Add as many MP4 or WebM videos as you need. Each file can be up to 50 MB. Describe what each video shows.</small>
+            </div>
+            <div class="full">
+              <div id="businessServiceMediaPreview" aria-live="polite"></div>
+            </div>
             <div class="full checkbox-group">
-              <label><input type="checkbox" id="businessServiceActive" checked> Show this service on my public shop</label>
+              <label><input type="checkbox" id="businessServiceActive" checked> Keep this service active in my dashboard</label>
             </div>
           </div>
           <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;">
