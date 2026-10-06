@@ -916,7 +916,7 @@ function createMarketplaceFeedCard(item) {
     video.muted = true;
     video.loop = true;
     video.playsInline = true;
-    video.controls = true;
+    video.controls = false;
     video.preload = 'none';
     media.append(video);
     marketplaceFeedVideoObserver?.observe(video);
@@ -967,9 +967,6 @@ function createMarketplaceFeedCard(item) {
     description.textContent = `${description.textContent}${description.textContent ? '\n' : ''}Service area: ${item.service_area}`;
   }
   details.append(titleRow);
-  if (description.textContent) {
-    description.hidden = true;
-  }
   const bottomRow = document.createElement('div');
   bottomRow.className = 'marketplace-feed-bottom-row';
   const price = document.createElement('strong');
@@ -1023,19 +1020,20 @@ function createMarketplaceFeedCard(item) {
   bottomRow.append(actions);
   details.append(bottomRow);
   if (description.textContent) {
+    description.classList.add('is-collapsed');
+    details.append(description);
     const more = document.createElement('button');
     more.type = 'button';
     more.className = 'marketplace-feed-more';
-    more.textContent = 'More';
+    more.textContent = 'See more';
     more.setAttribute('aria-expanded', 'false');
     more.addEventListener('click', () => {
-      const expanded = description.hidden;
-      description.hidden = !expanded;
-      more.textContent = expanded ? 'Less' : 'More';
+      const expanded = description.classList.toggle('is-expanded');
+      description.classList.toggle('is-collapsed', !expanded);
+      more.textContent = expanded ? 'See less' : 'See more';
       more.setAttribute('aria-expanded', String(expanded));
     });
     details.append(more);
-    details.append(description);
   }
 
   shade.append(topbar, details);

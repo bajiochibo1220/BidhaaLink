@@ -3860,3 +3860,100 @@ body.marketplace-pane-expanded { overflow: hidden; }
   .marketplace-feed-details h3 { font-size: .98rem; }
   .marketplace-feed-description { font-size: .9rem; }
 }
+
+/* TikTok-style mobile offer cards: fill the frame with media and keep a
+   compact, readable caption over the lower edge instead of a white panel. */
+.marketplace-feed-media { background: #111827; }
+.marketplace-feed-media img,
+.marketplace-feed-media video { object-fit: cover; object-position: center; }
+.marketplace-feed-shade { padding: 0; }
+.marketplace-feed-topbar { top: max(14px, env(safe-area-inset-top)); left: 14px; }
+.marketplace-feed-business { max-width: min(78vw, 390px); padding: 0; }
+.marketplace-feed-business a {
+  max-width: 100%;
+  color: #fff;
+  font-size: .92rem;
+  line-height: 1.2;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, .85), 0 0 10px rgba(0, 0, 0, .45);
+}
+.marketplace-feed-details {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  align-self: auto;
+  max-height: min(58%, 440px);
+  margin: 0;
+  padding: 42px 16px max(18px, env(safe-area-inset-bottom));
+  overflow-y: auto;
+  background: linear-gradient(180deg, transparent 0%, rgba(0, 0, 0, .2) 28%, rgba(0, 0, 0, .78) 100%);
+  color: #fff;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, .86);
+}
+.marketplace-feed-title-row { margin-bottom: 5px; }
+.marketplace-feed-details h3 {
+  color: #fff;
+  font-size: clamp(1rem, 4vw, 1.22rem);
+  font-weight: 800;
+  line-height: 1.2;
+}
+.marketplace-feed-bottom-row {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: 8px;
+  margin-top: 0;
+}
+.marketplace-feed-price { color: #86efac; font-size: 1rem; text-shadow: inherit; }
+.marketplace-feed-actions { justify-content: flex-start; gap: 8px; }
+.marketplace-feed-actions a,
+.marketplace-feed-actions button {
+  min-height: 38px;
+  border-width: 1px;
+  background: rgba(15, 23, 42, .26);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, .8);
+  backdrop-filter: blur(3px);
+}
+.marketplace-feed-actions .marketplace-feed-talk { color: #a5f3fc; }
+.marketplace-feed-actions .marketplace-feed-cart { color: #bbf7d0; }
+.marketplace-feed-description {
+  max-width: 40rem;
+  max-height: none;
+  margin: 8px 0 0;
+  overflow: visible;
+  color: #fff;
+  font-size: .94rem;
+  line-height: 1.38;
+  text-shadow: inherit;
+}
+.marketplace-feed-description.is-collapsed {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+}
+.marketplace-feed-description.is-expanded { display: block; }
+.marketplace-feed-more {
+  margin-top: 3px;
+  color: #fff;
+  font-size: .88rem;
+  font-weight: 800;
+  text-shadow: inherit;
+}
+
+@media (max-width: 600px) {
+  .marketplace-feed-heading { min-height: 58px; padding: 9px 12px; }
+  .marketplace-feed-heading h2 { font-size: 1rem; }
+  .marketplace-feed-heading p { display: none; }
+  .marketplace-feed-heading-actions { gap: 6px; }
+  .marketplace-feed-heading button,
+  .marketplace-pane-toggle { width: 38px; height: 38px; }
+  .marketplace-feed-scroll { height: min(78svh, 820px); }
+  .marketplace-feed-card { height: min(78svh, 820px); min-height: min(78svh, 600px); }
+  .marketplace-feed-topbar { top: max(16px, env(safe-area-inset-top)); left: 14px; flex-direction: row; }
+  .marketplace-feed-business { max-width: min(78vw, 390px); }
+  .marketplace-feed-details { max-height: 54%; padding: 36px 16px max(20px, env(safe-area-inset-bottom)); }
+  .marketplace-feed-description { font-size: .94rem; }
+}
