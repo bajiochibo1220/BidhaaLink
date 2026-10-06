@@ -40,7 +40,10 @@ async function loadOrder() {
             headers: { 'Authorization': `Bearer ${token}` }
         });
         if (res.status === 401) {
-            window.location.replace('/?auth=login');
+            try {
+                localStorage.setItem('postLoginReturnTo', window.location.pathname + window.location.search + window.location.hash);
+            } catch (_) {}
+            window.location.replace('/marketplace?auth=login');
             return;
         }
         if (!res.ok) throw new Error('Failed to load order');
@@ -1135,7 +1138,7 @@ function submitReturn() {
 async function logout() {
     await fetch('/api/auth/logout', { method: 'POST' }).catch(() => {});
     localStorage.removeItem('currentUser');
-    window.location.href = '/';
+    window.location.href = '/marketplace';
 }
 
 // ============================================================

@@ -26,7 +26,13 @@ const NAV_ITEMS = {
 
 function getUserState() {
     const token = window.customerToken;
-    const user = JSON.parse(localStorage.getItem('currentUser') || '{}');
+    let user = {};
+    try {
+        user = JSON.parse(localStorage.getItem('currentUser') || '{}') || {};
+    } catch (err) {
+        console.warn('Ignoring invalid saved user session:', err);
+        localStorage.removeItem('currentUser');
+    }
 
     if (!user || !(user.id || user.email || user.phone || user.username)) {
         return { isLoggedIn: false, role: null, userId: null, businessId: null };

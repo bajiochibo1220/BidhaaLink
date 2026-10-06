@@ -1525,6 +1525,61 @@ router.get('/:slug', async (req, res) => {
     }
 });
 
+// Load service gallery media on demand so a large gallery does not inflate the social feed.
+router.get('/:slug/services/:serviceId/media', async (req, res) => {
+    const serviceId = Number.parseInt(req.params.serviceId, 10);
+    const requestedPage = Number.parseInt(req.query.page, 10);
+    const requestedLimit = Number.parseInt(req.query.limit, 10);
+    const page = Number.isInteger(requestedPage) ? Math.max(requestedPage, 1) : 1;
+    const limit = Number.isInteger(requestedLimit) ? Math.min(Math.max(requestedLimit, 1), 20) : 8;
+    if (!Number.isSafeInteger(serviceId) || serviceId < 1) {
+        return res.status(400).json({ error: 'A valid service is required.' });
+    }
+
+    try {
+        const result = await pool.query(`
+            SELECT s.name,
+                   (SELECT COUNT(*)::int
+                      FROM jsonb_array_elements(s.media) WITH ORDINALITY AS entry(value, ordinality)
+                     WHERE entry.ordinality > 1
+                       AND entry.value->>'kind' IN ('image', 'video')
+                       AND NULLIF(BTRIM(entry.value->>'url'), '') IS NOT NULL) AS total,
+                   COALESCE((
+                       SELECT jsonb_agg(gallery.value ORDER BY gallery.ordinality)
+                         FROM (
+                           SELECT entry.value, entry.ordinality
+                             FROM jsonb_array_elements(s.media) WITH ORDINALITY AS entry(value, ordinality)
+                            WHERE entry.ordinality > 1
+                              AND entry.value->>'kind' IN ('image', 'video')
+                              AND NULLIF(BTRIM(entry.value->>'url'), '') IS NOT NULL
+                            ORDER BY entry.ordinality
+                            LIMIT $3 OFFSET $4
+                         ) AS gallery
+                   ), '[]'::jsonb) AS items
+              FROM business_services s
+              JOIN businesses b ON b.id = s.business_id
+             WHERE b.slug = $1 AND b.is_active = TRUE
+               AND s.id = $2 AND s.is_active = TRUE
+        `, [req.params.slug, serviceId, limit, (page - 1) * limit]);
+
+        if (!result.rows.length) return res.status(404).json({ error: 'Service not found.' });
+        const row = result.rows[0];
+        return res.json({
+            success: true,
+            name: row.name,
+            items: row.items || [],
+            page,
+            limit,
+            total: Number(row.total || 0),
+            hasMore: page * limit < Number(row.total || 0)
+        });
+    } catch (err) {
+        console.error('Load public service gallery error:', err);
+        logError(err, 'Load public service gallery');
+        return res.status(500).json({ error: 'Unable to load this service gallery.' });
+    }
+});
+
 // Public service listings are informational only; they are not checkout items.
 router.get('/:slug/services', async (req, res) => {
     try {

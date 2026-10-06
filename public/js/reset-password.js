@@ -74,7 +74,7 @@ async function resetPassword() {
             status.className = 'status success';
             status.textContent = '✅ ' + data.message + ' Redirecting...';
             setTimeout(() => {
-                window.location.href = '/';
+                window.location.href = '/marketplace';
             }, 2000);
         } else {
             status.className = 'status error';

@@ -321,7 +321,7 @@ function showAccessDenied(title, message, buttonLink, buttonText) {
             <h2 style="margin-top:12px;">${title}</h2>
             <p style="color:#64748b;">${message}</p>
             <div style="margin-top:16px; display:flex; gap:12px; justify-content:center; flex-wrap:wrap;">
-                <a href="${buttonLink || '/'}" class="btn btn-primary" style="padding:10px 24px; border-radius:8px; text-decoration:none; background:#2563eb; color:white; font-weight:600;">
+                <a href="${buttonLink || '/marketplace'}" class="btn btn-primary" style="padding:10px 24px; border-radius:8px; text-decoration:none; background:#2563eb; color:white; font-weight:600;">
                     <i class="fas fa-arrow-right"></i> ${buttonText || 'Go to Homepage'}
                 </a>
             </div>
@@ -1236,7 +1236,7 @@ function openMarketplaceMessages() {
         window.top.openDashboardPanel('messages');
         return;
     }
-    window.location.href = '/?workspace=messages';
+    window.location.href = '/marketplace?workspace=messages';
 }
 
 function openPublicPreview() {
@@ -4191,7 +4191,7 @@ async function businessDeletionSubmit() {
         window.currentUser = null;
 
         setTimeout(() => {
-            window.location.href = '/?business_deletion=scheduled';
+            window.location.href = '/marketplace?business_deletion=scheduled';
         }, 1800);
     } catch (err) {
         if (statusEl) {
@@ -4271,7 +4271,7 @@ async function logout() {
     await fetch('/api/auth/logout', { method: 'POST' }).catch(() => {});
     localStorage.removeItem('businessId');
     localStorage.removeItem('businessName');
-    window.location.href = '/';
+    window.location.href = '/marketplace';
 }
 // ============================================================
 //  DISPLAY-ONLY BUSINESS SERVICES

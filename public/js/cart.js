@@ -107,7 +107,7 @@ document.addEventListener('DOMContentLoaded', function() {
     let signedInUser = {};
     try { signedInUser = JSON.parse(localStorage.getItem('currentUser') || '{}') || {}; } catch (_) {}
     if (!isEmbeddedCart && !isCustomerUser(signedInUser)) {
-        window.location.replace('/?auth=login&next=cart');
+        window.location.replace('/marketplace?auth=login&next=cart');
         return;
     }
     loadShopProfile();
@@ -997,7 +997,7 @@ async function placeOrder() {
     let signedInUser = {};
     try { signedInUser = JSON.parse(localStorage.getItem('currentUser') || '{}') || {}; } catch (_) {}
     if (!isCustomerUser(signedInUser)) {
-        window.location.assign('/?auth=login&next=cart');
+        window.location.assign('/marketplace?auth=login&next=cart');
         return;
     }
 

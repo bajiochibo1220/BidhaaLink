@@ -90,7 +90,7 @@ async function loadBusinessCategories() {
 
 function navigateToBusinessesByCategory(categoryId) {
     // Redirect to marketplace with category filter
-    window.location.href = `/?category=${categoryId}`;
+    window.location.href = `/marketplace?category=${encodeURIComponent(categoryId)}`;
 }
 
 // ============================================================

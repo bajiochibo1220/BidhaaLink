@@ -23,7 +23,8 @@
 
   <!-- Page-Specific Styles -->
   <link rel="stylesheet" href="/css/index.css">
-  <link rel="stylesheet" href="/css/marketplace.css">
+  <link rel="stylesheet" href="/css/marketplace.css?v=mobile-pane-switcher-20261006-v1">
+  <link rel="stylesheet" href="/css/product-inquiry.css?v=card-contact-menu-20261006-v2">
   <link rel="stylesheet" href="/css/pwa.css">
 </head>
 <body class="index-body">
@@ -325,6 +326,12 @@
       <!-- match or an empty result). The JS owns this visibility.       -->
       <!-- ============================================================ -->
 
+      <div class="marketplace-social-layout">
+      <div class="marketplace-business-rail" id="marketplaceBusinessRail">
+      <div class="marketplace-business-heading">
+        <h2>Businesses</h2>
+        <button type="button" class="marketplace-pane-toggle" id="marketplaceBusinessesToggle" aria-label="Expand businesses" aria-controls="marketplaceBusinessRail" aria-pressed="false" title="Expand businesses"><i class="fas fa-arrow-left" aria-hidden="true"></i></button>
+      </div>
       <section id="categoryBlocksSection"
                class="category-blocks-section"
                aria-label="Businesses by category"
@@ -340,7 +347,9 @@
       <!-- ============================================================ -->
 
       <div class="businesses-section">
-        <h2>📋 All Businesses</h2>
+        <div class="marketplace-business-heading">
+          <h2>📋 All Businesses</h2>
+        </div>
         <div class="business-grid" id="businessGrid">
           <p style="text-align:center;padding:40px;color:#94a3b8;grid-column:1/-1;">Loading businesses...</p>
         </div>
@@ -349,6 +358,33 @@
             Load More <i class="fas fa-arrow-down"></i>
           </button>
         </div>
+      </div>
+
+      </div>
+
+      <section class="marketplace-feed" id="marketplaceFeedSection" aria-label="Products and services from businesses">
+        <div class="marketplace-feed-heading">
+          <div>
+            <h2>Discover products &amp; services</h2>
+            <p>Scroll to explore what businesses are offering.</p>
+          </div>
+          <div class="marketplace-feed-heading-actions">
+            <button type="button" class="marketplace-pane-toggle" id="marketplaceFeedToggle" aria-label="Expand products and services" aria-controls="marketplaceFeedSection" aria-pressed="false" title="Expand products and services"><i class="fas fa-arrow-right" aria-hidden="true"></i></button>
+            <button type="button" id="marketplaceFeedRefresh" aria-label="Refresh feed" title="Refresh feed"><i class="fas fa-rotate" aria-hidden="true"></i></button>
+          </div>
+        </div>
+        <div class="marketplace-feed-scroll" id="marketplaceFeedScroll" tabindex="0" aria-label="Scrollable marketplace feed">
+          <div class="marketplace-feed-list" id="marketplaceFeedList">
+            <div class="marketplace-feed-state">Loading products and services...</div>
+          </div>
+          <div class="marketplace-feed-sentinel" id="marketplaceFeedSentinel" aria-hidden="true"></div>
+          <button type="button" class="marketplace-feed-load-more" id="marketplaceFeedLoadMore" hidden>Load more</button>
+        </div>
+      </section>
+      <nav class="marketplace-mobile-shortcuts" aria-label="Marketplace sections">
+        <button type="button" data-marketplace-pane="feed" aria-label="Show social feed"><i class="fas fa-film" aria-hidden="true"></i> Social feed</button>
+        <button type="button" data-marketplace-pane="businesses" aria-label="Show business listings"><i class="fas fa-store" aria-hidden="true"></i> Businesses</button>
+      </nav>
       </div>
 
     </div>
@@ -640,10 +676,11 @@
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="/socket.io/socket.io.js"></script>
-<script src="/js/cart-store.js"></script>
+<script src="/js/cart-store.js?v=unified-cart-20261006-v1"></script>
 <script src="/js/cookie-auth-client.js"></script>
 <script src="/js/navigation.js"></script>
-<script src="/js/index.js?v=service-chat-routing-20261006"></script>
+<script src="/js/index.js?v=mobile-pane-switcher-20261006-v2"></script>
+<script src="/js/product-inquiry.js?v=card-contact-menu-20261006-v6"></script>
 <script src="/js/category-blocks.js"></script>
 <script src="/js/legal.js"></script>
 <script src="/js/pwa.js"></script>

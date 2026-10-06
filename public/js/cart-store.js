@@ -21,36 +21,59 @@
         window.dispatchEvent(new CustomEvent('cart:changed'));
     }
 
-    async function addToCart(productId, quantity = 1) {
+    async function addProductToCart(productId, quantity = 1, options = {}) {
         const id = Number(productId);
-        if (!Number.isFinite(id)) return;
+        const qty = Math.max(1, Math.min(99, Number.parseInt(quantity, 10) || 1));
+        const variantId = options.variantId == null ? null : Number(options.variantId);
+        if (!Number.isSafeInteger(id) || id <= 0) throw new Error('A valid product is required.');
+        if (variantId !== null && (!Number.isSafeInteger(variantId) || variantId <= 0)) throw new Error('The selected product option is invalid.');
 
-        try {
-            const response = await fetch(`/api/products/${id}/detail`);
-            if (!response.ok) throw new Error('Product is unavailable');
-            const payload = await response.json();
-            const product = payload.product || payload;
-            const cart = getCart();
-            const existing = cart.find(item => Number(item.id) === id && !item.variant_id);
-
-            if (existing) {
-                existing.quantity += Math.max(1, Number(quantity) || 1);
-            } else {
-                cart.push({
-                    id,
-                    name: product.name || 'Product',
-                    price: Number(product.price) || 0,
-                    image: product.image || '',
-                    quantity: Math.max(1, Number(quantity) || 1),
-                    business_id: product.business_id || null
-                });
+        const response = await fetch('/api/cart/add', {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ product_id: id, variant_id: variantId, quantity: qty })
+        });
+        const data = await response.json().catch(() => ({}));
+        if (response.status === 401) {
+            if (typeof options.onAuthRequired === 'function') {
+                options.onAuthRequired({ productId: id, variantId, quantity: qty });
+            } else if (options.promptAuth !== false) {
+                const returnUrl = new URL('/product-detail.html', window.location.origin);
+                returnUrl.searchParams.set('id', String(id));
+                returnUrl.searchParams.set('cartAdd', '1');
+                returnUrl.searchParams.set('cartProductId', String(id));
+                returnUrl.searchParams.set('cartQty', String(qty));
+                if (variantId) returnUrl.searchParams.set('cartVariantId', String(variantId));
+                localStorage.setItem('postLoginReturnToProduct', returnUrl.pathname + returnUrl.search);
+                if (typeof window.openAuthModal === 'function') window.openAuthModal('login');
+                else window.location.assign('/marketplace?auth=login');
             }
-            saveCart(cart);
-            if (typeof window.updateCartBadge === 'function') window.updateCartBadge();
-            if (typeof window.showToast === 'function') window.showToast('Added to cart.', 'success');
+            return { authRequired: true };
+        }
+        if (!response.ok || !data.success || !data.item) {
+            throw new Error(data.error || 'Could not add this product to your cart.');
+        }
+
+        const cart = getCart();
+        const existing = cart.find(item => Number(item.id) === Number(data.item.id) &&
+            (Number(item.variant_id) || null) === (Number(data.item.variant_id) || null));
+        if (existing) Object.assign(existing, data.item);
+        else cart.push(data.item);
+        saveCart(cart);
+        if (typeof window.updateCartBadge === 'function') window.updateCartBadge();
+        return { item: data.item, cart: getCart() };
+    }
+
+    async function addToCart(productId, quantity = 1, options = {}) {
+        try {
+            const result = await addProductToCart(productId, quantity, options);
+            if (result?.item && typeof window.showToast === 'function') window.showToast('Added to cart.', 'success');
+            return result;
         } catch (error) {
             console.error('Add to cart failed:', error);
-            if (typeof window.showToast === 'function') window.showToast('Unable to add this product to cart.', 'error');
+            if (typeof window.showToast === 'function') window.showToast(error.message || 'Unable to add this product to cart.', 'error');
+            throw error;
         }
     }
 
@@ -58,4 +81,5 @@
     window.saveCart = saveCart;
     window.clearCart = clearCart;
     window.addToCart = addToCart;
+    window.addProductToCart = addProductToCart;
 })();

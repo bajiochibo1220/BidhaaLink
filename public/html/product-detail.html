@@ -13,7 +13,7 @@
 
   <!-- Page-Specific Styles -->
   <link rel="stylesheet" href="/css/product-detail.css?v=product-inquiry-20261006">
-  <link rel="stylesheet" href="/css/product-inquiry.css?v=20261006">
+  <link rel="stylesheet" href="/css/product-inquiry.css?v=card-contact-menu-20261006-v2">
 </head>
 <body>
 
@@ -22,7 +22,7 @@
   <h1>🛍️ <span id="shopNameHeader">Our Business</span></h1>
   <div class="header-right">
     <a href="#" id="productBusinessHome">Home</a>
-    <a href="/" class="auth-btn" id="backToMarketplaceTop"><i class="fas fa-arrow-left"></i> Back to Marketplace</a>
+    <a href="/marketplace" class="auth-btn" id="backToMarketplaceTop" data-context-back><i class="fas fa-arrow-left"></i> Back to Marketplace</a>
     <a href="/cart.html" id="productHeaderCart" style="position:relative;">
       <i class="fas fa-shopping-cart" style="font-size:1.2rem;"></i>
       <span id="cartBadge" style="position:absolute; top:-6px; right:-8px; background:#ef4444; color:white; border-radius:50%; padding:0 5px; font-size:0.55rem; min-width:16px; text-align:center; font-weight:700; display:none;">0</span>
@@ -32,7 +32,7 @@
 
 <!-- ===== PRODUCT DETAIL ===== -->
 <div class="product-detail-page" id="productDetail">
-  <a href="/" class="back-link"><i class="fas fa-arrow-left"></i> Back to Shop</a>
+  <a href="/marketplace" class="back-link" data-context-back><i class="fas fa-arrow-left"></i> Back to Shop</a>
   <div id="detailContent"><p style="text-align:center; padding:40px;">Loading...</p></div>
 </div>
 
@@ -72,10 +72,11 @@
 </div>
 
 <!-- ===== SCRIPTS ===== -->
-<script src="/js/cart-store.js"></script>
+<script src="/js/cart-store.js?v=unified-cart-20261006-v1"></script>
 <script src="/js/cookie-auth-client.js"></script>
-<script src="/js/product-inquiry.js?v=20261006"></script>
-<script src="/js/product-detail.js?v=product-inquiry-20261006"></script>
+<script src="/js/product-inquiry.js?v=card-contact-menu-20261006-v6"></script>
+<script src="/js/product-detail.js?v=contact-options-20261006-v3"></script>
+<script src="/js/back-navigation.js"></script>
 
 <!-- ============================================================ -->
 <!-- LEGAL FOOTER — BidhaaLink                                     -->

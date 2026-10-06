@@ -225,7 +225,7 @@ async function logout() {
         localStorage.removeItem('currentUser');
         window.currentUser = null;
         window.customerToken = null;
-        window.location.href = '/';
+        window.location.href = '/marketplace';
     }
 }
 
@@ -255,14 +255,14 @@ function openGuestCartPrompt() {
     actions.innerHTML = '<button type="button" class="btn btn-primary" style="flex:1" onclick="selectLoginType(\'customer\')">Login as Customer</button><button type="button" class="btn btn-success" style="flex:1" onclick="switchAuthTab(\'register\'); selectRegisterType(\'customer\')">Register as Customer</button>';
 }
 
-function openChatTab() { window.location.assign('/?workspace=messages'); }
+function openChatTab() { window.location.assign('/marketplace?workspace=messages'); }
 
 function goToMarketplaceCart() {
     if (window.parent !== window) {
         window.parent.postMessage({ type: 'shop-kenya-open-workspace', section: 'cart' }, window.location.origin);
         return;
     }
-    window.location.assign('/?workspace=cart');
+    window.location.assign('/marketplace?workspace=cart');
 }
 
 // ============================================================
@@ -305,7 +305,13 @@ document.addEventListener('DOMContentLoaded', function () {
 // ============================================================
 
 function checkIfOwnBusiness() {
-    const user = JSON.parse(localStorage.getItem('currentUser') || '{}');
+    let user = {};
+    try {
+        user = JSON.parse(localStorage.getItem('currentUser') || '{}') || {};
+    } catch (err) {
+        console.warn('Ignoring invalid saved user session:', err);
+        localStorage.removeItem('currentUser');
+    }
     const userBusinessId = user.business_id || localStorage.getItem('businessId');
     const userBusinessSlug = localStorage.getItem('businessSlug');
 
@@ -555,7 +561,7 @@ function openBusinessServiceContactOptions(service, mediaItem = null) {
         button.append(icon, text, arrow);
         button.addEventListener('click', async () => {
             if (option.method === 'whatsapp') {
-                window.open(`https://wa.me/${whatsappPhone}?text=${encodeURIComponent(externalText)}`, '_blank', 'noopener');
+                window.location.assign(`https://wa.me/${whatsappPhone}?text=${encodeURIComponent(externalText)}`);
                 dialog.close();
             } else if (option.method === 'sms') {
                 const international = `+${smsPhone}`;
@@ -628,6 +634,10 @@ function buildBusinessServiceShareUrl(service, mediaItem = null) {
 }
 
 function showInlineBusinessServiceChoices(service, mediaItem, trigger, panel) {
+    document.querySelectorAll('.product-inquiry-inline').forEach(menu => {
+        menu._contactTrigger?.setAttribute('aria-expanded', 'false');
+        menu.remove();
+    });
     const willOpen = panel.hidden;
     document.querySelectorAll('.business-service-contact-options:not([hidden])').forEach(openPanel => {
         if (openPanel !== panel) {
@@ -1770,7 +1780,7 @@ function renderBusinessProductGrid(products, emptyStateText = 'No products avail
             + '<i class="fas fa-cart-plus"></i> ' + (onlineOrdersEnabled ? btnText : 'Not available')
             + '</button>'
             + '</div>'
-            + '<button type="button" class="business-product-inquiry-trigger" onclick="event.stopPropagation(); openProductInquiry(' + Number(p.id) + ')"><i class="fas fa-comments" aria-hidden="true"></i> Let\'s Talk</button>'
+            + '<button type="button" class="business-product-inquiry-trigger" onclick="event.stopPropagation(); openProductInquiry(' + Number(p.id) + ', this)"><i class="fas fa-comments" aria-hidden="true"></i> Let\'s Talk</button>'
             + '</div>'
             + '</div>';
     }).join('');
@@ -1886,45 +1896,27 @@ async function addBusinessCardToCart(productId, button) {
         return;
     }
     const quantity = Math.max(1, Math.min(99, qty));
-    const originalButtonHtml = button ? button.innerHTML : '';
     if (button) {
         button.disabled = true;
         button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Adding...';
     }
     try {
-        const response = await fetch('/api/cart/add', {
-            method: 'POST',
-            credentials: 'same-origin',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ product_id: Number(productId), variant_id: null, quantity })
+        const result = await window.addProductToCart(productId, quantity, {
+            promptAuth: false,
+            onAuthRequired: () => queueBusinessProductCartAfterAuth(productId, quantity)
         });
-        const result = await response.json().catch(() => ({}));
-        if (response.status === 401) {
-            queueBusinessProductCartAfterAuth(productId, quantity);
-            return;
-        }
-        if (!response.ok || !result.success || !result.item) {
-            throw new Error(result.error || 'Unable to add this product to your cart.');
-        }
-
-        const cart = typeof getCart === 'function' ? getCart() : [];
-        const savedItem = result.item;
-        const existing = cart.find(item => Number(item.id) === Number(savedItem.id) && !(item.variant_id));
-        if (existing) Object.assign(existing, savedItem);
-        else cart.push(savedItem);
-        if (typeof saveCart === 'function') saveCart(cart);
+        if (result?.authRequired) return;
         if (qtySpan) qtySpan.textContent = '1';
         if (button) {
             button.classList.add('in-cart');
             button.innerHTML = '<i class="fas fa-cart-plus"></i> Add More';
         }
-        updateCartBadge();
         showToast('Added to cart.', 'success');
     } catch (error) {
         showToast(error.message || 'Unable to add this product to your cart.', 'error');
     } finally {
         if (button && document.body.contains(button)) {
-            if (button.textContent.includes('Adding...')) button.innerHTML = originalButtonHtml;
+            if (button.textContent.includes('Adding...')) button.innerHTML = '<i class="fas fa-cart-plus"></i> Add to Cart';
             button.disabled = false;
         }
     }

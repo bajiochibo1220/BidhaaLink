@@ -1140,7 +1140,7 @@
     localStorage.removeItem('businessName');
     localStorage.removeItem('businessSlug');
     localStorage.removeItem('currentUser');
-    window.location.href = '/';
+    window.location.href = '/marketplace';
   };
 
   console.log('✅ Ad Management JS loaded (Section J.2 / N / 2D — slot-based rotation, capped durations)');

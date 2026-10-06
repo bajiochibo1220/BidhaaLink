@@ -527,7 +527,7 @@ function renderDetail(product, related) {
               <button type="button" aria-label="Increase quantity" onclick="changeRelatedProductQty(${Number(p.id)}, 1)">+</button>
             </div>
             <button type="button" class="related-add-to-cart" onclick="addRelatedProductToCart(${Number(p.id)}, this)">${relatedCart.some(item => Number(item.id) === Number(p.id)) ? 'Add More' : 'Add to Cart'}</button>
-            <button type="button" class="related-talk-to-business" onclick="event.stopPropagation(); openProductInquiry(${Number(p.id)})"><i class="fas fa-comments" aria-hidden="true"></i> Let's Talk</button>
+            <button type="button" class="related-talk-to-business" onclick="event.stopPropagation(); openProductInquiry(${Number(p.id)}, this)"><i class="fas fa-comments" aria-hidden="true"></i> Let's Talk</button>
           </div>
         </div>
       </div>
@@ -601,7 +601,7 @@ function renderDetail(product, related) {
 
         <div class="button-group">
           <button class="btn-add-large ${btnClass}" onclick="addVariantToCart()">${btnText}</button>
-          <button type="button" class="product-talk-to-business" onclick="openProductInquiry(${Number(product.id)})"><i class="fas fa-comments" aria-hidden="true"></i> Let's Talk</button>
+          <button type="button" class="product-talk-to-business" onclick="openProductInquiry(${Number(product.id)}, this)"><i class="fas fa-comments" aria-hidden="true"></i> Let's Talk</button>
         </div>
 
         ${contactHtml}
@@ -1000,29 +1000,8 @@ function notifyProductCart(message, type) {
 }
 
 async function postProductToCart(productId, variantId, quantity) {
-  const response = await fetch('/api/cart/add', {
-    method: 'POST',
-    credentials: 'same-origin',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ product_id: Number(productId), variant_id: variantId || null, quantity })
-  });
-  const result = await response.json().catch(() => ({}));
-    if (response.status === 401) return { authRequired: true };
-  if (!response.ok || !result.success || !result.item) {
-    throw new Error(result.error || 'Could not add this product to your cart.');
-  }
-
-  const cart = typeof getCart === 'function' ? getCart() : [];
-  const savedItem = result.item;
-  const existing = cart.find(item =>
-    Number(item.id) === Number(savedItem.id) &&
-    (Number(item.variant_id) || null) === (Number(savedItem.variant_id) || null)
-  );
-  if (existing) Object.assign(existing, savedItem);
-  else cart.push(savedItem);
-  if (typeof saveCart === 'function') saveCart(cart);
-  updateCartBadge();
-  return { item: savedItem };
+  if (typeof window.addProductToCart !== 'function') throw new Error('Cart is not ready. Please refresh and try again.');
+  return window.addProductToCart(productId, quantity, { variantId, promptAuth: false });
 }
 
 // ============================================================
@@ -1139,7 +1118,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const backToShop = document.querySelector('.product-detail-page .back-link');
     if (backToShop) backToShop.href = shopUrl;
   }
-  const user = JSON.parse(localStorage.getItem('currentUser') || '{}');
+  let user = {};
+  try {
+    user = JSON.parse(localStorage.getItem('currentUser') || '{}') || {};
+  } catch (err) {
+    console.warn('Ignoring invalid saved user session:', err);
+    localStorage.removeItem('currentUser');
+  }
   const isLoggedIn = Boolean(user.email);
   ['productNavCategory', 'productNavMessages', 'productNavAccount'].forEach(id => {
     const item = document.getElementById(id);

@@ -148,6 +148,11 @@ let lastProductMatches = [];
 let lastSearchHadProducts = false;
 let lastSearchWord = '';
 let lastSearchMode = null;
+let marketplaceFeedPage = 1;
+let marketplaceFeedHasMore = true;
+let marketplaceFeedLoading = false;
+let marketplaceFeedObserver = null;
+let marketplaceFeedVideoObserver = null;
 
 // ------------------------------------------------------------
 // Section J — Marketplace ad slider state.
@@ -672,12 +677,21 @@ document.addEventListener('DOMContentLoaded', function() {
   primeIpLocationOnLoad();
   document.addEventListener('click', upgradeToPreciseLocationOnce, { once: true });
 
+  setupMarketplaceFeed();
+
   loadMarketplace();
   checkAuthState();
 
   const requestedAuth = new URLSearchParams(window.location.search).get('auth');
   if (requestedAuth === 'login' || requestedAuth === 'register') {
     openAuthModal(requestedAuth);
+  }
+
+  const query = new URLSearchParams(window.location.search);
+  if (query.get('account_deletion') === 'scheduled') {
+    showToast('Your account deletion request is scheduled. You can sign in again during the recovery period to cancel it.', 'info');
+  } else if (query.get('business_deletion') === 'scheduled') {
+    showToast('Your business deletion request has been scheduled.', 'info');
   }
 
   const hamburger = document.getElementById('hamburgerBtn');
@@ -769,13 +783,342 @@ async function loadMarketplace() {
   try {
     // These endpoints do not depend on one another. Starting them together
     // removes three round trips from the marketplace's first visible load.
-    await Promise.all([loadCategories(), loadAds(), loadBusinesses(), loadPlatformStats()]);
+    await Promise.all([loadCategories(), loadAds(), loadBusinesses(), loadPlatformStats(), loadMarketplaceFeed(true)]);
     updateCartBadge();
     console.log('✅ Marketplace loaded successfully');
   } catch (err) {
     console.error('❌ Marketplace load error:', err);
     showToast('Error loading marketplace. Please refresh.', 'error');
   }
+}
+
+function setupMarketplaceFeed() {
+  setupMarketplacePaneToggles();
+  const scroll = document.getElementById('marketplaceFeedScroll');
+  const sentinel = document.getElementById('marketplaceFeedSentinel');
+  const loadMore = document.getElementById('marketplaceFeedLoadMore');
+  const refresh = document.getElementById('marketplaceFeedRefresh');
+  if (!scroll) return;
+
+  if ('IntersectionObserver' in window && sentinel) {
+    marketplaceFeedObserver?.disconnect();
+    marketplaceFeedObserver = new IntersectionObserver(entries => {
+      if (entries.some(entry => entry.isIntersecting)) loadMarketplaceFeed();
+    }, { root: scroll, rootMargin: '500px 0px', threshold: 0 });
+    marketplaceFeedObserver.observe(sentinel);
+  }
+  if ('IntersectionObserver' in window) {
+    marketplaceFeedVideoObserver?.disconnect();
+    marketplaceFeedVideoObserver = new IntersectionObserver(entries => {
+      entries.forEach(entry => {
+        const video = entry.target;
+        if (entry.isIntersecting) video.play().catch(() => {});
+        else video.pause();
+      });
+    }, { root: scroll, rootMargin: '240px 0px', threshold: 0.2 });
+  }
+  loadMore?.addEventListener('click', () => loadMarketplaceFeed());
+  refresh?.addEventListener('click', () => loadMarketplaceFeed(true));
+}
+
+function setupMarketplacePaneToggles() {
+  const layout = document.querySelector('.marketplace-social-layout');
+  const businessesToggle = document.getElementById('marketplaceBusinessesToggle');
+  const feedToggle = document.getElementById('marketplaceFeedToggle');
+  if (!layout || !businessesToggle || !feedToggle) return;
+
+  const buttons = { businesses: businessesToggle, feed: feedToggle };
+  const shortcuts = document.querySelectorAll('.marketplace-mobile-shortcuts [data-marketplace-pane]');
+  const update = expanded => {
+    if (expanded) layout.dataset.expanded = expanded;
+    else delete layout.dataset.expanded;
+    document.body.classList.toggle('marketplace-pane-expanded', Boolean(expanded));
+    Object.entries(buttons).forEach(([pane, button]) => {
+      const isExpanded = expanded === pane;
+      button.setAttribute('aria-pressed', String(isExpanded));
+      button.setAttribute('aria-label', isExpanded ? 'Return to split marketplace view' : `Expand ${pane === 'feed' ? 'products and services' : 'businesses'}`);
+      button.title = isExpanded ? 'Return to split view' : `Expand ${pane === 'feed' ? 'products and services' : 'businesses'}`;
+      const icon = button.querySelector('i');
+      if (icon) icon.className = isExpanded ? 'fas fa-compress' : pane === 'feed' ? 'fas fa-arrow-right' : 'fas fa-arrow-left';
+    });
+    shortcuts.forEach(button => button.setAttribute('aria-pressed', String(button.dataset.marketplacePane === expanded)));
+  };
+  businessesToggle.addEventListener('click', () => update(layout.dataset.expanded === 'businesses' ? '' : 'businesses'));
+  feedToggle.addEventListener('click', () => update(layout.dataset.expanded === 'feed' ? '' : 'feed'));
+  shortcuts.forEach(button => button.addEventListener('click', () => update(button.dataset.marketplacePane)));
+  document.addEventListener('keydown', event => {
+    if (event.key === 'Escape' && layout.dataset.expanded) update('');
+  });
+}
+
+async function loadMarketplaceFeed(reset = false) {
+  const list = document.getElementById('marketplaceFeedList');
+  const loadMore = document.getElementById('marketplaceFeedLoadMore');
+  if (!list || marketplaceFeedLoading || (!reset && !marketplaceFeedHasMore)) return;
+  if (reset) {
+    marketplaceFeedPage = 1;
+    marketplaceFeedHasMore = true;
+    list.replaceChildren();
+    marketplaceFeedVideoObserver?.disconnect();
+  }
+  marketplaceFeedLoading = true;
+  if (loadMore) { loadMore.hidden = true; loadMore.disabled = true; }
+  if (marketplaceFeedPage === 1 && !list.childElementCount) {
+    const state = document.createElement('div');
+    state.className = 'marketplace-feed-state';
+    state.textContent = 'Loading products and services...';
+    list.append(state);
+  }
+
+  try {
+    const response = await fetch(`/api/marketplace/feed?page=${marketplaceFeedPage}&limit=8`, { credentials: 'same-origin' });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || !data.success) throw new Error(data.error || 'Could not load the feed.');
+    if (marketplaceFeedPage === 1) list.replaceChildren();
+    (Array.isArray(data.items) ? data.items : []).forEach(item => list.append(createMarketplaceFeedCard(item)));
+    marketplaceFeedHasMore = Boolean(data.hasMore);
+    marketplaceFeedPage = Number(data.page || marketplaceFeedPage) + 1;
+    if (!list.childElementCount) {
+      const state = document.createElement('div');
+      state.className = 'marketplace-feed-state';
+      state.textContent = 'No products or services are available yet.';
+      list.append(state);
+    }
+    if (loadMore) {
+      loadMore.hidden = marketplaceFeedHasMore && 'IntersectionObserver' in window;
+      loadMore.disabled = !marketplaceFeedHasMore;
+      loadMore.textContent = marketplaceFeedHasMore ? 'Load more' : 'You’re all caught up';
+    }
+  } catch (error) {
+    console.error('Marketplace feed error:', error);
+    if (marketplaceFeedPage === 1) {
+      list.replaceChildren();
+      const state = document.createElement('div');
+      state.className = 'marketplace-feed-state marketplace-feed-error';
+      state.textContent = 'The feed could not load. Use refresh to try again.';
+      list.append(state);
+    }
+    if (loadMore) { loadMore.hidden = false; loadMore.disabled = false; loadMore.textContent = 'Retry'; }
+  } finally {
+    marketplaceFeedLoading = false;
+  }
+}
+
+function createMarketplaceFeedCard(item) {
+  const article = document.createElement('article');
+  article.className = `marketplace-feed-card marketplace-feed-${item.item_type === 'service' ? 'service' : 'product'}`;
+  const media = document.createElement('div');
+  media.className = 'marketplace-feed-media';
+  if (item.media_kind === 'video' && item.media_url) {
+    const video = document.createElement('video');
+    video.src = item.media_url;
+    if (item.media_poster_url) video.poster = item.media_poster_url;
+    video.muted = true;
+    video.loop = true;
+    video.playsInline = true;
+    video.controls = true;
+    video.preload = 'none';
+    media.append(video);
+    marketplaceFeedVideoObserver?.observe(video);
+  } else if (item.media_url) {
+    const image = document.createElement('img');
+    image.src = item.media_url;
+    image.alt = item.title || 'Business offer';
+    image.loading = 'lazy';
+    image.onerror = () => { image.remove(); media.classList.add('marketplace-feed-no-media'); };
+    media.append(image);
+  } else {
+    media.classList.add('marketplace-feed-no-media');
+    const icon = document.createElement('i');
+    icon.className = item.item_type === 'service' ? 'fas fa-handshake' : 'fas fa-box-open';
+    media.append(icon);
+  }
+
+  const shade = document.createElement('div');
+  shade.className = 'marketplace-feed-shade';
+  const topbar = document.createElement('div');
+  topbar.className = 'marketplace-feed-topbar';
+  const top = document.createElement('div');
+  top.className = 'marketplace-feed-business';
+  const logo = document.createElement('img');
+  logo.src = item.business_logo || '/images/default-business.png';
+  logo.alt = '';
+  logo.onerror = () => { logo.hidden = true; };
+  const businessLink = document.createElement('a');
+  businessLink.href = `/business/${encodeURIComponent(item.business_slug || '')}`;
+  businessLink.textContent = item.business_name || 'Business';
+  top.append(logo, businessLink);
+
+  const detailUrl = item.item_type === 'service'
+    ? `/business/${encodeURIComponent(item.business_slug || '')}?serviceId=${encodeURIComponent(item.item_id)}`
+    : `/product-detail.html?id=${encodeURIComponent(item.item_id)}&business=${encodeURIComponent(item.business_slug || '')}`;
+  topbar.append(top);
+  const details = document.createElement('div');
+  details.className = 'marketplace-feed-details';
+  const titleRow = document.createElement('div');
+  titleRow.className = 'marketplace-feed-title-row';
+  const title = document.createElement('h3');
+  title.textContent = item.title || 'Offer';
+  titleRow.append(title);
+  const description = document.createElement('p');
+  description.className = 'marketplace-feed-description';
+  description.textContent = item.description || '';
+  if (item.item_type === 'service' && item.service_area) {
+    description.textContent = `${description.textContent}${description.textContent ? '\n' : ''}Service area: ${item.service_area}`;
+  }
+  details.append(titleRow);
+  if (description.textContent) {
+    description.hidden = true;
+  }
+  const bottomRow = document.createElement('div');
+  bottomRow.className = 'marketplace-feed-bottom-row';
+  const price = document.createElement('strong');
+  price.className = 'marketplace-feed-price';
+  price.textContent = item.price !== null && item.price !== ''
+    ? `${formatProductPrice(item.price)}${item.item_type === 'service' && item.price_unit ? ` ${({ per_service: 'per job', per_item: 'per item', per_hour: 'per hour', per_day: 'per day' })[item.price_unit] || ''}` : ''}`.trim()
+    : (item.item_type === 'service' ? 'Negotiable' : 'Contact for price');
+  bottomRow.append(price);
+  const actions = document.createElement('div');
+  actions.className = 'marketplace-feed-actions';
+  if (item.item_type === 'product') {
+    const talk = document.createElement('button');
+    talk.type = 'button';
+    talk.className = 'marketplace-feed-talk';
+    talk.textContent = 'Let’s talk';
+    talk.addEventListener('click', () => {
+      if (typeof window.openProductInquiry === 'function') window.openProductInquiry(item.item_id, talk);
+      else window.location.assign(detailUrl);
+    });
+    const add = document.createElement('button');
+    add.type = 'button';
+    add.className = 'marketplace-feed-cart';
+    add.textContent = 'Add to cart';
+    add.addEventListener('click', () => addMarketplaceFeedProductToCart(item, add));
+    actions.append(talk, add);
+  } else {
+    const talk = document.createElement('button');
+    talk.type = 'button';
+    talk.className = 'marketplace-feed-talk';
+    talk.textContent = 'Let’s talk';
+    talk.addEventListener('click', () => {
+      if (typeof window.openServiceInquiry === 'function') {
+        window.openServiceInquiry(item.item_id, item.business_slug, {
+          url: item.media_url || null,
+          kind: item.media_kind || null
+        }, talk);
+      } else {
+        window.location.assign(detailUrl);
+      }
+    });
+    actions.append(talk);
+    if (Number(item.media_count) > 0) {
+      const similar = document.createElement('button');
+      similar.type = 'button';
+      similar.className = 'marketplace-feed-similar';
+      similar.textContent = `See similar (${Number(item.media_count)})`;
+      similar.addEventListener('click', () => openMarketplaceServiceGallery(item, similar));
+      actions.append(similar);
+    }
+  }
+  bottomRow.append(actions);
+  details.append(bottomRow);
+  if (description.textContent) {
+    const more = document.createElement('button');
+    more.type = 'button';
+    more.className = 'marketplace-feed-more';
+    more.textContent = 'More';
+    more.setAttribute('aria-expanded', 'false');
+    more.addEventListener('click', () => {
+      const expanded = description.hidden;
+      description.hidden = !expanded;
+      more.textContent = expanded ? 'Less' : 'More';
+      more.setAttribute('aria-expanded', String(expanded));
+    });
+    details.append(more);
+    details.append(description);
+  }
+
+  shade.append(topbar, details);
+  article.append(media, shade);
+  return article;
+}
+
+async function addMarketplaceFeedProductToCart(item, button) {
+  button.disabled = true;
+  const originalText = button.textContent;
+  button.textContent = 'Adding…';
+  try {
+    if (typeof window.addProductToCart !== 'function') throw new Error('Cart is not ready. Please refresh and try again.');
+    const result = await window.addProductToCart(item.item_id, 1);
+    if (result?.authRequired) return;
+    if (typeof window.showToast === 'function') window.showToast('Added to cart.', 'success');
+    button.textContent = 'Add more';
+  } catch (error) {
+    if (typeof window.showToast === 'function') window.showToast(error.message || 'Unable to add this product.', 'error');
+    button.textContent = originalText;
+  } finally {
+    button.disabled = false;
+  }
+}
+
+async function openMarketplaceServiceGallery(item, trigger) {
+  let dialog = document.getElementById('marketplaceServiceGalleryDialog');
+  if (!dialog) {
+    dialog = document.createElement('dialog');
+    dialog.id = 'marketplaceServiceGalleryDialog';
+    dialog.className = 'marketplace-gallery-dialog';
+    dialog.innerHTML = '<div class="marketplace-gallery-head"><h2></h2><button type="button" class="marketplace-gallery-close" aria-label="Close gallery">×</button></div><div class="marketplace-gallery-items"></div><button type="button" class="marketplace-gallery-more" hidden>Load more</button>';
+    dialog.querySelector('.marketplace-gallery-close').addEventListener('click', () => dialog.close());
+    dialog.addEventListener('click', event => { if (event.target === dialog) dialog.close(); });
+    document.body.append(dialog);
+  }
+  const itemsBox = dialog.querySelector('.marketplace-gallery-items');
+  const heading = dialog.querySelector('.marketplace-gallery-head h2');
+  const more = dialog.querySelector('.marketplace-gallery-more');
+  let page = 1;
+  let hasMore = true;
+  let loading = false;
+  itemsBox.replaceChildren();
+  heading.textContent = `${item.title || 'Service'} — more photos and videos`;
+  more.hidden = true;
+  if (!dialog.open) dialog.showModal();
+
+  const loadPage = async () => {
+    if (loading || !hasMore) return;
+    loading = true;
+    more.disabled = true;
+    more.textContent = 'Loading…';
+    try {
+      const response = await fetch(`/api/businesses/${encodeURIComponent(item.business_slug)}/services/${encodeURIComponent(item.item_id)}/media?page=${page}&limit=8`, { credentials: 'same-origin' });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || !data.success) throw new Error(data.error || 'Could not load service photos.');
+      (Array.isArray(data.items) ? data.items : []).forEach(mediaItem => {
+        const figure = document.createElement('figure');
+        const media = mediaItem.kind === 'video' ? document.createElement('video') : document.createElement('img');
+        media.src = mediaItem.url;
+        if (media.tagName === 'VIDEO') { media.controls = true; media.playsInline = true; media.preload = 'metadata'; }
+        else { media.alt = mediaItem.caption || item.title || 'Service photo'; media.loading = 'lazy'; }
+        const caption = document.createElement('figcaption');
+        caption.textContent = mediaItem.caption || item.title || 'More from this service';
+        figure.append(media, caption);
+        itemsBox.append(figure);
+      });
+      page = Number(data.page || page) + 1;
+      hasMore = Boolean(data.hasMore);
+      more.hidden = !hasMore;
+      more.textContent = hasMore ? 'Load more photos' : '';
+    } catch (error) {
+      console.error('Load service gallery error:', error);
+      more.hidden = false;
+      more.textContent = 'Retry';
+    } finally {
+      loading = false;
+      more.disabled = false;
+    }
+  };
+  more.onclick = loadPage;
+  await loadPage();
+  trigger?.blur();
 }
 
 // ============================================================
@@ -2326,6 +2669,22 @@ function redirectToPendingServiceConversation() {
   }
 }
 
+function consumePostLoginReturn() {
+  let destination = '';
+  try {
+    destination = localStorage.getItem('postLoginReturnTo') || '';
+    localStorage.removeItem('postLoginReturnTo');
+    const target = new URL(destination, window.location.origin);
+    // Resume only known customer pages; storage is not a trusted redirect target.
+    if (target.origin !== window.location.origin || !['/order-tracking.html', '/account.html'].includes(target.pathname)) return false;
+    window.location.assign(target.pathname + target.search + target.hash);
+    return true;
+  } catch (_) {
+    localStorage.removeItem('postLoginReturnTo');
+    return false;
+  }
+}
+
 async function handleLogin() {
   const username = document.getElementById('loginUsername').value.trim();
   const password = document.getElementById('loginPassword').value;
@@ -2399,6 +2758,7 @@ async function handleLogin() {
           window.location.assign(returnToProduct);
           return;
         }
+        if (consumePostLoginReturn()) return;
         if (localStorage.getItem('postLoginDestination') === 'cart') {
           localStorage.removeItem('postLoginDestination');
           window.location.assign('/cart.html');
@@ -2534,6 +2894,13 @@ async function handleCustomerRegister() {
         localStorage.setItem('resumePostLoginCartAdd', '1');
         window.location.assign(returnToProduct);
         return;
+      }
+      const registerDestination = new URLSearchParams(window.location.search).get('next');
+      if (registerDestination === 'cart') localStorage.setItem('postLoginDestination', 'cart');
+      if (consumePostLoginReturn()) return;
+      if (localStorage.getItem('postLoginDestination') === 'cart') {
+        localStorage.removeItem('postLoginDestination');
+        window.location.assign('/cart.html');
       }
     } else {
       status.textContent = '❌ ' + (data.error || 'Registration failed');

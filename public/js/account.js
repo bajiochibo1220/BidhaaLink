@@ -1901,7 +1901,7 @@ async function customerDeletionSubmit() {
         window.currentUser = null;
 
         setTimeout(() => {
-            window.location.href = '/?account_deletion=scheduled';
+            window.location.href = '/marketplace?account_deletion=scheduled';
         }, 1800);
     } catch (err) {
         if (statusEl) {
@@ -1928,7 +1928,7 @@ async function logout() {
     localStorage.removeItem('businessSlug');
     localStorage.removeItem('currentUser');
     window.currentUser = null;
-    window.location.href = '/';
+    window.location.href = '/marketplace';
 }
   // ============================================================
 //  CONTACT ADMIN — send a message to the platform admin
@@ -2118,7 +2118,13 @@ document.addEventListener('DOMContentLoaded', function() {
     const initialSection = requestedSection || 'home';
     navigateToAccount(initialSection);
 
-    const user = JSON.parse(localStorage.getItem('currentUser') || '{}');
+    let user = {};
+    try {
+        user = JSON.parse(localStorage.getItem('currentUser') || '{}') || {};
+    } catch (err) {
+        console.warn('Ignoring invalid saved customer session:', err);
+        localStorage.removeItem('currentUser');
+    }
     if (!user || !user.email) {
         if (isEmbeddedAccount) {
             const panel = document.getElementById('panel-home');
@@ -2128,7 +2134,10 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             return;
         }
-        window.location.href = '/';
+        try {
+            localStorage.setItem('postLoginReturnTo', window.location.pathname + window.location.search + window.location.hash);
+        } catch (_) {}
+        window.location.href = '/marketplace?auth=login';
         return;
     }
 
@@ -2145,7 +2154,7 @@ function returnToMarketplace() {
         window.parent.postMessage({ type: 'shop-kenya-show-marketplace' }, window.location.origin);
         return;
     }
-    window.location.href = '/';
+    window.location.href = '/marketplace';
 }
 
 // ============================================================

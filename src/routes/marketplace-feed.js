@@ -1,0 +1,83 @@
+const express = require('express');
+const { pool, logError } = require('../config/database');
+
+const router = express.Router();
+
+router.get('/', async (req, res) => {
+  const requestedLimit = Number.parseInt(req.query.limit, 10);
+  const requestedPage = Number.parseInt(req.query.page, 10);
+  const limit = Number.isInteger(requestedLimit) ? Math.min(Math.max(requestedLimit, 1), 20) : 10;
+  const page = Number.isInteger(requestedPage) ? Math.max(requestedPage, 1) : 1;
+  const offset = (page - 1) * limit;
+
+  try {
+    const result = await pool.query(`
+      SELECT *
+        FROM (
+          SELECT 'product'::text AS item_type,
+                 p.id AS item_id,
+                 b.id AS business_id,
+                 b.business_name,
+                 b.slug AS business_slug,
+                 b.logo AS business_logo,
+                 p.name AS title,
+                 p.description,
+                 p.price::text AS price,
+                 CASE
+                   WHEN p.media_type = 'video' AND NULLIF(BTRIM(p.video), '') IS NOT NULL THEN p.video
+                   ELSE COALESCE(NULLIF(BTRIM(p.image), ''), NULLIF(BTRIM(p.video_poster_url), ''), NULLIF(BTRIM(p.video), ''), NULLIF(BTRIM(b.heroImage), ''), b.logo)
+                 END AS media_url,
+                 CASE WHEN p.media_type = 'video' THEN NULLIF(BTRIM(p.video_poster_url), '') ELSE NULL END AS media_poster_url,
+                 CASE
+                   WHEN p.media_type = 'video' AND NULLIF(BTRIM(p.video), '') IS NOT NULL THEN 'video'
+                   WHEN COALESCE(NULLIF(BTRIM(p.image), ''), NULLIF(BTRIM(p.video_poster_url), ''), NULLIF(BTRIM(p.video), ''), NULLIF(BTRIM(b.heroImage), ''), b.logo) IS NOT NULL THEN 'image'
+                   ELSE 'none'
+                 END AS media_kind,
+                 NULL::text AS service_area,
+                 'fixed'::text AS pricing_mode,
+                 NULL::text AS price_unit,
+                 0::int AS media_count,
+                 p.created_at
+            FROM products p
+            JOIN businesses b ON b.id = p.business_id
+           WHERE p.is_active = TRUE AND b.is_active = TRUE
+
+          UNION ALL
+
+          SELECT 'service'::text AS item_type,
+                 s.id AS item_id,
+                 b.id AS business_id,
+                 b.business_name,
+                 b.slug AS business_slug,
+                 b.logo AS business_logo,
+                 s.name AS title,
+                 s.description,
+                 CASE WHEN s.pricing_mode = 'fixed' THEN s.price::text ELSE NULL END AS price,
+                 COALESCE(s.media->0->>'url', NULLIF(BTRIM(b.heroImage), ''), b.logo) AS media_url,
+                 s.media->0->>'poster' AS media_poster_url,
+                 COALESCE(s.media->0->>'kind', CASE WHEN COALESCE(NULLIF(BTRIM(b.heroImage), ''), b.logo) IS NULL THEN 'none' ELSE 'image' END) AS media_kind,
+                 s.service_area,
+                 s.pricing_mode::text AS pricing_mode,
+                 s.price_unit::text AS price_unit,
+                 GREATEST(jsonb_array_length(s.media) - 1, 0)::int AS media_count,
+                 s.created_at
+            FROM business_services s
+            JOIN businesses b ON b.id = s.business_id
+           WHERE s.is_active = TRUE AND b.is_active = TRUE
+        ) AS social_feed
+       ORDER BY created_at DESC, item_type ASC, item_id DESC
+       LIMIT $1 OFFSET $2
+    `, [limit + 1, offset]);
+
+    const rows = result.rows;
+    const hasMore = rows.length > limit;
+    if (hasMore) rows.pop();
+    return res.json({ success: true, items: rows, page, hasMore });
+  } catch (error) {
+    console.error('Load marketplace social feed error:', error);
+    logError(error, 'Load marketplace social feed');
+    return res.status(500).json({ error: 'Unable to load the marketplace feed.' });
+  }
+});
+
+module.exports = router;

@@ -89,6 +89,7 @@ const returnsRoutes = require('./src/routes/returns');
 const businessesRoutes = require('./src/routes/businesses');
 const businessAdminRoutes = require('./src/routes/business-admin');
 const serviceConversationRoutes = require('./src/routes/service-conversations');
+const marketplaceFeedRoutes = require('./src/routes/marketplace-feed');
 
 // ============================================================
 //  CONTACT ADMIN ROUTE (Complaints Inbox, public side)
@@ -334,6 +335,17 @@ app.use('/uploads', express.static(path.join(__dirname, 'public/uploads')));
 //   - If welcome.html is missing from disk, fall back to the
 //     marketplace so the site never 404s on '/'.
 app.get('/', (req, res) => {
+  // Old and bookmarked links may still target the root with an action.
+  // Preserve those actions while bypassing the welcome screen so auth,
+  // category filters, and workspace links do not get silently discarded.
+  const intentKeys = ['auth', 'next', 'workspace', 'category', 'account_deletion', 'business_deletion'];
+  const intent = new URLSearchParams();
+  for (const key of intentKeys) {
+    const value = req.query[key];
+    if (typeof value === 'string' && value.length <= 200) intent.set(key, value);
+  }
+  if ([...intent].length) return res.redirect(`/marketplace?${intent.toString()}`);
+
   // If welcome.html is missing, fall back to the marketplace.
   if (!welcomeFileExists()) {
     return res.sendFile(path.join(__dirname, 'public/html/index.html'));
@@ -469,6 +481,7 @@ app.use('/api/promo', analyticsRoutes);
 // ============================================================
 
 app.use('/api/businesses', businessesRoutes);
+app.use('/api/marketplace/feed', marketplaceFeedRoutes);
 app.use('/api/business-admin', businessAdminRoutes);
 app.use('/api/service-conversations', serviceConversationRoutes);
 

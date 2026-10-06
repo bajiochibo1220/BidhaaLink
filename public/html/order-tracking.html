@@ -172,7 +172,7 @@
 <div class="header">
   <h1>🛍️ <span id="shopNameHeader">Our Business</span></h1>
   <div class="header-right">
-    <a href="/">Home</a>
+     <a href="/marketplace">Home</a>
     <a href="/account.html">My Account</a>
     <a href="#" onclick="logout()" style="color:#ef4444;">Logout</a>
   </div>
@@ -180,7 +180,7 @@
 
 <!-- ===== TRACKING PAGE ===== -->
 <div class="track-page" id="trackPage">
-  <a href="/account.html" class="back-link"><i class="fas fa-arrow-left"></i> Back to Orders</a>
+  <a href="/account.html?section=orders" class="back-link" data-context-back><i class="fas fa-arrow-left"></i> Back to Orders</a>
 
   <div class="track-card" id="trackCard">
     <!-- Loading -->
@@ -362,7 +362,7 @@
 
 <!-- ===== BOTTOM NAV - FIXED ===== -->
 <div class="bottom-nav">
-  <a href="/"><i class="fas fa-home"></i><span>Home</span></a>
+  <a href="/marketplace"><i class="fas fa-home"></i><span>Home</span></a>
   <a href="/category.html"><i class="fas fa-th-large"></i><span>Category</span></a>
   <!-- FIXED: Messages tab now opens chat -->
   <a href="#" onclick="openChatTab(); return false;"><i class="fas fa-envelope"></i><span>Messages</span></a>
@@ -378,5 +378,6 @@
 <script src="/socket.io/socket.io.js"></script>
 
 <script src="/js/order-tracking.js"></script>
+<script src="/js/back-navigation.js"></script>
 </body>
 </html>

@@ -288,6 +288,32 @@ router.get('/variants/batch', async (req, res) => {
 //     vertical counter and the vertical hints.
 // ============================================================
 
+// Lightweight public data used by the contact menu; avoid loading variants,
+// reviews, and related products just to open WhatsApp/SMS choices.
+router.get('/:id/contact', async (req, res) => {
+  const id = Number.parseInt(req.params.id, 10);
+  if (!Number.isSafeInteger(id) || id <= 0) {
+    return res.status(400).json({ error: 'Invalid product ID' });
+  }
+  try {
+    const result = await pool.query(`
+      SELECT p.id, p.name, p.price,
+             b.slug AS business_slug,
+             b.whatsapp AS business_whatsapp,
+             b.phone AS business_phone
+        FROM products p
+        JOIN businesses b ON b.id = p.business_id
+       WHERE p.id = $1 AND p.is_active = TRUE AND b.is_active = TRUE
+       LIMIT 1
+    `, [id]);
+    if (!result.rows.length) return res.status(404).json({ error: 'Product not found' });
+    return res.json({ success: true, product: result.rows[0] });
+  } catch (error) {
+    console.error('Load product contact details error:', error);
+    return res.status(500).json({ error: 'Could not load business contact details.' });
+  }
+});
+
 router.get('/:id/detail', async (req, res) => {
   try {
     const id = parseInt(req.params.id);

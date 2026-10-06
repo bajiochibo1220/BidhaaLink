@@ -36,17 +36,19 @@
   cursor: pointer;
 }
 
-.product-inquiry-dialog {
-  width: min(480px, calc(100vw - 28px));
-  max-height: min(90vh, 720px);
-  padding: 0;
-  border: 0;
-  border-radius: 18px;
+.product-inquiry-inline {
+  flex: 1 0 100%;
+  width: 100%;
+  min-width: 0;
+  margin-top: 9px;
+  overflow: hidden;
+  border: 1px solid #dbe3ee;
+  border-radius: 12px;
+  background: #fff;
   color: #1e293b;
-  box-shadow: 0 24px 70px rgb(15 23 42 / 30%);
+  box-shadow: 0 5px 18px rgb(15 23 42 / 10%);
 }
-.product-inquiry-dialog::backdrop { background: rgb(15 23 42 / 62%); backdrop-filter: blur(4px); }
-.product-inquiry-panel { padding: clamp(16px, 4vw, 23px); overflow-y: auto; }
+.product-inquiry-panel { max-height: min(52vh, 480px); padding: 12px; overflow-y: auto; }
 .product-inquiry-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
 .product-inquiry-header h2 { margin: 0; color: #0f172a; font-size: 1.18rem; font-weight: 850; }
 .product-inquiry-header p { margin: 5px 0 0; color: #475569; font-size: .85rem; line-height: 1.4; }
@@ -70,3 +72,25 @@
 .product-inquiry-option > i:first-child { display: grid; width: 38px; height: 38px; place-items: center; border-radius: 10px; background: #eff6ff; color: #2563eb; font-size: 1.15rem; }
 .product-inquiry-option span { display: grid; gap: 3px; }
 .product-inquiry-option small { color: #64748b; font-size: .72rem; }
+
+/* Product and social-feed inquiries use the same compact card menu as service media. */
+.product-inquiry-inline { position: relative; z-index: 8; flex: 1 0 100%; width: 100%; min-width: 0; margin-top: 8px; overflow: visible; border: 0; border-radius: 12px; background: transparent; color: #1e293b; box-shadow: none; }
+.product-inquiry-inline.product-inquiry-card-overlay { position: absolute; top: 10px; right: 10px; z-index: 20; width: min(278px, calc(100% - 20px)); max-width: none; max-height: calc(100% - 20px); margin: 0; overflow: visible; }
+.marketplace-feed-card > .product-inquiry-card-overlay { top: 54px; right: 12px; width: min(290px, calc(100% - 24px)); max-height: calc(100% - 66px); }
+.product-inquiry-panel { max-height: 100%; padding: 8px; overflow-y: auto; border: 1px solid #dbe3ee; border-radius: 12px; background: #fff; box-shadow: 0 10px 24px rgb(15 23 42 / 24%); }
+.product-inquiry-panel .product-inquiry-header,
+.product-inquiry-panel .product-inquiry-preview,
+.product-inquiry-panel .product-inquiry-service-attachment { display: none; }
+.product-inquiry-panel .product-inquiry-choices { display: grid; gap: 6px; }
+.product-inquiry-panel .product-inquiry-option { display: grid; grid-template-columns: 30px minmax(0, 1fr); align-items: center; gap: 8px; width: 100%; min-height: 48px; padding: 7px 8px; border: 1px solid #dbe3ee; border-radius: 9px; background: #fff; color: #1e293b; text-align: left; cursor: pointer; }
+.product-inquiry-panel .product-inquiry-option:hover:not(:disabled),
+.product-inquiry-panel .product-inquiry-option:focus-visible { border-color: #93c5fd; background: #f8fbff; outline: 2px solid #bfdbfe; }
+.product-inquiry-panel .product-inquiry-option:disabled { opacity: .55; cursor: not-allowed; }
+.product-inquiry-panel .product-inquiry-option > i:first-child { display: grid; width: 30px; height: 30px; place-items: center; border-radius: 9px; background: #eff6ff; color: #2563eb; font-size: .9rem; }
+.product-inquiry-panel .product-inquiry-option span { display: grid; gap: 2px; }
+.product-inquiry-panel .product-inquiry-option strong { color: #1e293b; font-size: .78rem; font-weight: 750; }
+.product-inquiry-panel .product-inquiry-option small { color: #64748b; font-size: .66rem; line-height: 1.25; }
+.product-inquiry-host { position: relative; }
+@media (max-width: 520px) {
+  .marketplace-feed-card > .product-inquiry-card-overlay { top: 52px; right: 8px; width: min(270px, calc(100% - 16px)); }
+}
