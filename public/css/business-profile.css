@@ -896,10 +896,17 @@ body.index-body {
 }
 
 .business-services-expanded-heading {
+  position: sticky;
+  top: 72px;
+  z-index: 100;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+  padding: 10px 0;
+  background: #fff;
+  border-bottom: 1px solid #e2e8f0;
+  box-shadow: 0 5px 10px rgb(15 23 42 / 6%);
 }
 
 .business-services-expanded-heading h2 {
@@ -1049,6 +1056,12 @@ body.index-body {
   .business-services-selected-detail {
     grid-column: 1;
     grid-row: 2;
+  }
+}
+
+@media (max-width: 640px) {
+  .business-services-expanded-heading {
+    top: 82px;
   }
 }
 

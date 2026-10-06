@@ -4739,10 +4739,10 @@ async function loadBusinessServiceConversations(selectedId = selectedBusinessSer
         inbox.replaceChildren();
         if (!conversations.length) {
             inbox.appendChild(Object.assign(document.createElement('p'), {
-                className: 'service-chat-empty', textContent: 'No service conversations yet. New customer inquiries will appear here.'
+                className: 'service-chat-empty', textContent: 'No conversations yet. New service and product inquiries will appear here.'
             }));
             thread.replaceChildren(Object.assign(document.createElement('p'), {
-                className: 'service-chat-empty', textContent: 'When a customer starts a conversation from a service, it will appear here.'
+                className: 'service-chat-empty', textContent: 'When a customer asks about a service or product, the conversation will appear here.'
             }));
             selectedBusinessServiceConversationId = null;
             return;

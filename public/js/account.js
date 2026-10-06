@@ -1483,16 +1483,15 @@ async function loadCustomerServiceConversations(selectedId = activeCustomerServi
     }
 }
 
-function addCustomerConversationMedia(parent, message) {
+function addCustomerConversationMedia(parent, message, conversation) {
     if (!message.media_url || !['image', 'video'].includes(message.media_kind)) return;
     let url;
     try { url = new URL(message.media_url, window.location.origin); } catch (_) { return; }
     if (!['http:', 'https:'].includes(url.protocol)) return;
     if (message.media_kind === 'image') {
         const link = document.createElement('a');
-        link.href = url.href;
-        link.target = '_blank';
-        link.rel = 'noopener noreferrer';
+        link.href = buildCustomerServiceReturnUrl(conversation, message) || url.href;
+        link.setAttribute('aria-label', 'Return to this service and selected photo');
         const image = document.createElement('img');
         image.src = url.href;
         image.alt = message.media_caption || 'Service image shared in this conversation';
@@ -1507,15 +1506,25 @@ function addCustomerConversationMedia(parent, message) {
         video.playsInline = true;
         video.setAttribute('aria-label', message.media_caption || 'Service video shared in this conversation');
         parent.appendChild(video);
+        const returnLink = document.createElement('a');
+        returnLink.className = 'customer-service-return-link';
+        returnLink.href = buildCustomerServiceReturnUrl(conversation, message) || url.href;
+        returnLink.textContent = 'Return to this service and video';
+        parent.appendChild(returnLink);
     }
     if (message.media_caption) parent.appendChild(Object.assign(document.createElement('small'), { className: 'customer-service-chat-caption', textContent: message.media_caption }));
 }
 
 function buildCustomerServiceReturnUrl(conversation, message = null) {
-    if (!conversation?.business_slug || !conversation?.service_id) return null;
-    const url = new URL(`/business/${encodeURIComponent(conversation.business_slug)}`, window.location.origin);
-    url.searchParams.set('serviceId', String(conversation.service_id));
-    if (message?.media_url && ['image', 'video'].includes(message.media_kind)) {
+    if (!conversation?.business_slug) return null;
+    const url = conversation.service_id
+        ? new URL(`/business/${encodeURIComponent(conversation.business_slug)}`, window.location.origin)
+        : conversation.product_id
+            ? new URL(`/product-detail.html?id=${encodeURIComponent(conversation.product_id)}&business=${encodeURIComponent(conversation.business_slug)}`, window.location.origin)
+            : null;
+    if (!url) return null;
+    if (conversation.service_id) url.searchParams.set('serviceId', String(conversation.service_id));
+    if (conversation.service_id && message?.media_url && ['image', 'video'].includes(message.media_kind)) {
         url.searchParams.set('serviceMedia', message.media_url);
         url.searchParams.set('serviceMediaKind', message.media_kind);
     }
@@ -1558,14 +1567,16 @@ async function openCustomerServiceConversation(conversationId) {
             const time = document.createElement('small');
             time.textContent = message.created_at ? new Date(message.created_at).toLocaleString() : '';
             bubble.append(sender, body);
-            addCustomerConversationMedia(bubble, message);
+            addCustomerConversationMedia(bubble, message, data.conversation);
             if (index === 0) {
                 const returnUrl = buildCustomerServiceReturnUrl(data.conversation, message);
                 if (returnUrl) {
                     const serviceLink = document.createElement('a');
                     serviceLink.className = 'customer-service-return-link';
                     serviceLink.href = returnUrl;
-                    serviceLink.textContent = message.media_kind ? 'View this service and selected media' : 'View this service';
+                    serviceLink.textContent = data.conversation.product_id
+                        ? 'View this product'
+                        : message.media_kind ? 'View this service and selected media' : 'View this service';
                     bubble.appendChild(serviceLink);
                 }
             }

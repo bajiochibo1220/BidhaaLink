@@ -2301,8 +2301,25 @@ function togglePwd(inputId, btn) {
 function redirectToPendingServiceConversation() {
   try {
     const pending = JSON.parse(localStorage.getItem('postLoginServiceConversation') || 'null');
-    if (!pending || typeof pending.businessSlug !== 'string' || !pending.businessSlug.trim()) return false;
-    window.location.assign(`/business/${encodeURIComponent(pending.businessSlug)}?serviceChat=1`);
+    const pendingProduct = JSON.parse(localStorage.getItem('postLoginProductConversation') || 'null');
+    const inquiry = pending || pendingProduct;
+    if (!inquiry || typeof inquiry.businessSlug !== 'string' || !inquiry.businessSlug.trim()) return false;
+    const currentSlug = String(window.businessSlug || '');
+    if (window.businessProfileLoaded && currentSlug === inquiry.businessSlug) {
+      if (pending && typeof window.resumePostLoginBusinessServiceConversation === 'function') {
+        window.resumePostLoginBusinessServiceConversation();
+        return true;
+      }
+      if (pendingProduct && typeof window.resumePendingProductInquiry === 'function') {
+        window.resumePendingProductInquiry();
+        return true;
+      }
+    }
+    if (pendingProduct && !pending) {
+      window.location.assign(`/business/${encodeURIComponent(inquiry.businessSlug)}?productInquiry=1`);
+      return true;
+    }
+    window.location.assign(`/business/${encodeURIComponent(inquiry.businessSlug)}?serviceChat=1`);
     return true;
   } catch (_) {
     return false;
@@ -2990,10 +3007,11 @@ async function checkAuthState() {
   const user = getStoredMarketplaceUser();
   const requestedWorkspace = new URLSearchParams(window.location.search).get('workspace');
 
-  if (!user.email) {
+  if (!(user.id || user.email || user.phone || user.username)) {
     isLoggedIn = false;
     currentUser = null;
     showGuestState();
+    if (document.getElementById('publicNav') && typeof window.updateNavigation === 'function') window.updateNavigation();
     return false;
   }
 
@@ -3004,6 +3022,7 @@ async function checkAuthState() {
       isLoggedIn = false;
       currentUser = null;
       showGuestState();
+      if (document.getElementById('publicNav') && typeof window.updateNavigation === 'function') window.updateNavigation();
       return false;
     }
 
@@ -3021,6 +3040,7 @@ async function checkAuthState() {
   isLoggedIn = true;
   currentUser = user;
   showLoggedInState(user);
+  if (document.getElementById('publicNav') && typeof window.updateNavigation === 'function') window.updateNavigation();
   if (requestedWorkspace) openDashboardPanel(requestedWorkspace);
 
   hydrateLocationFromAccount();

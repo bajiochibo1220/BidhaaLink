@@ -104,20 +104,22 @@ const kenyanBanks = [
 // ============================================================
 
 document.addEventListener('DOMContentLoaded', function() {
-    const signedInUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
-    if (!isEmbeddedCart && !signedInUser.email) {
+    let signedInUser = {};
+    try { signedInUser = JSON.parse(localStorage.getItem('currentUser') || '{}') || {}; } catch (_) {}
+    if (!isEmbeddedCart && !isCustomerUser(signedInUser)) {
         window.location.replace('/?auth=login&next=cart');
         return;
     }
     loadShopProfile();
     loadAllProductsForPreview();
     renderCartPage();
+    loadCustomerCart();
     updateCartBadge();
     loadRecommended();
     startReservationTimer();
     populateBankDropdown();
 
-    const user = window.currentUser;
+    const user = signedInUser;
     if (user) {
         document.getElementById('recipientName').value = user.name || '';
         document.getElementById('recipientPhone').value = user.phone || user.email || '';
@@ -135,6 +137,54 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 });
+
+// The API cart is the durable source of truth and is also what the business
+// sees when the customer checks out. Keep the local copy aligned with it.
+async function loadCustomerCart() {
+    try {
+        const response = await fetch('/api/cart', { credentials: 'same-origin', cache: 'no-store' });
+        if (response.status === 401 || !response.ok) return;
+        const data = await response.json();
+        if (!Array.isArray(data.items)) return;
+        saveCart(data.items);
+        renderCartPage();
+        updateCartBadge();
+    } catch (error) {
+        console.warn('Could not refresh the saved cart:', error);
+    }
+}
+
+let cartSyncTimer = null;
+function persistCustomerCart(cart) {
+    clearTimeout(cartSyncTimer);
+    cartSyncTimer = setTimeout(async () => {
+        try {
+            const response = await fetch('/api/cart', {
+                method: 'PUT',
+                credentials: 'same-origin',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ items: cart })
+            });
+            if (!response.ok) {
+                const data = await response.json().catch(() => ({}));
+                showToast(data.error || 'Your cart change could not be saved.', 'error');
+            }
+        } catch (error) {
+            console.error('Could not save cart changes:', error);
+            showToast('Your cart change could not be saved. Check your connection and try again.', 'error');
+        }
+    }, 150);
+}
+
+function cartItemPrice(item) {
+    const raw = item?.price;
+    const value = typeof raw === 'number' ? raw : Number(String(raw || '').replace(/[^0-9.]/g, ''));
+    return Number.isFinite(value) ? value : 0;
+}
+
+function isCustomerUser(user) {
+    return Boolean(user && !user.business_id && (user.id || user.email || user.phone || user.username));
+}
 
 // ============================================================
 //  LOAD BUSINESS SETTINGS
@@ -629,7 +679,7 @@ function openReviewAllModal() {
     let html = '';
     cart.forEach(item => {
         const fullProduct = allProductsForPreview.find(p => p.id === item.id);
-        const priceNum = parseFloat(item.price.replace(/[^0-9.]/g, '')) || 0;
+        const priceNum = cartItemPrice(item);
         const subtotal = priceNum * item.quantity;
         const imageHtml = item.image ? `<img src="${item.image}" alt="${item.name}">` : '<div style="display:flex;align-items:center;justify-content:center;height:100%;background:#e2e8f0;font-size:1.5rem;">📦</div>';
         const desc = fullProduct?.description || 'No description available.';
@@ -732,7 +782,7 @@ function renderCartPage() {
     let html = '';
     let total = 0;
     cart.forEach(item => {
-        const priceNum = parseFloat(item.price.replace(/[^0-9.]/g, '')) || 0;
+        const priceNum = cartItemPrice(item);
         const subtotal = priceNum * item.quantity;
         total += subtotal;
         const variantName = item.variant_name && item.variant_name !== 'Default' ? ` (${item.variant_name})` : '';
@@ -790,7 +840,7 @@ function updateSummary(total) {
 function calculateSubtotal() {
     let total = 0;
     cartItems.forEach(item => {
-        const priceNum = parseFloat(item.price.replace(/[^0-9.]/g, '')) || 0;
+        const priceNum = cartItemPrice(item);
         total += priceNum * item.quantity;
     });
     return total;
@@ -925,6 +975,7 @@ function updateCartQty(id, delta) {
     if (!item) return;
     item.quantity = Math.max(1, item.quantity + delta);
     saveCart(cart);
+    persistCustomerCart(cart);
     renderCartPage();
     updateCartBadge();
 }
@@ -933,6 +984,7 @@ function removeItemFromCart(id) {
     let cart = getCart();
     cart = cart.filter(i => i.id !== id);
     saveCart(cart);
+    persistCustomerCart(cart);
     renderCartPage();
     updateCartBadge();
 }
@@ -942,9 +994,10 @@ function removeItemFromCart(id) {
 // ============================================================
 
 async function placeOrder() {
-    if (!isLoggedIn()) {
-        showToast('❌ Please login to place an order', 'warning');
-        openAuthModal('login');
+    let signedInUser = {};
+    try { signedInUser = JSON.parse(localStorage.getItem('currentUser') || '{}') || {}; } catch (_) {}
+    if (!isCustomerUser(signedInUser)) {
+        window.location.assign('/?auth=login&next=cart');
         return;
     }
 
@@ -1012,7 +1065,7 @@ async function placeOrder() {
 
     let subtotal = 0;
     cart.forEach(item => {
-        const priceNum = parseFloat(item.price.replace(/[^0-9.]/g, '')) || 0;
+        const priceNum = cartItemPrice(item);
         subtotal += priceNum * item.quantity;
     });
 

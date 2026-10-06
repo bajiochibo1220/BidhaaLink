@@ -28,7 +28,7 @@ function getUserState() {
     const token = window.customerToken;
     const user = JSON.parse(localStorage.getItem('currentUser') || '{}');
 
-    if (!user || !user.email) {
+    if (!user || !(user.id || user.email || user.phone || user.username)) {
         return { isLoggedIn: false, role: null, userId: null, businessId: null };
     }
 

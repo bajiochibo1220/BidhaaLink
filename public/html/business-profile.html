@@ -95,7 +95,8 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
   <!-- Page-Specific Styles -->
-  <link rel="stylesheet" href="/css/business-profile.css?v=service-contact-choices-20261006">
+  <link rel="stylesheet" href="/css/business-profile.css?v=product-inquiry-20261006">
+  <link rel="stylesheet" href="/css/product-inquiry.css?v=20261006">
   <link rel="stylesheet" href="/css/product-detail.css?v=product-media-fill-20261006">
   <script src="/js/cookie-auth-client.js"></script>
 </head>
@@ -115,10 +116,10 @@
   <div class="header-right" id="headerRight">
     <!-- PUBLIC NAV (Guest) -->
     <div id="publicNav" style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
-      <a href="#" onclick="openAuthModal('login'); return false;" class="auth-btn" id="authLoginBtn" style="color:#2563eb; font-weight:700;">
+      <a href="#" onclick="openBusinessProfileAuth('login'); return false;" class="auth-btn" id="authLoginBtn" style="color:#2563eb; font-weight:700;">
         <i class="fas fa-sign-in-alt"></i> Login
       </a>
-      <a href="#" onclick="openAuthModal('register'); return false;" class="auth-btn" id="authRegisterBtn" style="background:#2563eb; color:white; padding:6px 14px; border-radius:20px; font-weight:700; text-decoration:none; font-size:0.75rem; display:inline-flex; align-items:center; gap:4px;">
+      <a href="#" onclick="openBusinessProfileAuth('register'); return false;" class="auth-btn" id="authRegisterBtn" style="background:#2563eb; color:white; padding:6px 14px; border-radius:20px; font-weight:700; text-decoration:none; font-size:0.75rem; display:inline-flex; align-items:center; gap:4px;">
         <i class="fas fa-user-plus"></i> Register
       </a>
     </div>
@@ -602,8 +603,9 @@
 <script src="/socket.io/socket.io.js"></script>
 <script src="/js/cart-store.js"></script>
 <script src="/js/navigation.js"></script>
-<script src="/js/business-profile.js?v=service-contact-choices-20261006"></script>
-<script src="/js/index.js?v=service-chat-routing-20261006"></script>
+<script src="/js/product-inquiry.js?v=20261006"></script>
+<script src="/js/business-profile.js?v=product-inquiry-20261006"></script>
+<script src="/js/index.js?v=product-inquiry-20261006"></script>
 <script src="/js/legal.js"></script>
 
 <script>

@@ -170,7 +170,7 @@ function showProductTabEmptyState(tab, hasAnyProduct) {
 function getViewerRole() {
     try {
         const user = JSON.parse(localStorage.getItem('currentUser') || '{}');
-        if (!user || !user.email) return 'guest';
+        if (!user || !(user.id || user.email || user.phone || user.username)) return 'guest';
         const role = user.role || 'customer';
         if (role === 'business_admin') return 'business_admin';
         if (role === 'super_admin' || role === 'admin') return 'super_admin';
@@ -186,6 +186,24 @@ function isBusinessAdminViewer() {
     const role = getViewerRole();
     return role === 'business_admin' || role === 'super_admin';
 }
+
+// Keep authentication in the business profile. The same modal is used by
+// service inquiries and the header links, so customers never need to leave
+// the shop just to sign in or create an account.
+function openBusinessProfileAuth(tab = 'login') {
+    if (typeof window.openAuthModal === 'function') {
+        window.openAuthModal(tab === 'register' ? 'register' : 'login');
+        document.getElementById('loginTypeBusiness')?.style.setProperty('display', 'none');
+        document.getElementById('registerTypeBusiness')?.style.setProperty('display', 'none');
+        if (typeof window.selectLoginType === 'function') window.selectLoginType('customer');
+        if (typeof window.selectRegisterType === 'function') window.selectRegisterType('customer');
+        return;
+    }
+    const url = new URL(window.location.href);
+    url.searchParams.set('auth', tab === 'register' ? 'register' : 'login');
+    window.location.assign(url.pathname + url.search + url.hash);
+}
+window.openBusinessProfileAuth = openBusinessProfileAuth;
 
 // ============================================================
 //  LOGOUT
@@ -386,10 +404,12 @@ async function loadPublicBusinessServices() {
         renderBusinessProductGrid(businessDisplayedProducts || businessProductList || []);
         openSharedBusinessServiceTarget();
         resumePostLoginBusinessServiceConversation();
+        if (typeof window.resumePendingProductInquiry === 'function') window.resumePendingProductInquiry();
     } catch (error) {
         console.warn('Could not load public business services:', error);
         businessServicesList = [];
         renderBusinessProductGrid(businessDisplayedProducts || businessProductList || []);
+        if (typeof window.resumePendingProductInquiry === 'function') window.resumePendingProductInquiry();
     }
 }
 
@@ -441,7 +461,10 @@ function createBusinessServiceInquiryLink(service, className = 'business-service
 }
 
 function buildServiceInquiryMessage(service) {
-    return `Can we have a talk about this service please?\nService: ${service.name || 'Service'}\nPrice: ${getBusinessServicePriceLabel(service)}`;
+    const price = service.pricing_mode === 'negotiable'
+        ? 'You said you are free to negotiate'
+        : getBusinessServicePriceLabel(service);
+    return `Can we have a talk about this service please?\nService: ${service.name || 'Service'}\nPrice -> ${price}`;
 }
 
 function openBusinessServiceContactOptions(service, mediaItem = null) {
@@ -574,12 +597,11 @@ async function startBusinessServiceConversation(service, mediaItem, button, hint
         });
         const data = await response.json().catch(() => ({}));
         if (response.status === 401) {
+            localStorage.removeItem('postLoginProductConversation');
             localStorage.setItem('postLoginServiceConversation', JSON.stringify(pending));
             const dialog = document.getElementById('businessServiceContactDialog');
             if (dialog?.open) dialog.close();
-            if (typeof window.openAuthModal === 'function') window.openAuthModal('login');
-            else if (typeof window.top?.openAuthModal === 'function') window.top.openAuthModal('login');
-            else window.location.assign('/marketplace?auth=login');
+            openBusinessProfileAuth('login');
             return;
         }
         if (!response.ok || !data.conversationId) throw new Error(data.error || 'Could not start the conversation.');
@@ -739,6 +761,7 @@ function resumePostLoginBusinessServiceConversation() {
         url: pending.mediaUrl, kind: pending.mediaKind, caption: pending.mediaCaption
     } : null, null, null);
 }
+window.resumePostLoginBusinessServiceConversation = resumePostLoginBusinessServiceConversation;
 
 function createBusinessServiceCard(service) {
     const card = document.createElement('article');
@@ -1747,6 +1770,7 @@ function renderBusinessProductGrid(products, emptyStateText = 'No products avail
             + '<i class="fas fa-cart-plus"></i> ' + (onlineOrdersEnabled ? btnText : 'Not available')
             + '</button>'
             + '</div>'
+            + '<button type="button" class="business-product-inquiry-trigger" onclick="event.stopPropagation(); openProductInquiry(' + Number(p.id) + ')"><i class="fas fa-comments" aria-hidden="true"></i> Let\'s Talk</button>'
             + '</div>'
             + '</div>';
     }).join('');

@@ -27,7 +27,7 @@ async function getConversationForRole(client, req, conversationId, role) {
     : 'c.id = $1 AND c.business_id = $2';
   const ownerId = role === 'customer' ? req.userId : req.businessId;
   const result = await client.query(`
-    SELECT c.id, c.business_id, c.customer_id, c.service_id, c.service_name,
+    SELECT c.id, c.business_id, c.customer_id, c.service_id, c.product_id, c.service_name,
            c.created_at, c.updated_at, c.last_message_at,
            b.name AS business_name, b.slug AS business_slug,
            cu.name AS customer_name
@@ -163,9 +163,9 @@ router.post('/customer/conversations', authMiddleware, customerOnly, async (req,
     }
 
     const priceLabel = service.pricing_mode === 'negotiable'
-      ? "Let's talk"
+      ? 'You said you are free to negotiate'
       : `Ksh ${Number(service.price || 0).toLocaleString('en-KE', { maximumFractionDigits: 2 })} ${{ per_service: 'per job', per_item: 'per item', per_hour: 'per hour', per_day: 'per day' }[service.price_unit] || 'per job'}`;
-    const body = `${DEFAULT_MESSAGE}\nService: ${service.name}\nPrice: ${priceLabel}`;
+    const body = `${DEFAULT_MESSAGE}\nService: ${service.name}\nPrice -> ${priceLabel}`;
     const inserted = await client.query(`
       INSERT INTO business_service_messages
         (conversation_id, sender_type, sender_id, body, media_url, media_kind, media_caption, read_by_customer, read_by_business)
@@ -190,10 +190,79 @@ router.post('/customer/conversations', authMiddleware, customerOnly, async (req,
   }
 });
 
+// Product inquiries use the same private inbox as service conversations, but
+// retain product_id so both sides can return to the exact listing.
+router.post('/customer/product-conversations', authMiddleware, customerOnly, async (req, res) => {
+  const slug = String(req.body?.businessSlug || '').trim().slice(0, 180);
+  const productId = validId(req.body?.productId);
+  if (!slug || !productId) return res.status(400).json({ error: 'Choose a valid product.' });
+
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const productResult = await client.query(`
+      SELECT p.id, p.business_id, p.name, p.price, p.image, p.video,
+             p.media_type, p.video_poster_url, b.slug, b.is_active AS business_is_active
+        FROM products p
+        JOIN businesses b ON b.id = p.business_id
+       WHERE b.slug = $1 AND p.id = $2 AND p.is_active = TRUE AND b.is_active = TRUE
+       LIMIT 1
+    `, [slug, productId]);
+    const product = productResult.rows[0];
+    if (!product) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'This product is no longer available.' });
+    }
+
+    const existing = await client.query(`
+      SELECT id FROM business_service_conversations
+       WHERE business_id = $1 AND customer_id = $2 AND product_id = $3
+       ORDER BY last_message_at DESC LIMIT 1
+    `, [product.business_id, req.userId, product.id]);
+    let conversationId = existing.rows[0]?.id;
+    if (!conversationId) {
+      const created = await client.query(`
+        INSERT INTO business_service_conversations (business_id, customer_id, product_id, service_name)
+        VALUES ($1, $2, $3, $4) RETURNING id
+      `, [product.business_id, req.userId, product.id, `Product: ${product.name}`.slice(0, 180)]);
+      conversationId = created.rows[0].id;
+    }
+
+    const priceValue = Number(String(product.price || '').replace(/[^0-9.]/g, ''));
+    const priceLabel = Number.isFinite(priceValue)
+      ? `Ksh ${priceValue.toLocaleString('en-KE', { maximumFractionDigits: 2 })}`
+      : String(product.price || 'Contact business');
+    const body = `Can we have a talk about this product please?\nProduct: ${product.name}\nPrice -> ${priceLabel}`;
+    const mediaKind = product.media_type === 'video' && product.video ? 'video' : (product.image ? 'image' : null);
+    const mediaUrl = mediaKind === 'video' ? product.video : mediaKind === 'image' ? product.image : null;
+    const inserted = await client.query(`
+      INSERT INTO business_service_messages
+        (conversation_id, sender_type, sender_id, body, media_url, media_kind, media_caption, read_by_customer, read_by_business)
+      VALUES ($1, 'customer', $2, $3, $4, $5, $6, TRUE, FALSE)
+      RETURNING id, sender_type, sender_id, body, media_url, media_kind, media_caption, created_at
+    `, [conversationId, req.userId, body, mediaUrl, mediaKind, product.name]);
+    await client.query(
+      'UPDATE business_service_conversations SET updated_at = NOW(), last_message_at = NOW(), service_name = $1 WHERE id = $2',
+      [`Product: ${product.name}`.slice(0, 180), conversationId]
+    );
+    await client.query('COMMIT');
+    const io = req.app.get('io');
+    if (io) io.to(`business_${product.business_id}`).emit('service-conversation-message', { conversationId, businessId: product.business_id });
+    return res.status(201).json({ success: true, conversationId, message: inserted.rows[0] });
+  } catch (error) {
+    await client.query('ROLLBACK').catch(() => {});
+    console.error('Start product conversation error:', error);
+    logError(error, 'Start product conversation');
+    return res.status(500).json({ error: 'Could not start this conversation. Please try again.' });
+  } finally {
+    client.release();
+  }
+});
+
 router.get('/customer/conversations', authMiddleware, customerOnly, async (req, res) => {
   try {
     const result = await pool.query(`
-      SELECT c.id, c.business_id, c.service_id, c.service_name, c.created_at, c.last_message_at,
+      SELECT c.id, c.business_id, c.service_id, c.product_id, c.service_name, c.created_at, c.last_message_at,
              b.name AS business_name, b.slug AS business_slug,
              last.body AS last_message, last.media_url AS last_media_url, last.media_kind AS last_media_kind,
              (SELECT COUNT(*)::int FROM business_service_messages m
@@ -224,7 +293,7 @@ router.get('/business/conversations', authMiddleware, businessAdminOnly, async (
     const businessId = req.businessId || validId(req.query.businessId);
     if (!businessId) return res.status(403).json({ error: 'No business is associated with this account.' });
     const result = await pool.query(`
-      SELECT c.id, c.business_id, c.customer_id, c.service_id, c.service_name, c.created_at, c.last_message_at,
+      SELECT c.id, c.business_id, c.customer_id, c.service_id, c.product_id, c.service_name, c.created_at, c.last_message_at,
              cu.name AS customer_name,
              last.body AS last_message, last.media_url AS last_media_url, last.media_kind AS last_media_kind,
              (SELECT COUNT(*)::int FROM business_service_messages m

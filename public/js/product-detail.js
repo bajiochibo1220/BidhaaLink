@@ -527,6 +527,7 @@ function renderDetail(product, related) {
               <button type="button" aria-label="Increase quantity" onclick="changeRelatedProductQty(${Number(p.id)}, 1)">+</button>
             </div>
             <button type="button" class="related-add-to-cart" onclick="addRelatedProductToCart(${Number(p.id)}, this)">${relatedCart.some(item => Number(item.id) === Number(p.id)) ? 'Add More' : 'Add to Cart'}</button>
+            <button type="button" class="related-talk-to-business" onclick="event.stopPropagation(); openProductInquiry(${Number(p.id)})"><i class="fas fa-comments" aria-hidden="true"></i> Let's Talk</button>
           </div>
         </div>
       </div>
@@ -600,6 +601,7 @@ function renderDetail(product, related) {
 
         <div class="button-group">
           <button class="btn-add-large ${btnClass}" onclick="addVariantToCart()">${btnText}</button>
+          <button type="button" class="product-talk-to-business" onclick="openProductInquiry(${Number(product.id)})"><i class="fas fa-comments" aria-hidden="true"></i> Let's Talk</button>
         </div>
 
         ${contactHtml}
