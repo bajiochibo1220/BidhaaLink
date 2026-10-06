@@ -23,7 +23,7 @@
 
   <!-- Page-Specific Styles -->
   <link rel="stylesheet" href="/css/index.css">
-  <link rel="stylesheet" href="/css/marketplace.css?v=tiktok-mobile-caption-20261006-v2">
+  <link rel="stylesheet" href="/css/marketplace.css?v=mobile-tiktok-black-theme-20261006-v4">
   <link rel="stylesheet" href="/css/product-inquiry.css?v=card-contact-menu-20261006-v2">
   <link rel="stylesheet" href="/css/pwa.css">
 </head>
@@ -75,10 +75,10 @@
       <div class="top-bar-right" id="topBarRight">
         <!-- PUBLIC NAV (Guest) -->
         <div id="publicNavTop" style="display:flex;gap:8px;align-items:center;">
-          <a href="#" onclick="openAuthModal('login'); return false;" class="auth-btn" style="color:#2563eb;font-weight:700;font-size:0.75rem;">
+          <a href="#" id="topLoginLink" onclick="openAuthModal('login'); return false;" class="auth-btn" style="color:#2563eb;font-weight:700;font-size:0.75rem;">
             <i class="fas fa-sign-in-alt"></i> Login
           </a>
-          <a href="#" onclick="openAuthModal('register'); return false;" class="auth-btn" style="background:#2563eb;color:white;padding:6px 14px;border-radius:20px;font-weight:700;font-size:0.75rem;text-decoration:none;">
+          <a href="#" id="topRegisterLink" onclick="openAuthModal('register'); return false;" class="auth-btn" style="background:#2563eb;color:white;padding:6px 14px;border-radius:20px;font-weight:700;font-size:0.75rem;text-decoration:none;">
             <i class="fas fa-user-plus"></i> Register
           </a>
           <a href="/admin.html" class="auth-btn" aria-label="Super Admin login"
@@ -679,7 +679,7 @@
 <script src="/js/cart-store.js?v=unified-cart-20261006-v1"></script>
 <script src="/js/cookie-auth-client.js"></script>
 <script src="/js/navigation.js"></script>
-<script src="/js/index.js?v=tiktok-feed-captions-20261006-v3"></script>
+<script src="/js/index.js?v=mobile-tiktok-performance-20261006-v4"></script>
 <script src="/js/product-inquiry.js?v=card-contact-menu-20261006-v6"></script>
 <script src="/js/category-blocks.js"></script>
 <script src="/js/legal.js"></script>
