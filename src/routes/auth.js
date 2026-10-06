@@ -573,11 +573,12 @@ router.post('/login', loginLimiter, [
   }
 
   try {
-    const { email, password } = req.body;
+    const email = String(req.body.email || '').trim();
+    const password = req.body.password;
     console.log('🔑 Admin login attempt for:', email);
 
     const result = await pool.query(
-      'SELECT id, email, password, role FROM admin_users WHERE email = $1',
+      'SELECT id, email, password, role FROM admin_users WHERE LOWER(email) = LOWER($1)',
       [email]
     );
 
@@ -1139,7 +1140,9 @@ router.post('/business/register', upload.fields([
 // ============================================================
 
 router.post('/business/login', loginLimiter, [
-  body('username').notEmpty().withMessage('Username/Email required'),
+  body('username').custom((value, { req }) =>
+    Boolean(String(value || req.body.email || '').trim())
+  ).withMessage('Username/Email required'),
   body('password').notEmpty().withMessage('Password required')
 ], async (req, res) => {
   const errors = validationResult(req);
@@ -1148,14 +1151,15 @@ router.post('/business/login', loginLimiter, [
   }
 
   try {
-    const { username, password } = req.body;
+    const username = String(req.body.username || req.body.email || '').trim();
+    const password = req.body.password;
     console.log('🔑 Business login attempt:', username);
 
     const isEmail = username.includes('@');
 
     let result;
     if (isEmail) {
-      result = await pool.query('SELECT * FROM admin_users WHERE email = $1', [username]);
+      result = await pool.query('SELECT * FROM admin_users WHERE LOWER(email) = LOWER($1)', [username]);
     } else {
       result = await pool.query('SELECT * FROM admin_users WHERE username = $1', [username]);
     }

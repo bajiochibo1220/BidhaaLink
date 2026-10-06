@@ -2,23 +2,65 @@
 //  SELLER CHAT JAVASCRIPT
 // ============================================================
 
-let socket = io();
+let socket = typeof window.io === 'function' ? window.io() : null;
 let messages = [];
+let chatLoadTimeout = null;
 
-socket.on('connect', () => {
-    console.log('Seller chat connected');
-    socket.emit('request-chat-history');
-});
+function showChatLoading() {
+    const container = document.getElementById('messages');
+    if (container) container.innerHTML = '<p class="empty">Loading messages...</p>';
+}
 
-socket.on('chat-history', (msgs) => {
-    messages = msgs;
-    renderMessages();
-});
+function showChatConnectionError() {
+    const container = document.getElementById('messages');
+    if (!container) return;
+    container.innerHTML = '<div class="empty"><p>Live chat could not connect. Check your connection and try again.</p><button type="button" onclick="retrySellerChat()">Retry</button></div>';
+}
 
-socket.on('new-chat-message', (msg) => {
-    messages.push(msg);
-    renderMessages();
-});
+function armChatLoadTimeout() {
+    clearTimeout(chatLoadTimeout);
+    chatLoadTimeout = setTimeout(showChatConnectionError, 12000);
+}
+
+if (socket) {
+    socket.on('connect', () => {
+        console.log('Seller chat connected');
+        showChatLoading();
+        armChatLoadTimeout();
+        socket.emit('request-chat-history');
+    });
+
+    socket.on('connect_error', (error) => {
+        console.error('Seller chat connection failed:', error.message);
+        clearTimeout(chatLoadTimeout);
+        showChatConnectionError();
+    });
+
+    socket.on('chat-history', (msgs) => {
+        clearTimeout(chatLoadTimeout);
+        messages = Array.isArray(msgs) ? msgs : [];
+        renderMessages();
+    });
+
+    socket.on('new-chat-message', (msg) => {
+        messages.push(msg);
+        renderMessages();
+    });
+
+    armChatLoadTimeout();
+} else {
+    showChatConnectionError();
+}
+
+function retrySellerChat() {
+    showChatLoading();
+    if (socket) {
+        armChatLoadTimeout();
+        socket.connect();
+    } else {
+        window.location.reload();
+    }
+}
 
 function renderMessages() {
     const container = document.getElementById('messages');
@@ -48,12 +90,18 @@ function sendMessage() {
     const input = document.getElementById('msgInput');
     const text = input.value.trim();
     if (!text) return;
+    if (!socket || !socket.connected) {
+        showChatConnectionError();
+        return;
+    }
     socket.emit('chat-message', { from: 'Seller', message: text });
     input.value = '';
     const tempMsg = { from: 'Seller', message: text, timestamp: new Date().toISOString() };
     messages.push(tempMsg);
     renderMessages();
 }
+
+window.retrySellerChat = retrySellerChat;
 
 // ============================================================
 //  FORCE THE PINNED FOOTER

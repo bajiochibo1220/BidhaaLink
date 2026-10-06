@@ -160,11 +160,27 @@ router.post('/add', authMiddleware, customerOnly, async (req, res) => {
       return res.status(401).json({ error: 'Invalid user session' });
     }
 
-    const { product_id, variant_id, quantity = 1 } = req.body;
+    const productId = Number(req.body?.product_id);
+    const requestedVariantId = req.body?.variant_id == null || req.body.variant_id === ''
+      ? null
+      : Number(req.body.variant_id);
+    const requestedQuantity = Number(req.body?.quantity ?? 1);
+
+    if (!Number.isSafeInteger(productId) || productId <= 0) {
+      return res.status(400).json({ error: 'A valid product is required.' });
+    }
+    if (requestedVariantId !== null && (!Number.isSafeInteger(requestedVariantId) || requestedVariantId <= 0)) {
+      return res.status(400).json({ error: 'The selected product option is invalid.' });
+    }
+    if (!Number.isInteger(requestedQuantity) || requestedQuantity < 1 || requestedQuantity > 99) {
+      return res.status(400).json({ error: 'Quantity must be between 1 and 99.' });
+    }
+    const variantId = requestedVariantId;
+    const quantity = requestedQuantity;
 
     const productResult = await pool.query(
       'SELECT id, name, price, image, business_id FROM products WHERE id = $1 AND is_active = true',
-      [product_id]
+      [productId]
     );
 
     if (productResult.rows.length === 0) {
@@ -195,16 +211,17 @@ router.post('/add', authMiddleware, customerOnly, async (req, res) => {
     let variantPrice = product.price;
     let variantImage = product.image;
 
-    if (variant_id) {
+    if (variantId !== null) {
       const variantResult = await pool.query(
-        'SELECT name, price, image FROM product_variants WHERE id = $1 AND product_id = $2',
-        [variant_id, product_id]
+        'SELECT name, price, image FROM product_variants WHERE id = $1 AND product_id = $2 AND is_active = true',
+        [variantId, productId]
       );
-      if (variantResult.rows.length > 0) {
-        variantName = variantResult.rows[0].name || 'Default';
-        variantPrice = variantResult.rows[0].price || product.price;
-        variantImage = variantResult.rows[0].image || product.image;
+      if (variantResult.rows.length === 0) {
+        return res.status(400).json({ error: 'The selected product option is unavailable.' });
       }
+      variantName = variantResult.rows[0].name || 'Default';
+      variantPrice = variantResult.rows[0].price ?? product.price;
+      variantImage = variantResult.rows[0].image || product.image;
     }
 
     const cartResult = await pool.query(
@@ -221,7 +238,7 @@ router.post('/add', authMiddleware, customerOnly, async (req, res) => {
 
     if (items.length > 0) {
       const existingBusinessId = items[0].business_id;
-      if (existingBusinessId && existingBusinessId !== businessId) {
+      if (existingBusinessId && Number(existingBusinessId) !== Number(businessId)) {
         return res.status(400).json({
           error: 'You already have items from another business in your cart. Please clear your cart first.'
         });
@@ -229,15 +246,16 @@ router.post('/add', authMiddleware, customerOnly, async (req, res) => {
     }
 
     const existingIndex = items.findIndex(item =>
-      item.id === product_id && item.variant_id === variant_id
+      Number(item.id) === productId &&
+      (item.variant_id == null ? null : Number(item.variant_id)) === variantId
     );
 
     if (existingIndex > -1) {
-      items[existingIndex].quantity += quantity;
+      items[existingIndex].quantity = Math.min(99, (Number(items[existingIndex].quantity) || 0) + quantity);
     } else {
       items.push({
-        id: product_id,
-        variant_id: variant_id,
+        id: productId,
+        variant_id: variantId,
         name: product.name,
         price: variantPrice,
         image: variantImage || product.image || '',

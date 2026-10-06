@@ -9,6 +9,14 @@
       "destination": "https://my-business-website-api.onrender.com/api/:path*"
     },
     {
+      "source": "/socket.io",
+      "destination": "https://my-business-website-api.onrender.com/socket.io"
+    },
+    {
+      "source": "/socket.io/",
+      "destination": "https://my-business-website-api.onrender.com/socket.io/"
+    },
+    {
       "source": "/socket.io/:path*",
       "destination": "https://my-business-website-api.onrender.com/socket.io/:path*"
     },
