@@ -619,6 +619,13 @@ function loadProfileContent() {
     if (nameInput) nameInput.value = user.name || '';
     if (emailInput) emailInput.value = user.email || '';
     if (phoneInput) phoneInput.value = user.phone || '';
+    const photo = document.getElementById('customerProfilePhotoPreview');
+    const fallback = document.getElementById('customerProfilePhotoFallback');
+    if (photo && user.profile_image) {
+        photo.src = user.profile_image;
+        photo.hidden = false;
+        if (fallback) fallback.hidden = true;
+    }
 
     renderProfileUsername(user.username);
 
@@ -626,6 +633,35 @@ function loadProfileContent() {
     loadCustomerPreferredAreaState();
     loadAddressesContent();
     loadPaymentsContent();
+}
+
+async function uploadCustomerProfilePhoto(file) {
+    const status = document.getElementById('customerProfilePhotoStatus');
+    const preview = document.getElementById('customerProfilePhotoPreview');
+    const fallback = document.getElementById('customerProfilePhotoFallback');
+    if (!file || !status) return;
+    status.textContent = 'Uploading profile photo...';
+    status.style.color = '#64748b';
+    const formData = new FormData();
+    formData.set('avatar', file);
+    try {
+        const response = await fetch('/api/customer-posts/profile-photo', { method: 'PUT', body: formData });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok || !data.success) throw new Error(data.error || 'Unable to upload the profile photo.');
+        const user = JSON.parse(localStorage.getItem('currentUser') || '{}');
+        user.profile_image = data.profile_image;
+        localStorage.setItem('currentUser', JSON.stringify(user));
+        if (preview) {
+            preview.src = data.profile_image;
+            preview.hidden = false;
+        }
+        if (fallback) fallback.hidden = true;
+        status.textContent = 'Profile photo updated.';
+        status.style.color = '#15803d';
+    } catch (error) {
+        status.textContent = error.message || 'Unable to upload the profile photo.';
+        status.style.color = '#dc2626';
+    }
 }
 
 function updateProfile() {
@@ -2113,6 +2149,13 @@ document.addEventListener('DOMContentLoaded', function() {
     }, 100);
 
     initSocket();
+    document.getElementById('customerProfilePhotoButton')?.addEventListener('click', () => {
+        document.getElementById('customerProfilePhotoInput')?.click();
+    });
+    document.getElementById('customerProfilePhotoInput')?.addEventListener('change', event => {
+        uploadCustomerProfilePhoto(event.target.files?.[0]);
+        event.target.value = '';
+    });
 
     const requestedSection = new URLSearchParams(window.location.search).get('section');
     const initialSection = requestedSection || 'home';

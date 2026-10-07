@@ -807,10 +807,11 @@ async function loadMarketplace() {
 
 function setupMarketplaceFeed() {
   setupMarketplacePaneToggles();
+  setupCustomerPostComposer();
   const scroll = document.getElementById('marketplaceFeedScroll');
   const sentinel = document.getElementById('marketplaceFeedSentinel');
   const loadMore = document.getElementById('marketplaceFeedLoadMore');
-  const refresh = document.getElementById('marketplaceFeedRefresh');
+  const refreshButtons = document.querySelectorAll('[data-refresh-feed]');
   if (!scroll) return;
 
   if ('IntersectionObserver' in window && sentinel) {
@@ -847,7 +848,98 @@ function setupMarketplaceFeed() {
     }, { root: scroll, rootMargin: '120% 0px', threshold: 0.01 });
   }
   loadMore?.addEventListener('click', () => loadMarketplaceFeed());
-  refresh?.addEventListener('click', () => loadMarketplaceFeed(true));
+  refreshButtons.forEach(button => button.addEventListener('click', () => loadMarketplaceFeed(true)));
+}
+
+function setupCustomerPostComposer() {
+  const trigger = document.getElementById('marketplaceCreatePost');
+  const dialog = document.getElementById('marketplacePostDialog');
+  const form = document.getElementById('marketplacePostForm');
+  const fileInput = document.getElementById('marketplacePostMedia');
+  const fileLabel = document.getElementById('marketplacePostFileLabel');
+  const preview = document.getElementById('marketplacePostPreview');
+  const status = document.getElementById('marketplacePostStatus');
+  const publish = document.getElementById('marketplacePostPublish');
+  if (!trigger || !dialog || !form || trigger.dataset.bound === 'true') return;
+  trigger.dataset.bound = 'true';
+
+  const close = () => dialog.close();
+  document.getElementById('marketplacePostClose')?.addEventListener('click', close);
+  trigger.addEventListener('click', () => {
+    const user = currentUser || getStoredMarketplaceUser();
+    if (!isLoggedIn || !user?.id) {
+      openAuthModal('register');
+      selectRegisterType('customer');
+      return;
+    }
+    if (isBusinessMarketplaceUser(user)) {
+      showToast('Customer posts are available from customer accounts.', 'info');
+      return;
+    }
+    status.textContent = '';
+    dialog.showModal();
+  });
+
+  fileInput?.addEventListener('change', () => {
+    const file = fileInput.files?.[0];
+    preview.replaceChildren();
+    preview.hidden = !file;
+    fileLabel.textContent = file?.name || 'Choose a photo or video';
+    if (!file) return;
+    const url = URL.createObjectURL(file);
+    const media = document.createElement(file.type.startsWith('video/') ? 'video' : 'img');
+    media.src = url;
+    if (media instanceof HTMLVideoElement) {
+      media.controls = true;
+      media.muted = true;
+      media.playsInline = true;
+    } else {
+      media.alt = 'Post preview';
+    }
+    media.addEventListener('loadeddata', () => URL.revokeObjectURL(url), { once: true });
+    media.addEventListener('load', () => URL.revokeObjectURL(url), { once: true });
+    preview.append(media);
+  });
+
+  dialog.addEventListener('click', event => {
+    if (event.target === dialog) close();
+  });
+  form.addEventListener('submit', async event => {
+    event.preventDefault();
+    if (!fileInput?.files?.[0]) {
+      status.textContent = 'Choose a photo or video first.';
+      return;
+    }
+    const data = new FormData();
+    data.set('media', fileInput.files[0]);
+    data.set('caption', document.getElementById('marketplacePostCaption')?.value || '');
+    publish.disabled = true;
+    status.textContent = 'Uploading your post...';
+    try {
+      const response = await fetch('/api/customer-posts', { method: 'POST', body: data });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok || !result.success) throw new Error(result.error || 'Unable to publish your post.');
+      form.reset();
+      preview.replaceChildren();
+      preview.hidden = true;
+      fileLabel.textContent = 'Choose a photo or video';
+      dialog.close();
+      showToast('Your post is now on the social feed.', 'success');
+      loadMarketplaceFeed(true);
+    } catch (error) {
+      status.textContent = error.message || 'Unable to publish your post.';
+    } finally {
+      publish.disabled = false;
+    }
+  });
+  updateCustomerPostTrigger();
+}
+
+function updateCustomerPostTrigger() {
+  const trigger = document.getElementById('marketplaceCreatePost');
+  if (!trigger) return;
+  const user = currentUser || getStoredMarketplaceUser();
+  trigger.hidden = !isLoggedIn || !user?.id || isBusinessMarketplaceUser(user);
 }
 
 function setupMarketplacePaneToggles() {
@@ -979,8 +1071,9 @@ function createMarketplaceFeedSeed() {
 }
 
 function createMarketplaceFeedCard(item) {
+  const isCustomerPost = item.item_type === 'customer_post';
   const article = document.createElement('article');
-  article.className = `marketplace-feed-card marketplace-feed-${item.item_type === 'service' ? 'service' : 'product'}`;
+  article.className = `marketplace-feed-card marketplace-feed-${isCustomerPost ? 'customer-post' : item.item_type === 'service' ? 'service' : 'product'}`;
   const media = document.createElement('div');
   media.className = 'marketplace-feed-media';
   let swipeStart = null;
@@ -1037,13 +1130,32 @@ function createMarketplaceFeedCard(item) {
   const top = document.createElement('div');
   top.className = 'marketplace-feed-business';
   const logo = document.createElement('img');
-  logo.src = item.business_logo || '/images/default-business.png';
+  const identityImage = isCustomerPost ? item.customer_profile_image : item.business_logo;
+  if (identityImage) logo.src = identityImage;
+  else logo.hidden = true;
   logo.alt = '';
-  logo.onerror = () => { logo.hidden = true; };
-  const businessLink = document.createElement('a');
-  businessLink.href = `/business/${encodeURIComponent(item.business_slug || '')}`;
-  businessLink.textContent = item.business_name || 'Business';
-  top.append(logo, businessLink);
+  const identityName = document.createElement(isCustomerPost ? 'span' : 'a');
+  if (isCustomerPost) {
+    top.classList.add('marketplace-feed-customer-identity');
+    identityName.textContent = item.customer_name || 'Customer';
+    const initials = document.createElement('span');
+    initials.className = 'marketplace-feed-customer-initials';
+    initials.textContent = String(item.customer_name || 'C').trim().charAt(0).toUpperCase();
+    initials.hidden = Boolean(identityImage);
+    logo.onerror = () => { logo.hidden = true; initials.hidden = false; };
+    top.append(logo, initials, identityName);
+  } else {
+    logo.src = identityImage || '/images/default-business.png';
+    logo.onerror = () => { logo.hidden = true; };
+    identityName.href = `/business/${encodeURIComponent(item.business_slug || '')}`;
+    identityName.textContent = item.business_name || 'Business';
+    const logoLink = document.createElement('a');
+    logoLink.className = 'marketplace-feed-business-logo-link';
+    logoLink.href = identityName.href;
+    logoLink.setAttribute('aria-label', `Visit ${identityName.textContent}`);
+    logoLink.append(logo);
+    top.append(logoLink, identityName);
+  }
 
   const detailUrl = item.item_type === 'service'
     ? `/business/${encodeURIComponent(item.business_slug || '')}?serviceId=${encodeURIComponent(item.item_id)}`
@@ -1051,18 +1163,19 @@ function createMarketplaceFeedCard(item) {
   topbar.append(top);
   const details = document.createElement('div');
   details.className = 'marketplace-feed-details';
+  if (isCustomerPost) details.classList.add('marketplace-feed-customer-details');
+  const description = document.createElement('p');
+  description.className = 'marketplace-feed-description';
+  description.textContent = item.description || item.caption || '';
+  if (!isCustomerPost && item.item_type === 'service' && item.service_area) {
+    description.textContent = `${description.textContent}${description.textContent ? '\n' : ''}Service area: ${item.service_area}`;
+  }
+  if (!isCustomerPost) {
   const titleRow = document.createElement('div');
   titleRow.className = 'marketplace-feed-title-row';
   const title = document.createElement('h3');
   title.textContent = item.title || 'Offer';
   titleRow.append(title);
-  const description = document.createElement('p');
-  description.className = 'marketplace-feed-description';
-  const fullDescription = item.description || '';
-  description.textContent = fullDescription;
-  if (item.item_type === 'service' && item.service_area) {
-    description.textContent = `${description.textContent}${description.textContent ? '\n' : ''}Service area: ${item.service_area}`;
-  }
   details.append(titleRow);
   const bottomRow = document.createElement('div');
   bottomRow.className = 'marketplace-feed-bottom-row';
@@ -1116,6 +1229,7 @@ function createMarketplaceFeedCard(item) {
   }
   bottomRow.append(actions);
   details.append(bottomRow);
+  }
   if (description.textContent) {
     const originalDescription = description.textContent;
     const words = originalDescription.trim().split(/\s+/);
@@ -3586,6 +3700,7 @@ async function hydrateLocationFromAccount() {
 }
 
 function showLoggedInState(user) {
+  updateCustomerPostTrigger();
   const publicNav = document.getElementById('publicNavTop');
   const loggedInNav = document.getElementById('loggedInNavTop');
   const userBadge = document.getElementById('userBadge');
@@ -3604,6 +3719,7 @@ function showLoggedInState(user) {
 }
 
 function showGuestState() {
+  updateCustomerPostTrigger();
   const publicNav = document.getElementById('publicNavTop');
   const loggedInNav = document.getElementById('loggedInNavTop');
   const workspace = document.getElementById('integratedWorkspace');

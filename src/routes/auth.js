@@ -695,7 +695,7 @@ router.post('/customer/register', [
 
     const hashedPassword = await bcrypt.hash(password, 10);
     const result = await pool.query(
-      'INSERT INTO customers (username, name, email, password, phone) VALUES ($1, $2, $3, $4, $5) RETURNING id, username, name, email, phone, created_at',
+      'INSERT INTO customers (username, name, email, password, phone) VALUES ($1, $2, $3, $4, $5) RETURNING id, username, name, email, phone, profile_image, created_at',
       [username, name, email, hashedPassword, cleanPhone]
     );
     const customer = result.rows[0];
@@ -822,7 +822,8 @@ router.post('/customer/login', loginLimiter, [
         name: customer.name,
         username: customer.username,
         email: customer.email,
-        phone: customer.phone || ''
+        phone: customer.phone || '',
+        profile_image: customer.profile_image || null
       },
       deletion_cancelled: deletionCancelled,
       deletion_context: cancellationContext
@@ -1470,7 +1471,7 @@ router.put('/my-business/search-tag', authMiddleware, businessAdminOnly, getBusi
 router.get('/customer/verify', authMiddleware, async (req, res) => {
   try {
     const result = await pool.query(
-      'SELECT id, name, username, email, phone, created_at FROM customers WHERE id = $1',
+      'SELECT id, name, username, email, phone, profile_image, created_at FROM customers WHERE id = $1',
       [req.userId]
     );
     if (result.rows.length === 0) {
@@ -1536,7 +1537,7 @@ router.put('/customer/profile', authMiddleware, async (req, res) => {
             location_source = NULL,
             updated_at = NOW()
         WHERE id = $4
-        RETURNING id, name, username, email, phone,
+        RETURNING id, name, username, email, phone, profile_image,
                   latitude, longitude, location_accuracy,
                   location_activated, location_activated_at, location_source
       `, [name || null, cleanPhone, email || null, req.userId]);
@@ -1589,7 +1590,7 @@ router.put('/customer/profile', authMiddleware, async (req, res) => {
             location_source = 'browser',
             updated_at = NOW()
         WHERE id = $7
-        RETURNING id, name, username, email, phone,
+        RETURNING id, name, username, email, phone, profile_image,
                   latitude, longitude, location_accuracy,
                   location_activated, location_activated_at, location_source
       `, [
@@ -1628,7 +1629,7 @@ router.put('/customer/profile', authMiddleware, async (req, res) => {
     }
 
     const result = await pool.query(
-      'UPDATE customers SET name = COALESCE($1, name), phone = COALESCE($2, phone), email = COALESCE($3, email) WHERE id = $4 RETURNING id, name, username, email, phone',
+      'UPDATE customers SET name = COALESCE($1, name), phone = COALESCE($2, phone), email = COALESCE($3, email) WHERE id = $4 RETURNING id, name, username, email, phone, profile_image',
       [name, cleanPhone, email, req.userId]
     );
 

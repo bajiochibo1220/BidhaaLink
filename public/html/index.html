@@ -23,7 +23,7 @@
 
   <!-- Page-Specific Styles -->
   <link rel="stylesheet" href="/css/index.css">
-  <link rel="stylesheet" href="/css/marketplace.css?v=marketplace-filters-brand-20261007-v2">
+  <link rel="stylesheet" href="/css/marketplace.css?v=marketplace-feed-layout-20261008-v2">
   <link rel="stylesheet" href="/css/product-inquiry.css?v=card-contact-menu-20261006-v2">
   <link rel="stylesheet" href="/css/pwa.css">
 </head>
@@ -73,7 +73,14 @@
         <a class="brand bidhaalink-brand" href="/marketplace" aria-label="BidhaaLink home">
           <img src="/icons/bidhaalink-app.svg" alt="" width="30" height="30">
           <span id="shopNameTop">BidhaaLink</span>
+          <span class="brand-marketplace-label">Marketplace</span>
         </a>
+      </div>
+      <div class="announcement-bar" role="region" aria-label="Marketplace announcement">
+        <div class="announcement-track">
+          <span class="announcement-copy">Trusted shops across Kenya. Own a business? Register today.</span>
+          <span class="announcement-copy" aria-hidden="true">Trusted shops across Kenya. Own a business? Register today.</span>
+        </div>
       </div>
       <div class="top-bar-right" id="topBarRight">
         <!-- PUBLIC NAV (Guest) -->
@@ -133,13 +140,6 @@
     <div class="marketplace-container">
 
       <!-- Announcement Bar -->
-      <div class="announcement-bar" role="region" aria-label="Marketplace announcement">
-        <div class="announcement-track">
-          <span class="announcement-copy">Trusted shops across Kenya. Own a business? Register today.</span>
-          <span class="announcement-copy" aria-hidden="true">Trusted shops across Kenya. Own a business? Register today.</span>
-        </div>
-      </div>
-
       <aside class="pwa-install-prompt" id="pwaInstallPrompt" hidden aria-label="Install BidhaaLink">
         <div class="pwa-install-copy">
           <strong>Get BidhaaLink on this device</strong>
@@ -315,10 +315,25 @@
       <!-- ============================================================ -->
 
       <div class="marketplace-social-layout">
+      <div class="marketplace-social-headings" aria-label="Marketplace sections">
+        <div class="marketplace-social-heading-cell">
+          <div>
+            <h2>Discover products &amp; services</h2>
+            <p>Scroll to explore what businesses are offering.</p>
+          </div>
+          <div class="marketplace-feed-heading-actions">
+            <button type="button" class="marketplace-pane-toggle" id="marketplaceFeedToggle" aria-label="Expand products and services" aria-controls="marketplaceFeedSection" aria-pressed="false" title="Expand products and services"><i class="fas fa-arrow-right" aria-hidden="true"></i></button>
+            <button type="button" class="marketplace-feed-refresh" data-refresh-feed aria-label="Refresh feed" title="Refresh feed"><i class="fas fa-rotate" aria-hidden="true"></i></button>
+          </div>
+        </div>
+        <div class="marketplace-social-heading-cell marketplace-social-business-heading">
+          <h2>Businesses</h2>
+          <button type="button" class="marketplace-pane-toggle" id="marketplaceBusinessesToggle" aria-label="Expand businesses" aria-controls="marketplaceBusinessRail" aria-pressed="false" title="Expand businesses"><i class="fas fa-arrow-left" aria-hidden="true"></i></button>
+        </div>
+      </div>
       <div class="marketplace-business-rail" id="marketplaceBusinessRail">
       <div class="marketplace-business-heading">
         <h2>Businesses</h2>
-        <button type="button" class="marketplace-pane-toggle" id="marketplaceBusinessesToggle" aria-label="Expand businesses" aria-controls="marketplaceBusinessRail" aria-pressed="false" title="Expand businesses"><i class="fas fa-arrow-left" aria-hidden="true"></i></button>
       </div>
       <section id="categoryBlocksSection"
                class="category-blocks-section"
@@ -357,8 +372,7 @@
             <p>Scroll to explore what businesses are offering.</p>
           </div>
           <div class="marketplace-feed-heading-actions">
-            <button type="button" class="marketplace-pane-toggle" id="marketplaceFeedToggle" aria-label="Expand products and services" aria-controls="marketplaceFeedSection" aria-pressed="false" title="Expand products and services"><i class="fas fa-arrow-right" aria-hidden="true"></i></button>
-            <button type="button" id="marketplaceFeedRefresh" aria-label="Refresh feed" title="Refresh feed"><i class="fas fa-rotate" aria-hidden="true"></i></button>
+            <button type="button" id="marketplaceFeedRefresh" data-refresh-feed aria-label="Refresh feed" title="Refresh feed"><i class="fas fa-rotate" aria-hidden="true"></i></button>
           </div>
         </div>
         <div class="marketplace-feed-scroll" id="marketplaceFeedScroll" tabindex="0" aria-label="Scrollable marketplace feed">
@@ -368,6 +382,27 @@
           <div class="marketplace-feed-sentinel" id="marketplaceFeedSentinel" aria-hidden="true"></div>
           <button type="button" class="marketplace-feed-load-more" id="marketplaceFeedLoadMore" hidden>Load more</button>
         </div>
+        <button type="button" class="marketplace-feed-create-trigger" id="marketplaceCreatePost" hidden>
+          <i class="fas fa-plus" aria-hidden="true"></i> Create post
+        </button>
+        <dialog class="marketplace-post-dialog" id="marketplacePostDialog" aria-labelledby="marketplacePostTitle">
+          <form id="marketplacePostForm">
+            <div class="marketplace-post-dialog-heading">
+              <h2 id="marketplacePostTitle">Create a post</h2>
+              <button type="button" id="marketplacePostClose" aria-label="Close">&times;</button>
+            </div>
+            <label class="marketplace-post-media-picker" for="marketplacePostMedia">
+              <i class="fas fa-photo-film" aria-hidden="true"></i>
+              <span id="marketplacePostFileLabel">Choose a photo or video</span>
+              <input id="marketplacePostMedia" type="file" accept="image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm" required>
+            </label>
+            <div class="marketplace-post-preview" id="marketplacePostPreview" hidden></div>
+            <label class="marketplace-post-caption-label" for="marketplacePostCaption">Caption <span>(optional)</span></label>
+            <textarea id="marketplacePostCaption" maxlength="2000" rows="3" placeholder="Write a caption..."></textarea>
+            <p class="marketplace-post-status" id="marketplacePostStatus" role="status" aria-live="polite"></p>
+            <button type="submit" class="marketplace-post-publish" id="marketplacePostPublish">Share post</button>
+          </form>
+        </dialog>
       </section>
       <nav class="marketplace-mobile-shortcuts" aria-label="Marketplace sections">
         <button type="button" data-marketplace-pane="feed" aria-label="Show social feed"><i class="fas fa-film" aria-hidden="true"></i> Social feed</button>
@@ -667,7 +702,7 @@
 <script src="/js/cart-store.js?v=unified-cart-20261006-v1"></script>
 <script src="/js/cookie-auth-client.js"></script>
 <script src="/js/navigation.js"></script>
-<script src="/js/index.js?v=social-feed-randomized-20261007-v1"></script>
+<script src="/js/index.js?v=marketplace-feed-profile-link-20261008-v2"></script>
 <script src="/js/product-inquiry.js?v=card-contact-menu-20261006-v6"></script>
 <script src="/js/category-blocks.js"></script>
 <script src="/js/legal.js"></script>

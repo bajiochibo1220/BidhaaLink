@@ -90,6 +90,7 @@ const businessesRoutes = require('./src/routes/businesses');
 const businessAdminRoutes = require('./src/routes/business-admin');
 const serviceConversationRoutes = require('./src/routes/service-conversations');
 const marketplaceFeedRoutes = require('./src/routes/marketplace-feed');
+const customerPostRoutes = require('./src/routes/customer-posts');
 
 // ============================================================
 //  CONTACT ADMIN ROUTE (Complaints Inbox, public side)
@@ -482,6 +483,7 @@ app.use('/api/promo', analyticsRoutes);
 
 app.use('/api/businesses', businessesRoutes);
 app.use('/api/marketplace/feed', marketplaceFeedRoutes);
+app.use('/api/customer-posts', customerPostRoutes);
 app.use('/api/business-admin', businessAdminRoutes);
 app.use('/api/service-conversations', serviceConversationRoutes);
 

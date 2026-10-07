@@ -2010,3 +2010,21 @@ html.embedded .modal-overlay {
     flex-direction: column;
   }
 }
+.customer-profile-photo-row { display: flex; align-items: center; gap: 12px; }
+.customer-profile-photo-row img,
+.customer-profile-photo-row > span {
+  display: grid;
+  width: 62px;
+  height: 62px;
+  flex: 0 0 62px;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 50%;
+  background: #e2e8f0;
+  color: #475569;
+  object-fit: cover;
+  font-size: 1.3rem;
+}
+.customer-profile-photo-row [hidden] { display: none !important; }
+.customer-profile-photo-row > div { display: grid; gap: 5px; }
+.customer-profile-photo-row small { color: #64748b; font-size: .75rem; }

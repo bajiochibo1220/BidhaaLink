@@ -31,6 +31,9 @@ router.get('/', async (req, res) => {
                  b.business_name,
                  b.slug AS business_slug,
                  b.logo AS business_logo,
+                 NULL::text AS customer_name,
+                 NULL::text AS customer_profile_image,
+                 NULL::int AS customer_id,
                  p.name AS title,
                  p.description,
                  p.price::text AS price,
@@ -62,6 +65,9 @@ router.get('/', async (req, res) => {
                  b.business_name,
                  b.slug AS business_slug,
                  b.logo AS business_logo,
+                 NULL::text AS customer_name,
+                 NULL::text AS customer_profile_image,
+                 NULL::int AS customer_id,
                  s.name AS title,
                  s.description,
                  CASE WHEN s.pricing_mode = 'fixed' THEN s.price::text ELSE NULL END AS price,
@@ -77,14 +83,44 @@ router.get('/', async (req, res) => {
             FROM business_services s
             JOIN businesses b ON b.id = s.business_id
            WHERE s.is_active = TRUE AND b.is_active = TRUE
+
+          UNION ALL
+
+          SELECT 'customer_post'::text AS item_type,
+                 cp.id AS item_id,
+                 NULL::int AS business_id,
+                 NULL::text AS business_name,
+                 NULL::text AS business_slug,
+                 NULL::text AS business_logo,
+                 c.name AS customer_name,
+                 c.profile_image AS customer_profile_image,
+                 c.id AS customer_id,
+                 cp.caption AS title,
+                 cp.caption AS description,
+                 NULL::text AS price,
+                 cp.media_url,
+                 NULL::text AS media_poster_url,
+                 cp.media_type AS media_kind,
+                 NULL::text AS service_area,
+                 NULL::text AS pricing_mode,
+                 NULL::text AS price_unit,
+                 0::int AS media_count,
+                 cp.created_at,
+                 NULL::text AS location_text
+            FROM customer_social_posts cp
+            JOIN customers c ON c.id = cp.customer_id
+           WHERE cp.is_active = TRUE AND COALESCE(c.is_active, TRUE) = TRUE
        ), ranked_feed AS (
          SELECT social_feed.*,
                 ROW_NUMBER() OVER (
-                  PARTITION BY social_feed.business_id
+                  PARTITION BY COALESCE(
+                    'business:' || social_feed.business_id::text,
+                    'customer:' || social_feed.customer_id::text
+                  )
                   ORDER BY md5($12::text || ':' || social_feed.item_type || ':' || social_feed.item_id::text)
                 ) AS business_item_rank
            FROM social_feed
-          WHERE ($10::int IS NULL OR EXISTS (
+          WHERE (social_feed.business_id IS NULL OR $10::int IS NULL OR EXISTS (
             SELECT 1 FROM business_category_assignments bca
              WHERE bca.business_id = social_feed.business_id AND bca.category_id = $10
           ))
@@ -108,7 +144,7 @@ router.get('/', async (req, res) => {
             WHERE br.business_id = ranked_feed.business_id
          ) END DESC NULLS LAST,
          business_item_rank ASC,
-         md5($12::text || ':business:' || business_id::text),
+         md5($12::text || ':' || COALESCE('business:' || business_id::text, 'customer:' || customer_id::text)),
          md5($12::text || ':' || item_type || ':' || item_id::text)
        LIMIT $1 OFFSET $2
     `, [limit + 1, offset, search, ...locationFilters.map(([, value]) => value), ...Array(6 - locationFilters.length).fill(''), categoryId, sort, seed]);

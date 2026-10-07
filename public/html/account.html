@@ -7,7 +7,7 @@
 
   <link rel="stylesheet" href="/style.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-  <link rel="stylesheet" href="/css/account.css?v=service-chat-inbox-20261006">
+  <link rel="stylesheet" href="/css/account.css?v=customer-social-profile-20261007-v1">
   <script>
     if (new URLSearchParams(window.location.search).get('embedded') === '1') {
       document.documentElement.classList.add('embedded');
@@ -551,6 +551,18 @@
       </h3>
 
       <div class="profile-form-panel">
+        <div class="form-group customer-profile-photo-control">
+          <label>Profile photo</label>
+          <div class="customer-profile-photo-row">
+            <img id="customerProfilePhotoPreview" alt="Your profile photo" hidden>
+            <span id="customerProfilePhotoFallback" aria-hidden="true"><i class="fas fa-user"></i></span>
+            <div>
+              <input type="file" id="customerProfilePhotoInput" accept="image/jpeg,image/png,image/webp,image/gif" hidden>
+              <button type="button" class="btn-quick primary" id="customerProfilePhotoButton">Choose profile photo</button>
+              <small id="customerProfilePhotoStatus">This photo appears beside your social-feed posts.</small>
+            </div>
+          </div>
+        </div>
         <div class="form-group">
           <label>Full Name</label>
           <input type="text" id="profileName" placeholder="Your full name">
@@ -1144,7 +1156,7 @@
 
 <script src="/js/cart-store.js?v=unified-cart-20261006-v1"></script>
 <script src="/js/cookie-auth-client.js"></script>
-<script src="/js/account.js?v=product-inquiry-20261006"></script>
+<script src="/js/account.js?v=customer-social-profile-20261007-v1"></script>
 
 <!-- ============================================================ -->
 <!-- LEGAL FOOTER — BidhaaLink                                     -->
