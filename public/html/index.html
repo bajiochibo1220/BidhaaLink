@@ -15,7 +15,7 @@
   <link rel="apple-touch-icon" href="/icons/pwa-180.png">
 
   <!-- Main Global Styles -->
-  <link rel="stylesheet" href="/style.css">
+  <link rel="stylesheet" href="/style.css?v=bidhaalink-header-20261007-v1">
 
   <!-- External Libraries -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -23,7 +23,7 @@
 
   <!-- Page-Specific Styles -->
   <link rel="stylesheet" href="/css/index.css">
-  <link rel="stylesheet" href="/css/marketplace.css?v=marketplace-filters-both-panes-20261007-v1">
+  <link rel="stylesheet" href="/css/marketplace.css?v=marketplace-filters-brand-20261007-v2">
   <link rel="stylesheet" href="/css/product-inquiry.css?v=card-contact-menu-20261006-v2">
   <link rel="stylesheet" href="/css/pwa.css">
 </head>
@@ -70,7 +70,10 @@
         <button class="hamburger" id="hamburgerBtn" aria-label="Toggle sidebar">
           <i class="fas fa-bars"></i>
         </button>
-        <div class="brand">🛍️ <span id="shopNameTop" style="color:#16a34a;font-weight:800;">BidhaaLink</span></div>
+        <a class="brand bidhaalink-brand" href="/marketplace" aria-label="BidhaaLink home">
+          <img src="/icons/bidhaalink-app.svg" alt="" width="30" height="30">
+          <span id="shopNameTop">BidhaaLink</span>
+        </a>
       </div>
       <div class="top-bar-right" id="topBarRight">
         <!-- PUBLIC NAV (Guest) -->

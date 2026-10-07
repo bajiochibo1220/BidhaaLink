@@ -3983,13 +3983,21 @@ body.marketplace-pane-expanded { overflow: hidden; }
     z-index: 1205;
     box-sizing: border-box;
     height: 56px;
-    justify-content: flex-end;
+    justify-content: space-between;
     padding: 6px 12px;
     border: 0;
     background: rgba(255, 255, 255, .97);
     box-shadow: 0 1px 8px rgba(15, 23, 42, .14);
   }
-  body.marketplace-social-feed-active .top-bar > div:first-child { display: none !important; }
+  body.marketplace-social-feed-active .top-bar > div:first-child { display: flex !important; min-width: 0; }
+  body.marketplace-social-feed-active .top-bar .hamburger { display: none !important; }
+  body.marketplace-social-feed-active .top-bar .brand { font-size: .85rem; }
+  body.marketplace-social-feed-active .top-bar .brand img { width: 30px; height: 30px; }
+  body.marketplace-social-feed-active .top-bar .bidhaalink-brand span {
+    background: none !important;
+    color: #15803d !important;
+    -webkit-text-fill-color: currentColor !important;
+  }
   body.marketplace-social-feed-active .top-bar .top-bar-right { justify-content: flex-end; }
   body.marketplace-social-feed-active #publicNavTop .auth-btn[aria-label="Super Admin login"] { display: none !important; }
   body.marketplace-social-feed-active #topLoginLink,

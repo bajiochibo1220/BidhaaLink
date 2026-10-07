@@ -6,7 +6,7 @@
   <title>Product Detail</title>
 
   <!-- Main Global Styles -->
-  <link rel="stylesheet" href="/style.css">
+  <link rel="stylesheet" href="/style.css?v=bidhaalink-header-20261007-v1">
 
   <!-- External Libraries -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
@@ -19,7 +19,13 @@
 
 <!-- ===== HEADER ===== -->
 <div class="header">
-  <h1>🛍️ <span id="shopNameHeader">Our Business</span></h1>
+  <div class="product-detail-brand-group">
+    <a class="bidhaalink-brand" href="/marketplace" aria-label="BidhaaLink home">
+      <img src="/icons/bidhaalink-app.svg" alt="" width="30" height="30">
+      <span>BidhaaLink</span>
+    </a>
+    <span class="product-detail-shop-name" id="shopNameHeader">Our Business</span>
+  </div>
   <div class="header-right">
     <a href="#" id="productBusinessHome">Home</a>
     <a href="/marketplace" class="auth-btn" id="backToMarketplaceTop" data-context-back><i class="fas fa-arrow-left"></i> Back to Marketplace</a>

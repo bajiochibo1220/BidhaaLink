@@ -106,6 +106,45 @@ body {
 
 .header a:hover { color: #2563eb; }
 
+.bidhaalink-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0 !important;
+  color: #15803d !important;
+  font-size: 1rem !important;
+  font-weight: 800 !important;
+  line-height: 1.1;
+  text-decoration: none !important;
+  white-space: nowrap;
+}
+.bidhaalink-brand:hover { color: #166534 !important; }
+.bidhaalink-brand img {
+  display: block;
+  flex: 0 0 auto;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  object-fit: cover;
+}
+.bidhaalink-brand span {
+  background: none !important;
+  color: inherit !important;
+  -webkit-text-fill-color: currentColor !important;
+}
+.product-detail-brand-group {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  min-width: 0;
+}
+.product-detail-shop-name {
+  color: #475569;
+  font-size: .82rem;
+  font-weight: 600;
+}
+
 .header .header-right {
   display: flex;
   align-items: center;
