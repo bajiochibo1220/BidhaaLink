@@ -876,8 +876,12 @@ function setupMarketplacePaneToggles() {
   // a clear active view and cannot leave the user with neither section.
   const mobile = window.matchMedia('(max-width: 640px)');
   update(mobile.matches ? 'feed' : '');
-  businessesToggle.addEventListener('click', () => update('businesses'));
-  feedToggle.addEventListener('click', () => update('feed'));
+  businessesToggle.addEventListener('click', () => {
+    update(!mobile.matches && layout.dataset.expanded === 'businesses' ? '' : 'businesses');
+  });
+  feedToggle.addEventListener('click', () => {
+    update(!mobile.matches && layout.dataset.expanded === 'feed' ? '' : 'feed');
+  });
   shortcuts.forEach(button => button.addEventListener('click', () => update(button.dataset.marketplacePane)));
   document.addEventListener('keydown', event => {
     if (event.key === 'Escape' && layout.dataset.expanded) update('businesses');
@@ -1094,7 +1098,11 @@ function createMarketplaceFeedCard(item) {
   if (description.textContent) {
     const originalDescription = description.textContent;
     const words = originalDescription.trim().split(/\s+/);
-    if (words.length > 4) description.textContent = `${words.slice(0, 4).join(' ')}…`;
+    const compactMobileCaption = window.matchMedia('(max-width: 640px)').matches;
+    const collapsedDescription = compactMobileCaption && words.length > 4
+      ? `${words.slice(0, 4).join(' ')}…`
+      : originalDescription;
+    description.textContent = collapsedDescription;
     description.classList.add('is-collapsed');
     details.append(description);
     const more = document.createElement('button');
@@ -1105,7 +1113,7 @@ function createMarketplaceFeedCard(item) {
     more.addEventListener('click', () => {
       const expanded = description.classList.toggle('is-expanded');
       description.classList.toggle('is-collapsed', !expanded);
-      description.textContent = expanded ? originalDescription : (words.length > 4 ? `${words.slice(0, 4).join(' ')}…` : originalDescription);
+      description.textContent = expanded ? originalDescription : collapsedDescription;
       more.textContent = expanded ? 'Less' : 'More';
       more.setAttribute('aria-expanded', String(expanded));
     });

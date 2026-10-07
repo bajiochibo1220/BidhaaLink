@@ -3863,6 +3863,7 @@ body.marketplace-pane-expanded { overflow: hidden; }
 
 /* TikTok-style mobile offer cards: fill the frame with media and keep a
    compact, readable caption over the lower edge instead of a white panel. */
+@media (max-width: 640px) {
 .marketplace-feed-media { background: #111827; }
 .marketplace-feed-media img,
 .marketplace-feed-media video { object-fit: cover; object-position: center; }
@@ -3957,12 +3958,14 @@ body.marketplace-pane-expanded { overflow: hidden; }
   .marketplace-feed-details { max-height: 54%; padding: 36px 16px max(20px, env(safe-area-inset-bottom)); }
   .marketplace-feed-description { font-size: .94rem; }
 }
+}
 
-/* Preserve complete product photos and videos; use a soft neutral matte for
-   portrait/landscape ratios that do not match the tall phone feed frame. */
+/* Desktop feed cards keep the whole source photo visible in a neutral matte. */
+@media (min-width: 641px) {
 .marketplace-feed-media { background: #edf1f5; }
 .marketplace-feed-media img,
 .marketplace-feed-media video { object-fit: contain; object-position: center; }
+}
 .marketplace-feed-card { scroll-snap-stop: normal; }
 .marketplace-feed-scroll {
   scroll-behavior: auto;
@@ -4203,7 +4206,8 @@ body.marketplace-pane-expanded { overflow: hidden; }
 .marketplace-business-rail .business-card .card-body .business-distance { background: #193326; color: #bbf7d0; }
 .marketplace-business-rail .category-load-more { border-color: #c9c4ba; background: #dedbd4; color: #344154; }
 
-/* Black matte on every feed card, including normal (not expanded) scrolling. */
+/* Black matte belongs to the immersive phone feed. */
+@media (max-width: 640px) {
 .marketplace-feed,
 .marketplace-feed-heading,
 .marketplace-feed-scroll,
@@ -4214,6 +4218,7 @@ body.marketplace-pane-expanded { overflow: hidden; }
 .marketplace-feed-heading p { color: #fff; }
 .marketplace-feed-heading { border-color: #292929; }
 .marketplace-feed-heading button { border-color: #454545; background: #111; color: #fff; }
+}
 
 /* Black, minimal phone theme while the social feed is in its immersive view. */
 @media (max-width: 640px) {
