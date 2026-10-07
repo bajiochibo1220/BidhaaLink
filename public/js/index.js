@@ -156,6 +156,7 @@ let marketplaceFeedVideoObserver = null;
 let marketplaceFeedMediaObserver = null;
 let marketplaceFeedRequestController = null;
 let marketplaceFeedGeneration = 0;
+let marketplaceFeedSeed = '';
 let marketplaceSearchDebounceTimer = null;
 let activeBusinessDescription = null;
 
@@ -900,6 +901,7 @@ async function loadMarketplaceFeed(reset = false) {
     marketplaceFeedLoading = false;
     marketplaceFeedPage = 1;
     marketplaceFeedHasMore = true;
+    marketplaceFeedSeed = createMarketplaceFeedSeed();
     list.replaceChildren();
   }
   if (!marketplaceFeedRequestController) marketplaceFeedRequestController = new AbortController();
@@ -914,7 +916,11 @@ async function loadMarketplaceFeed(reset = false) {
   }
 
   try {
-    const params = new URLSearchParams({ page: String(marketplaceFeedPage), limit: '8' });
+    const params = new URLSearchParams({
+      page: String(marketplaceFeedPage),
+      limit: '8',
+      seed: marketplaceFeedSeed
+    });
     const search = getCombinedSearchText();
     if (search) params.set('search', search);
     const category = document.getElementById('businessCategoryFilter')?.value || 'all';
@@ -931,6 +937,7 @@ async function loadMarketplaceFeed(reset = false) {
     const data = await response.json().catch(() => ({}));
     if (generation !== marketplaceFeedGeneration) return;
     if (!response.ok || !data.success) throw new Error(data.error || 'Could not load the feed.');
+    if (data.seed) marketplaceFeedSeed = String(data.seed);
     if (marketplaceFeedPage === 1) list.replaceChildren();
     (Array.isArray(data.items) ? data.items : []).forEach(item => list.append(createMarketplaceFeedCard(item)));
     marketplaceFeedHasMore = Boolean(data.hasMore);
@@ -960,6 +967,15 @@ async function loadMarketplaceFeed(reset = false) {
   } finally {
     if (generation === marketplaceFeedGeneration) marketplaceFeedLoading = false;
   }
+}
+
+function createMarketplaceFeedSeed() {
+  if (window.crypto?.getRandomValues) {
+    const values = new Uint32Array(4);
+    window.crypto.getRandomValues(values);
+    return Array.from(values, value => value.toString(16).padStart(8, '0')).join('');
+  }
+  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
 }
 
 function createMarketplaceFeedCard(item) {

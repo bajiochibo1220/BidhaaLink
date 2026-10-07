@@ -1,4 +1,5 @@
 const express = require('express');
+const crypto = require('crypto');
 const { pool, logError } = require('../config/database');
 
 const router = express.Router();
@@ -15,14 +16,15 @@ router.get('/', async (req, res) => {
   const sort = ['newest', 'popular', 'rating'].includes(String(req.query.sort || '').toLowerCase())
     ? String(req.query.sort).toLowerCase()
     : 'newest';
+  const seed = String(req.query.seed || '').replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 64)
+    || crypto.randomBytes(16).toString('hex');
   const locationFilters = ['continent', 'country', 'county', 'sub_county', 'town', 'ward']
     .map(field => [field, String(req.query[field] || '').trim().slice(0, 80)])
     .filter(([, value]) => value);
 
   try {
     const result = await pool.query(`
-      SELECT *
-        FROM (
+      WITH social_feed AS (
           SELECT 'product'::text AS item_type,
                  p.id AS item_id,
                  b.id AS business_id,
@@ -75,11 +77,19 @@ router.get('/', async (req, res) => {
             FROM business_services s
             JOIN businesses b ON b.id = s.business_id
            WHERE s.is_active = TRUE AND b.is_active = TRUE
-       ) AS social_feed
-       WHERE ($10::int IS NULL OR EXISTS (
-         SELECT 1 FROM business_category_assignments bca
-          WHERE bca.business_id = social_feed.business_id AND bca.category_id = $10
-       ))
+       ), ranked_feed AS (
+         SELECT social_feed.*,
+                ROW_NUMBER() OVER (
+                  PARTITION BY social_feed.business_id
+                  ORDER BY md5($12::text || ':' || social_feed.item_type || ':' || social_feed.item_id::text)
+                ) AS business_item_rank
+           FROM social_feed
+          WHERE ($10::int IS NULL OR EXISTS (
+            SELECT 1 FROM business_category_assignments bca
+             WHERE bca.business_id = social_feed.business_id AND bca.category_id = $10
+          ))
+       )
+       SELECT * FROM ranked_feed
        ORDER BY
          CASE WHEN $3 <> '' AND location_text ILIKE '%' || $3 || '%' THEN 0 ELSE 1 END,
          CASE WHEN $3 <> '' AND concat_ws(' ', title, description, business_name) ILIKE '%' || $3 || '%' THEN 0 ELSE 1 END,
@@ -91,20 +101,22 @@ router.get('/', async (req, res) => {
          CASE WHEN $9 <> '' AND location_text ILIKE '%' || $9 || '%' THEN 0 ELSE 1 END,
          CASE WHEN $11 = 'popular' THEN (
            SELECT COUNT(*) FROM products p
-            WHERE p.business_id = social_feed.business_id AND p.is_active = TRUE
+            WHERE p.business_id = ranked_feed.business_id AND p.is_active = TRUE
          ) END DESC NULLS LAST,
          CASE WHEN $11 = 'rating' THEN (
            SELECT COALESCE(AVG(br.rating), 0) FROM business_reviews br
-            WHERE br.business_id = social_feed.business_id
+            WHERE br.business_id = ranked_feed.business_id
          ) END DESC NULLS LAST,
-         created_at DESC, item_type ASC, item_id DESC
+         business_item_rank ASC,
+         md5($12::text || ':business:' || business_id::text),
+         md5($12::text || ':' || item_type || ':' || item_id::text)
        LIMIT $1 OFFSET $2
-    `, [limit + 1, offset, search, ...locationFilters.map(([, value]) => value), ...Array(6 - locationFilters.length).fill(''), categoryId, sort]);
+    `, [limit + 1, offset, search, ...locationFilters.map(([, value]) => value), ...Array(6 - locationFilters.length).fill(''), categoryId, sort, seed]);
 
     const rows = result.rows;
     const hasMore = rows.length > limit;
     if (hasMore) rows.pop();
-    return res.json({ success: true, items: rows, page, hasMore });
+    return res.json({ success: true, items: rows, page, hasMore, seed });
   } catch (error) {
     console.error('Load marketplace social feed error:', error);
     logError(error, 'Load marketplace social feed');
