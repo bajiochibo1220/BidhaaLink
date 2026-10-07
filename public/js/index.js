@@ -872,11 +872,15 @@ function setupMarketplacePaneToggles() {
     });
     shortcuts.forEach(button => button.setAttribute('aria-pressed', String(button.dataset.marketplacePane === expanded)));
   };
-  businessesToggle.addEventListener('click', () => update(layout.dataset.expanded === 'businesses' ? '' : 'businesses'));
-  feedToggle.addEventListener('click', () => update(layout.dataset.expanded === 'feed' ? '' : 'feed'));
+  // A pane is always selected on phones so the fixed mobile navigation has
+  // a clear active view and cannot leave the user with neither section.
+  const mobile = window.matchMedia('(max-width: 640px)');
+  update(mobile.matches ? 'feed' : '');
+  businessesToggle.addEventListener('click', () => update('businesses'));
+  feedToggle.addEventListener('click', () => update('feed'));
   shortcuts.forEach(button => button.addEventListener('click', () => update(button.dataset.marketplacePane)));
   document.addEventListener('keydown', event => {
-    if (event.key === 'Escape' && layout.dataset.expanded) update('');
+    if (event.key === 'Escape' && layout.dataset.expanded) update('businesses');
   });
 }
 
@@ -1029,7 +1033,8 @@ function createMarketplaceFeedCard(item) {
   titleRow.append(title);
   const description = document.createElement('p');
   description.className = 'marketplace-feed-description';
-  description.textContent = item.description || '';
+  const fullDescription = item.description || '';
+  description.textContent = fullDescription;
   if (item.item_type === 'service' && item.service_area) {
     description.textContent = `${description.textContent}${description.textContent ? '\n' : ''}Service area: ${item.service_area}`;
   }
@@ -1087,6 +1092,9 @@ function createMarketplaceFeedCard(item) {
   bottomRow.append(actions);
   details.append(bottomRow);
   if (description.textContent) {
+    const originalDescription = description.textContent;
+    const words = originalDescription.trim().split(/\s+/);
+    if (words.length > 4) description.textContent = `${words.slice(0, 4).join(' ')}…`;
     description.classList.add('is-collapsed');
     details.append(description);
     const more = document.createElement('button');
@@ -1097,6 +1105,7 @@ function createMarketplaceFeedCard(item) {
     more.addEventListener('click', () => {
       const expanded = description.classList.toggle('is-expanded');
       description.classList.toggle('is-collapsed', !expanded);
+      description.textContent = expanded ? originalDescription : (words.length > 4 ? `${words.slice(0, 4).join(' ')}…` : originalDescription);
       more.textContent = expanded ? 'Less' : 'More';
       more.setAttribute('aria-expanded', String(expanded));
     });

@@ -1086,11 +1086,39 @@ body.related-image-preview-open { overflow: hidden; }
 .related-add-to-cart:hover { background: #1d4ed8; }
 .related-add-to-cart:disabled { opacity: .65; cursor: wait; }
 
+/* Keep recommendations on product detail pages visually aligned with the
+   primary product cards in a business profile. */
+.related-products .related-item {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  background: #fff;
+}
+.related-products .related-media { height: 200px; flex: 0 0 auto; }
+.related-products .related-info { display: flex; flex: 1 1 auto; flex-direction: column; padding: 10px 12px 12px; }
+.related-products .related-name { color: #0f172a; font-size: .85rem; font-weight: 600; line-height: 1.35; }
+.related-products .related-description { order: 3; margin: 5px 0 8px; color: #64748b; font-size: .72rem; line-height: 1.4; }
+.related-products .related-description-text { display: none; overflow-wrap: anywhere; }
+.related-products .related-description.is-expanded .related-description-text { display: block; }
+.related-products .related-purchase-row { order: 1; margin-top: 4px; }
+.related-products .related-price { color: #2563eb; font-size: .9rem; font-weight: 700; }
+.related-products .related-description-toggle { padding: 0; border: 0; background: none; color: #9a4a0a; font: inherit; font-size: .7rem; font-weight: 700; }
+.related-products .related-cart-actions { order: 2; flex-wrap: wrap; margin-top: 7px; }
+.related-products .related-qty-control { flex: 0 0 auto; }
+.related-products .related-add-to-cart { min-height: 38px; }
+.related-products .related-talk-to-business { min-height: 38px; padding: 7px 9px; border: 1px solid #bfdbfe; border-radius: 7px; background: #eff6ff; color: #2563eb; font: inherit; font-size: .75rem; font-weight: 700; }
+
 @media (max-width: 768px) {
   .related-grid {
-    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 10px;
   }
+  .related-products .related-media { height: clamp(145px, 42vw, 200px); }
+  .related-products .related-cart-actions { gap: 6px; }
+  .related-products .related-add-to-cart,
+  .related-products .related-talk-to-business { flex: 1 1 100%; }
   .related-item img,
   .related-item video,
   .related-item .no-image {
