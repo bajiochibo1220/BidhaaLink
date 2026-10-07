@@ -1124,7 +1124,10 @@ async function addMarketplaceFeedProductToCart(item, button) {
   try {
     if (typeof window.addProductToCart !== 'function') throw new Error('Cart is not ready. Please refresh and try again.');
     const result = await window.addProductToCart(item.item_id, 1);
-    if (result?.authRequired) return;
+    if (result?.authRequired) {
+      button.textContent = originalText;
+      return;
+    }
     if (typeof window.showToast === 'function') window.showToast('Added to cart.', 'success');
     button.textContent = 'Add more';
   } catch (error) {

@@ -4312,9 +4312,10 @@ body.marketplace-pane-expanded { overflow: hidden; }
   body.marketplace-social-feed-active .marketplace-feed-business a,
   body.marketplace-social-feed-active .marketplace-feed-details h3 { font-weight: 400 !important; }
   body.marketplace-social-feed-active .marketplace-feed-details {
-    max-height: min(40%, 300px);
-    padding: 18px 16px max(90px, calc(env(safe-area-inset-bottom) + 76px));
-    overflow: visible;
+    max-height: 48%;
+    padding: 18px 16px max(12px, env(safe-area-inset-bottom));
+    overflow-y: auto;
+    overscroll-behavior: contain;
   }
   body.marketplace-social-feed-active .marketplace-feed-title-row { margin: 0 0 3px; }
   body.marketplace-social-feed-active .marketplace-feed-bottom-row {

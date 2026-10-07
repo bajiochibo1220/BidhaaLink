@@ -28,12 +28,23 @@
         if (!Number.isSafeInteger(id) || id <= 0) throw new Error('A valid product is required.');
         if (variantId !== null && (!Number.isSafeInteger(variantId) || variantId <= 0)) throw new Error('The selected product option is invalid.');
 
-        const response = await fetch('/api/cart/add', {
-            method: 'POST',
-            credentials: 'same-origin',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ product_id: id, variant_id: variantId, quantity: qty })
-        });
+        const controller = new AbortController();
+        const timeout = window.setTimeout(() => controller.abort(), 20000);
+        let response;
+        try {
+            response = await fetch('/api/cart/add', {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ product_id: id, variant_id: variantId, quantity: qty }),
+                signal: controller.signal
+            });
+        } catch (error) {
+            if (error.name === 'AbortError') throw new Error('Adding to cart took too long. Please try again.');
+            throw error;
+        } finally {
+            window.clearTimeout(timeout);
+        }
         const data = await response.json().catch(() => ({}));
         if (response.status === 401) {
             if (typeof options.onAuthRequired === 'function') {
