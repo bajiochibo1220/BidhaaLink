@@ -91,7 +91,10 @@ async function authMiddleware(req, res, next) {
 
         let userId = decoded.userId;
         const email = decoded.email;
-        const role = decoded.role || 'customer';
+        const role = decoded.role;
+        if (!['customer', 'business_admin', 'super_admin'].includes(role)) {
+            return res.status(403).json({ error: 'This account role is not supported.' });
+        }
 
         // If userId is not a number and is the email string, look it up.
         if (!userId || userId === email || isNaN(parseInt(userId))) {

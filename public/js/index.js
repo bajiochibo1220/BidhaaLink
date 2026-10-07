@@ -1103,9 +1103,8 @@ function createMarketplaceFeedCard(item) {
   if (description.textContent) {
     const originalDescription = description.textContent;
     const words = originalDescription.trim().split(/\s+/);
-    const compactMobileCaption = window.matchMedia('(max-width: 640px)').matches;
-    const collapsedDescription = compactMobileCaption && words.length > 4
-      ? `${words.slice(0, 4).join(' ')}…`
+    const collapsedDescription = words.length > 4
+      ? `${words.slice(0, 4).join(' ')}...`
       : originalDescription;
     description.textContent = collapsedDescription;
     description.classList.add('is-collapsed');

@@ -4400,6 +4400,73 @@ body.marketplace-social-feed-active .marketplace-feed-state {
   scroll-snap-align: start;
   scroll-snap-stop: always;
 }
+/* Keep feed captions consistent across phone and desktop layouts. */
+body.marketplace-social-feed-active .marketplace-feed-business a,
+body.marketplace-social-feed-active .marketplace-feed-details h3,
+body.marketplace-social-feed-active .marketplace-feed-price,
+body.marketplace-social-feed-active .marketplace-feed-actions button {
+  color: #22c55e !important;
+}
+body.marketplace-social-feed-active .marketplace-feed-business a,
+body.marketplace-social-feed-active .marketplace-feed-details h3 {
+  font-weight: 400 !important;
+}
+body.marketplace-social-feed-active .marketplace-feed-details {
+  max-height: 48%;
+  padding: 18px 16px max(12px, env(safe-area-inset-bottom));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  background: #000 !important;
+  color: #fff;
+  text-shadow: none;
+}
+body.marketplace-social-feed-active .marketplace-feed-title-row { margin: 0 0 3px; }
+body.marketplace-social-feed-active .marketplace-feed-bottom-row {
+  flex-direction: row;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+body.marketplace-social-feed-active .marketplace-feed-actions { gap: 12px; }
+body.marketplace-social-feed-active .marketplace-feed-actions button {
+  min-height: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  font-size: .9rem !important;
+  font-weight: 400 !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+}
+body.marketplace-social-feed-active .marketplace-feed-description {
+  display: inline;
+  max-height: none;
+  margin: 3px 0 0;
+  overflow: visible;
+  color: #fff !important;
+  font-weight: 400 !important;
+  text-shadow: none;
+}
+body.marketplace-social-feed-active .marketplace-feed-description.is-collapsed {
+  display: inline;
+  overflow: visible;
+  -webkit-line-clamp: unset;
+  line-clamp: unset;
+}
+body.marketplace-social-feed-active .marketplace-feed-description.is-expanded { display: block; }
+body.marketplace-social-feed-active .marketplace-feed-more {
+  display: inline;
+  width: auto;
+  margin: 0 0 0 4px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #fff !important;
+  font: inherit;
+  font-weight: 400 !important;
+  text-shadow: inherit;
+}
 @media (max-width: 640px) {
   body.marketplace-social-feed-active .marketplace-feed-scroll {
     flex: 0 0 calc(100dvh - 72px);

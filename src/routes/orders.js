@@ -39,7 +39,7 @@ router.post('/:id/send-confirmation', authMiddleware, async (req, res) => {
     if (result.rows.length === 0) return res.status(404).json({ error: 'Order not found' });
     const order = result.rows[0];
     if (req.role === 'business_admin' && order.business_id !== req.businessId) return res.status(403).json({ error: 'Forbidden' });
-    if (!['admin', 'super_admin', 'business_admin'].includes(req.role)) return res.status(403).json({ error: 'Admin access required' });
+    if (!['super_admin', 'business_admin'].includes(req.role)) return res.status(403).json({ error: 'Admin access required' });
 
     const message = `✅ Order ${order.order_ref || `#${order.id}`} has been confirmed by ${order.business_name || 'the shop'}.`;
     await pool.query('INSERT INTO order_chat_messages (order_id, from_user, message) VALUES ($1, $2, $3)', [orderId, 'Seller', message]);
@@ -442,7 +442,7 @@ router.get('/', authMiddleware, async (req, res) => {
       paramIndex++;
     }
 
-    if (req.role === 'super_admin' || req.role === 'admin') {
+    if (req.role === 'super_admin') {
       if (status && status !== 'all') {
         conditions.push(`o.status = $${paramIndex}`);
         params.push(status);
@@ -774,7 +774,7 @@ router.put('/:orderId/confirm-delivery', authMiddleware, businessAdminOnly, asyn
     const customerId = orderCheck.rows[0].customer_id;
 
     // Verify business ownership
-    if (req.role !== 'admin' && req.role !== 'super_admin') {
+    if (req.role !== 'super_admin') {
       const businessCheck = await pool.query(
         'SELECT id FROM businesses WHERE id = $1 AND owner_id = $2',
         [businessId, req.userId]
@@ -836,7 +836,7 @@ router.put('/:orderId/confirm-pickup', authMiddleware, businessAdminOnly, async 
     const businessId = orderCheck.rows[0].business_id;
     const customerId = orderCheck.rows[0].customer_id;
 
-    if (req.role !== 'admin' && req.role !== 'super_admin') {
+    if (req.role !== 'super_admin') {
       const businessCheck = await pool.query(
         'SELECT id FROM businesses WHERE id = $1 AND owner_id = $2',
         [businessId, req.userId]
@@ -962,7 +962,7 @@ router.get('/delivery-records', authMiddleware, async (req, res) => {
       return res.json(records);
     }
 
-    if (req.role === 'admin' || req.role === 'super_admin') {
+    if (req.role === 'super_admin') {
       const result = await pool.query(`
         SELECT dr.*,
                o.order_ref, o.customer_id, o.business_id,
@@ -1042,7 +1042,7 @@ router.put('/:id/cancel', authMiddleware, [
       }
     }
 
-    if (req.role !== 'super_admin' && req.role !== 'admin' && req.role !== 'business_admin') {
+    if (req.role !== 'super_admin' && req.role !== 'business_admin') {
       const hoursSinceOrder = (Date.now() - new Date(order.created_at).getTime()) / (1000 * 60 * 60);
       const maxHours = parseInt(await getSystemSetting('replacement_hours', '6'));
       if (hoursSinceOrder > maxHours) {
@@ -1056,7 +1056,7 @@ router.put('/:id/cancel', authMiddleware, [
 
     await restockOrder(orderId);
 
-    const cancelledBy = req.role === 'super_admin' || req.role === 'admin' ? 'admin' :
+    const cancelledBy = req.role === 'super_admin' ? 'admin' :
                         req.role === 'business_admin' ? 'business_admin' : 'customer';
 
     await pool.query(
@@ -1202,7 +1202,7 @@ router.post('/:id/reorder', authMiddleware, customerOnly, async (req, res) => {
 // ============================================================
 
 router.put('/:id/confirm', authMiddleware, async (req, res) => {
-  if (req.role !== 'super_admin' && req.role !== 'admin' && req.role !== 'business_admin') {
+  if (req.role !== 'super_admin' && req.role !== 'business_admin') {
     return res.status(403).json({ error: 'Admin or Business Admin only.' });
   }
 
@@ -1288,7 +1288,7 @@ router.put('/:id/confirm', authMiddleware, async (req, res) => {
 // ============================================================
 
 router.put('/:id/status', authMiddleware, async (req, res) => {
-  if (req.role !== 'super_admin' && req.role !== 'admin' && req.role !== 'business_admin') {
+  if (req.role !== 'super_admin' && req.role !== 'business_admin') {
     return res.status(403).json({ error: 'Admin or Business Admin only.' });
   }
 
@@ -1398,7 +1398,7 @@ router.post('/:id/chat', authMiddleware, async (req, res) => {
       from = 'Customer';
     } else if (req.role === 'business_admin' && order.business_id === req.businessId) {
       from = 'Seller';
-    } else if (req.role === 'super_admin' || req.role === 'admin') {
+    } else if (req.role === 'super_admin') {
       from = 'Seller';
     } else {
       return res.status(403).json({ error: 'Forbidden' });

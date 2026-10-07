@@ -2003,7 +2003,7 @@ router.put('/orders/:id/refund', authMiddleware, async (req, res) => {
     if (orderResult.rows.length === 0) {
       return res.status(404).json({ error: 'Order not found' });
     }
-    if (!['admin', 'super_admin', 'business_admin'].includes(req.role) ||
+    if (!['super_admin', 'business_admin'].includes(req.role) ||
         (req.role === 'business_admin' && orderResult.rows[0].business_id !== req.businessId)) {
       return res.status(403).json({ error: 'Forbidden' });
     }
@@ -2054,7 +2054,7 @@ router.put('/orders/:id/replace', authMiddleware, async (req, res) => {
       [orderId]
     );
     if (result.rows.length === 0) return res.status(404).json({ error: 'Order not found' });
-    if (!['admin', 'super_admin', 'business_admin'].includes(req.role) ||
+    if (!['super_admin', 'business_admin'].includes(req.role) ||
         (req.role === 'business_admin' && result.rows[0].business_id !== req.businessId)) {
       return res.status(403).json({ error: 'Forbidden' });
     }
@@ -2092,7 +2092,7 @@ router.post('/orders/:id/remind', authMiddleware, async (req, res) => {
       [orderId]
     );
     if (result.rows.length === 0) return res.status(404).json({ error: 'Order not found' });
-    if (!['admin', 'super_admin', 'business_admin'].includes(req.role) ||
+    if (!['super_admin', 'business_admin'].includes(req.role) ||
         (req.role === 'business_admin' && result.rows[0].business_id !== req.businessId)) {
       return res.status(403).json({ error: 'Forbidden' });
     }

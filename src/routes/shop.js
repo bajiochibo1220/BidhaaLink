@@ -6,7 +6,7 @@
 const express = require('express');
 const fs = require('fs');
 const { pool } = require('../config/database');
-const { authMiddleware } = require('../middleware/auth');
+const { authMiddleware, adminOnly } = require('../middleware/auth');
 const { upload } = require('../middleware/upload');
 const { uploadToCloudinary, getHeroImage } = require('../config/cloudinary');
 const { cacheMiddleware } = require('../../redis');
@@ -303,11 +303,7 @@ router.get('/policies', cacheMiddleware(300), async (req, res) => {
 //  FEATURED PRODUCTS
 // ============================================================
 
-router.put('/featured-products', authMiddleware, async (req, res) => {
-  if (req.role !== 'admin') {
-    return res.status(403).json({ error: 'Admin only' });
-  }
-
+router.put('/featured-products', authMiddleware, adminOnly, async (req, res) => {
   try {
     const { productIds } = req.body;
     if (!productIds || !Array.isArray(productIds)) {

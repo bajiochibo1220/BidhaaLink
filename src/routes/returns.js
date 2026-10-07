@@ -5,14 +5,14 @@
 
 const express = require('express');
 const { pool } = require('../config/database');
-const { authMiddleware } = require('../middleware/auth');
+const { authMiddleware, customerOnly, adminOnly } = require('../middleware/auth');
 const router = express.Router();
 
 // ============================================================
 //  GET CUSTOMER RETURNS
 // ============================================================
 
-router.get('/customer', authMiddleware, async (req, res) => {
+router.get('/customer', authMiddleware, customerOnly, async (req, res) => {
   try {
     const customerId = req.userId;
     const result = await pool.query(
@@ -30,11 +30,7 @@ router.get('/customer', authMiddleware, async (req, res) => {
 //  GET ALL RETURNS (Admin)
 // ============================================================
 
-router.get('/admin', authMiddleware, async (req, res) => {
-  if (req.role !== 'admin') {
-    return res.status(403).json({ error: 'Admin only' });
-  }
-
+router.get('/admin', authMiddleware, adminOnly, async (req, res) => {
   try {
     const result = await pool.query(`
       SELECT r.*, o.order_ref, c.name AS customer_name
@@ -54,11 +50,7 @@ router.get('/admin', authMiddleware, async (req, res) => {
 //  UPDATE RETURN STATUS (Admin)
 // ============================================================
 
-router.put('/admin/:id', authMiddleware, async (req, res) => {
-  if (req.role !== 'admin') {
-    return res.status(403).json({ error: 'Admin only' });
-  }
-
+router.put('/admin/:id', authMiddleware, adminOnly, async (req, res) => {
   const id = parseInt(req.params.id);
   const { action } = req.body;
 
