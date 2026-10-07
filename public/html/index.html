@@ -23,7 +23,7 @@
 
   <!-- Page-Specific Styles -->
   <link rel="stylesheet" href="/css/index.css">
-  <link rel="stylesheet" href="/css/marketplace.css?v=feed-search-soft-cards-20261006-v8">
+  <link rel="stylesheet" href="/css/marketplace.css?v=marketplace-filters-both-panes-20261007-v1">
   <link rel="stylesheet" href="/css/product-inquiry.css?v=card-contact-menu-20261006-v2">
   <link rel="stylesheet" href="/css/pwa.css">
 </head>
@@ -271,34 +271,19 @@
           <i class="fas fa-times"></i>
         </button>
           </div>
+          <div class="location-filters-row" id="locationFilters" hidden>
+            <select id="locationFilterContinent" data-location-field="continent" aria-label="Filter by continent"><option value="">All continents</option></select>
+            <select id="locationFilterCountry" data-location-field="country" aria-label="Filter by country"><option value="">All countries</option></select>
+            <select id="locationFilterCounty" data-location-field="county" aria-label="Filter by county"><option value="">All counties</option></select>
+            <select id="locationFilterSubCounty" data-location-field="sub_county" aria-label="Filter by sub-county"><option value="">All sub-counties</option></select>
+            <select id="locationFilterTown" data-location-field="town" aria-label="Filter by town"><option value="">All towns</option></select>
+            <select id="locationFilterWard" data-location-field="ward" aria-label="Filter by ward"><option value="">All wards</option></select>
+            <button type="button" class="location-clear-btn" id="clearLocationFiltersBtn" hidden><i class="fas fa-times"></i> Clear all</button>
+          </div>
         </details>
       </div>
 
       <!-- Collapsed dropdown filters — opened by the Select region button above. -->
-      <div class="location-filters-row" id="locationFilters" hidden>
-        <select id="locationFilterContinent" data-location-field="continent" aria-label="Filter by continent">
-          <option value="">All continents</option>
-        </select>
-        <select id="locationFilterCountry" data-location-field="country" aria-label="Filter by country">
-          <option value="">All countries</option>
-        </select>
-        <select id="locationFilterCounty" data-location-field="county" aria-label="Filter by county">
-          <option value="">All counties</option>
-        </select>
-        <select id="locationFilterSubCounty" data-location-field="sub_county" aria-label="Filter by sub-county">
-          <option value="">All sub-counties</option>
-        </select>
-        <select id="locationFilterTown" data-location-field="town" aria-label="Filter by town">
-          <option value="">All towns</option>
-        </select>
-        <select id="locationFilterWard" data-location-field="ward" aria-label="Filter by ward">
-          <option value="">All wards</option>
-        </select>
-        <button type="button" class="location-clear-btn" id="clearLocationFiltersBtn" hidden>
-          <i class="fas fa-times"></i> Clear all
-        </button>
-      </div>
-
       <!-- Guest location banner — hidden by default. Shown by index.js
            when a guest types `near` without having activated location. -->
       <div class="location-banner" id="locationBanner" hidden role="status">
@@ -679,7 +664,7 @@
 <script src="/js/cart-store.js?v=unified-cart-20261006-v1"></script>
 <script src="/js/cookie-auth-client.js"></script>
 <script src="/js/navigation.js"></script>
-<script src="/js/index.js?v=feed-search-soft-cards-20261006-v7"></script>
+<script src="/js/index.js?v=marketplace-filters-both-panes-20261007-v1"></script>
 <script src="/js/product-inquiry.js?v=card-contact-menu-20261006-v6"></script>
 <script src="/js/category-blocks.js"></script>
 <script src="/js/legal.js"></script>

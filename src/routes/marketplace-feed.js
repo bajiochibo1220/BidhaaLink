@@ -10,6 +10,11 @@ router.get('/', async (req, res) => {
   const page = Number.isInteger(requestedPage) ? Math.max(requestedPage, 1) : 1;
   const offset = (page - 1) * limit;
   const search = String(req.query.search || '').trim().slice(0, 120);
+  const categoryValue = String(req.query.category || '').trim();
+  const categoryId = /^\d+$/.test(categoryValue) ? Number.parseInt(categoryValue, 10) : null;
+  const sort = ['newest', 'popular', 'rating'].includes(String(req.query.sort || '').toLowerCase())
+    ? String(req.query.sort).toLowerCase()
+    : 'newest';
   const locationFilters = ['continent', 'country', 'county', 'sub_county', 'town', 'ward']
     .map(field => [field, String(req.query[field] || '').trim().slice(0, 80)])
     .filter(([, value]) => value);
@@ -70,7 +75,11 @@ router.get('/', async (req, res) => {
             FROM business_services s
             JOIN businesses b ON b.id = s.business_id
            WHERE s.is_active = TRUE AND b.is_active = TRUE
-        ) AS social_feed
+       ) AS social_feed
+       WHERE ($10::int IS NULL OR EXISTS (
+         SELECT 1 FROM business_category_assignments bca
+          WHERE bca.business_id = social_feed.business_id AND bca.category_id = $10
+       ))
        ORDER BY
          CASE WHEN $3 <> '' AND location_text ILIKE '%' || $3 || '%' THEN 0 ELSE 1 END,
          CASE WHEN $3 <> '' AND concat_ws(' ', title, description, business_name) ILIKE '%' || $3 || '%' THEN 0 ELSE 1 END,
@@ -80,9 +89,17 @@ router.get('/', async (req, res) => {
          CASE WHEN $7 <> '' AND location_text ILIKE '%' || $7 || '%' THEN 0 ELSE 1 END,
          CASE WHEN $8 <> '' AND location_text ILIKE '%' || $8 || '%' THEN 0 ELSE 1 END,
          CASE WHEN $9 <> '' AND location_text ILIKE '%' || $9 || '%' THEN 0 ELSE 1 END,
+         CASE WHEN $11 = 'popular' THEN (
+           SELECT COUNT(*) FROM products p
+            WHERE p.business_id = social_feed.business_id AND p.is_active = TRUE
+         ) END DESC NULLS LAST,
+         CASE WHEN $11 = 'rating' THEN (
+           SELECT COALESCE(AVG(br.rating), 0) FROM business_reviews br
+            WHERE br.business_id = social_feed.business_id
+         ) END DESC NULLS LAST,
          created_at DESC, item_type ASC, item_id DESC
        LIMIT $1 OFFSET $2
-    `, [limit + 1, offset, search, ...locationFilters.map(([, value]) => value), ...Array(6 - locationFilters.length).fill('')]);
+    `, [limit + 1, offset, search, ...locationFilters.map(([, value]) => value), ...Array(6 - locationFilters.length).fill(''), categoryId, sort]);
 
     const rows = result.rows;
     const hasMore = rows.length > limit;

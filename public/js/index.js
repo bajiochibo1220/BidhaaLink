@@ -862,6 +862,7 @@ function setupMarketplacePaneToggles() {
     else delete layout.dataset.expanded;
     document.body.classList.toggle('marketplace-pane-expanded', Boolean(expanded));
     document.body.classList.toggle('marketplace-social-feed-active', expanded === 'feed');
+    document.body.classList.toggle('marketplace-businesses-active', expanded === 'businesses');
     Object.entries(buttons).forEach(([pane, button]) => {
       const isExpanded = expanded === pane;
       button.setAttribute('aria-pressed', String(isExpanded));
@@ -916,6 +917,10 @@ async function loadMarketplaceFeed(reset = false) {
     const params = new URLSearchParams({ page: String(marketplaceFeedPage), limit: '8' });
     const search = getCombinedSearchText();
     if (search) params.set('search', search);
+    const category = document.getElementById('businessCategoryFilter')?.value || 'all';
+    const sort = document.getElementById('sortFilter')?.value || 'newest';
+    if (category !== 'all') params.set('category', category);
+    if (sort) params.set('sort', sort);
     document.querySelectorAll('#locationFilters select').forEach(select => {
       if (select.dataset.locationField && select.value) params.set(select.dataset.locationField, select.value);
     });
