@@ -5858,21 +5858,24 @@ body.index-body .marketplace-social-layout[data-expanded="feed"] .marketplace-fe
     height: auto;
     max-height: none;
     aspect-ratio: var(--marketplace-media-ratio, 3 / 2);
+    align-self: center;
+    margin-inline: auto;
     overflow: hidden;
     background: #000 !important;
   }
   body.index-body.marketplace-social-feed-active .marketplace-feed-media > img,
   body.index-body.marketplace-social-feed-active .marketplace-feed-media > video {
-    position: absolute !important;
-    inset: 0 !important;
+    position: relative !important;
+    inset: auto !important;
     display: block;
     width: 100% !important;
-    height: 100% !important;
+    height: auto !important;
     max-width: 100%;
-    max-height: 100%;
+    max-height: none;
     object-fit: contain !important;
     object-position: center;
     transform: none !important;
+    margin-inline: auto;
     background: #000 !important;
   }
   body.index-body.marketplace-social-feed-active .marketplace-feed-shade {
