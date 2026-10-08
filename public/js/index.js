@@ -847,6 +847,12 @@ function createMarketplaceFeedCard(item) {
   details.append(bottomRow);
   }
   if (description.textContent) {
+    const fullDescription = description.textContent;
+    const words = fullDescription.trim().split(/\s+/);
+    const collapsedDescription = words.length > 8
+      ? `${words.slice(0, 8).join(' ')}...`
+      : fullDescription;
+    description.textContent = collapsedDescription;
     description.classList.add('is-collapsed');
     const descriptionRow = document.createElement('div');
     descriptionRow.className = 'marketplace-feed-description-row';
@@ -860,6 +866,7 @@ function createMarketplaceFeedCard(item) {
       const expanded = descriptionRow.classList.toggle('is-expanded');
       description.classList.toggle('is-expanded', expanded);
       description.classList.toggle('is-collapsed', !expanded);
+      description.textContent = expanded ? fullDescription : collapsedDescription;
       more.textContent = expanded ? 'Less' : 'More';
       more.setAttribute('aria-expanded', String(expanded));
     });

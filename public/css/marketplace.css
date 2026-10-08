@@ -5926,7 +5926,7 @@ body.index-body .marketplace-social-layout[data-expanded="feed"] .marketplace-fe
 }
 .marketplace-feed-card > .marketplace-feed-media {
   position: absolute !important;
-  inset: 0 0 32% !important;
+  inset: 0 0 18% !important;
   display: grid !important;
   place-items: center;
   width: auto !important;
@@ -5990,16 +5990,17 @@ body.index-body .marketplace-social-layout[data-expanded="feed"] .marketplace-fe
 .marketplace-feed-description-row {
   display: flex;
   align-items: baseline;
-  gap: 6px;
+  gap: 0;
   width: 100%;
   min-width: 0;
   margin-top: 4px;
 }
 .marketplace-feed-description-row .marketplace-feed-description {
   display: block !important;
-  flex: 1 1 auto;
+  flex: 0 1 auto;
   min-width: 0;
-  max-width: none;
+  width: fit-content;
+  max-width: min(78%, calc(100% - 54px));
   max-height: none;
   margin: 0;
   overflow: hidden;
@@ -6010,7 +6011,7 @@ body.index-body .marketplace-social-layout[data-expanded="feed"] .marketplace-fe
 }
 .marketplace-feed-description-row .marketplace-feed-more {
   flex: 0 0 auto;
-  margin: 0;
+  margin: 0 0 0 5px;
   padding: 0;
   border: 0;
   background: transparent;
@@ -6068,5 +6069,8 @@ body.index-body .marketplace-social-layout[data-expanded="feed"] .marketplace-fe
     max-height: 100% !important;
     scroll-snap-align: start !important;
     scroll-snap-stop: always;
+  }
+  body.index-body.marketplace-social-feed-active .marketplace-feed-card > .marketplace-feed-media {
+    inset: 0 0 18% !important;
   }
 }
