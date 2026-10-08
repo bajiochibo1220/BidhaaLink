@@ -5469,7 +5469,8 @@ body.index-body .marketplace-social-layout[data-expanded="feed"] .marketplace-fe
     position: fixed !important;
     inset: env(safe-area-inset-top) 0 auto;
     z-index: 1300;
-    display: flex !important;
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) max-content;
     box-sizing: border-box;
     width: 100%;
     height: 56px !important;
@@ -5477,37 +5478,65 @@ body.index-body .marketplace-social-layout[data-expanded="feed"] .marketplace-fe
     flex-wrap: nowrap !important;
     gap: 5px;
     padding: 5px 8px;
-    background: #e5e7eb !important;
+    background: #374151 !important;
+    border-bottom: 1px solid #4b5563;
     box-shadow: 0 2px 8px rgba(15,23,42,.18);
   }
   body.index-body.marketplace-social-feed-active .top-bar > div:first-child,
   body.index-body.marketplace-businesses-active .top-bar > div:first-child {
-    flex: 0 1 auto;
+    width: auto;
     min-width: 0;
+    overflow: hidden;
   }
   body.index-body.marketplace-social-feed-active .top-bar .brand,
   body.index-body.marketplace-businesses-active .top-bar .brand { gap: 5px; font-size: .82rem; }
   body.index-body.marketplace-social-feed-active .top-bar .brand img,
   body.index-body.marketplace-businesses-active .top-bar .brand img { width: 28px; height: 28px; }
+  body.index-body.marketplace-social-feed-active .top-bar .brand span,
+  body.index-body.marketplace-businesses-active .top-bar .brand span {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
   body.index-body.marketplace-social-feed-active .top-bar .announcement-bar,
   body.index-body.marketplace-businesses-active .top-bar .announcement-bar { display: none !important; }
   body.index-body.marketplace-social-feed-active .top-bar .top-bar-right,
-  body.index-body.marketplace-businesses-active .top-bar .top-bar-right { flex: 0 0 auto; margin-left: auto; }
-  body.index-body.marketplace-social-feed-active #publicNavTop,
-  body.index-body.marketplace-businesses-active #publicNavTop { flex-wrap: nowrap; gap: 4px !important; white-space: nowrap; }
-  body.index-body.marketplace-social-feed-active .top-bar-right,
-  body.index-body.marketplace-businesses-active .top-bar-right {
-    min-width: 0;
-    max-width: 58%;
+  body.index-body.marketplace-businesses-active .top-bar .top-bar-right {
+    flex: 0 0 auto;
+    width: auto;
+    max-width: none;
+    margin: 0;
+    overflow: visible;
+    grid-column: 2;
+    justify-self: end;
   }
   body.index-body.marketplace-social-feed-active #publicNavTop,
   body.index-body.marketplace-businesses-active #publicNavTop {
     justify-content: flex-end;
-    flex: 0 1 auto;
-    min-width: 0;
+    flex: 0 0 auto;
+    width: auto;
+    gap: 3px !important;
+    overflow: visible;
+    white-space: nowrap;
   }
   body.index-body.marketplace-social-feed-active #publicNavTop .admin-access-dot,
-  body.index-body.marketplace-businesses-active #publicNavTop .admin-access-dot { display: none !important; }
+  body.index-body.marketplace-businesses-active #publicNavTop .admin-access-dot {
+    display: inline-grid !important;
+    box-sizing: border-box;
+    width: 24px;
+    height: 24px;
+    flex: 0 0 24px;
+    place-items: center;
+    padding: 0 !important;
+    opacity: .5;
+  }
+  body.index-body.marketplace-social-feed-active #publicNavTop .admin-access-dot span,
+  body.index-body.marketplace-businesses-active #publicNavTop .admin-access-dot span {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: #d1d5db;
+  }
   body.index-body.marketplace-social-feed-active #topRegisterLink,
   body.index-body.marketplace-social-feed-active #topLoginLink,
   body.index-body.marketplace-businesses-active #topRegisterLink,
@@ -5525,7 +5554,7 @@ body.index-body .marketplace-social-layout[data-expanded="feed"] .marketplace-fe
   body.index-body.marketplace-social-feed-active #topLoginLink,
   body.index-body.marketplace-businesses-active #topRegisterLink,
   body.index-body.marketplace-businesses-active #topLoginLink {
-    flex: 0 1 auto;
+    flex: 0 0 auto;
     padding: 5px 6px !important;
     font-size: .65rem !important;
   }
@@ -5534,7 +5563,7 @@ body.index-body .marketplace-social-layout[data-expanded="feed"] .marketplace-fe
   body.index-body.marketplace-social-feed-active #topRegisterLink,
   body.index-body.marketplace-businesses-active #topRegisterLink { order: 2; }
   body.index-body.marketplace-social-feed-active #topLoginLink,
-  body.index-body.marketplace-businesses-active #topLoginLink { color: #166534 !important; }
+  body.index-body.marketplace-businesses-active #topLoginLink { color: #f9fafb !important; }
   body.index-body.marketplace-social-feed-active #topRegisterLink,
   body.index-body.marketplace-businesses-active #topRegisterLink {
     border-radius: 999px;
@@ -5597,6 +5626,30 @@ body.index-body .marketplace-social-layout[data-expanded="feed"] .marketplace-fe
   body.index-body.marketplace-social-feed-active .marketplace-heading-copy,
   body.index-body.marketplace-businesses-active .marketplace-heading-copy {
     display: none !important;
+  }
+  body.index-body.marketplace-businesses-active .marketplace-heading-copy {
+    display: block !important;
+    flex: 0 0 auto !important;
+    width: auto;
+    max-width: none;
+    overflow: visible;
+  }
+  body.index-body.marketplace-businesses-active .marketplace-social-business-heading {
+    gap: 8px;
+    padding: 0 8px !important;
+    border: 1px solid rgba(139,105,58,.35) !important;
+    border-radius: 12px;
+    background-color: #e8d8b5 !important;
+    background-image:
+      repeating-linear-gradient(45deg, transparent 0 16px, rgba(139,105,58,.11) 16px 17px, transparent 17px 32px),
+      repeating-linear-gradient(-45deg, transparent 0 16px, rgba(139,105,58,.11) 16px 17px, transparent 17px 32px) !important;
+    box-shadow: 0 2px 8px rgba(66,48,22,.14) !important;
+  }
+  body.index-body.marketplace-businesses-active .marketplace-social-business-heading h2 {
+    display: block;
+    color: #263528;
+    font-size: .86rem;
+    white-space: nowrap;
   }
   body.index-body.marketplace-social-feed-active .marketplace-social-heading-cell h2,
   body.index-body.marketplace-businesses-active .marketplace-social-heading-cell h2 {
