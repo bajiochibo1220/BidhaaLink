@@ -847,27 +847,24 @@ function createMarketplaceFeedCard(item) {
   details.append(bottomRow);
   }
   if (description.textContent) {
-    const originalDescription = description.textContent;
-    const words = originalDescription.trim().split(/\s+/);
-    const collapsedDescription = words.length > 4
-      ? `${words.slice(0, 4).join(' ')}...`
-      : originalDescription;
-    description.textContent = collapsedDescription;
     description.classList.add('is-collapsed');
-    details.append(description);
+    const descriptionRow = document.createElement('div');
+    descriptionRow.className = 'marketplace-feed-description-row';
+    descriptionRow.append(description);
     const more = document.createElement('button');
     more.type = 'button';
     more.className = 'marketplace-feed-more';
     more.textContent = 'More';
     more.setAttribute('aria-expanded', 'false');
     more.addEventListener('click', () => {
-      const expanded = description.classList.toggle('is-expanded');
+      const expanded = descriptionRow.classList.toggle('is-expanded');
+      description.classList.toggle('is-expanded', expanded);
       description.classList.toggle('is-collapsed', !expanded);
-      description.textContent = expanded ? originalDescription : collapsedDescription;
       more.textContent = expanded ? 'Less' : 'More';
       more.setAttribute('aria-expanded', String(expanded));
     });
-    details.append(more);
+    descriptionRow.append(more);
+    details.append(descriptionRow);
   }
 
   shade.append(topbar, details);

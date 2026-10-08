@@ -1404,6 +1404,7 @@ body.index-body {
 
 .business-service-contact-options,
 .business-service-contact-options:not([hidden]) {
+  position: relative;
   display: grid;
   width: min(100%, 300px);
   gap: 6px;
@@ -1418,6 +1419,26 @@ body.index-body {
   display: none !important;
 }
 
+.business-service-contact-close {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  z-index: 1;
+  display: grid;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  padding: 0;
+  border: 1px solid #cbd5e1;
+  border-radius: 50%;
+  background: #f1f5f9;
+  color: #0f172a;
+  font: inherit;
+  font-size: 1.2rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
 .business-service-contact-wrap.business-service-media-inquiry .business-service-contact-options,
 .business-service-contact-wrap.business-service-viewer-inquiry .business-service-contact-options {
   position: absolute;
@@ -1427,7 +1448,8 @@ body.index-body {
 }
 
 .business-service-contact-media-note {
-  margin: 1px 2px 3px;
+  min-height: 28px;
+  margin: 1px 32px 3px 2px;
   color: #64748b;
   font-size: .68rem;
   line-height: 1.35;

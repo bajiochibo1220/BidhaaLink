@@ -695,12 +695,22 @@ function createBusinessServiceInquiryLink(service, className = 'business-service
     const options = document.createElement('div');
     options.className = 'business-service-contact-options';
     options.hidden = true;
+    const close = document.createElement('button');
+    close.type = 'button';
+    close.className = 'business-service-contact-close';
+    close.setAttribute('aria-label', 'Close contact options');
+    close.textContent = '×';
+    close.addEventListener('click', () => {
+        options.hidden = true;
+        trigger.setAttribute('aria-expanded', 'false');
+        trigger.focus();
+    });
     const mediaNote = document.createElement('p');
     mediaNote.className = 'business-service-contact-media-note';
     mediaNote.textContent = mediaItem?.url
         ? `This ${mediaItem.kind} will be attached to your message.`
         : 'Your message will include a link back to this service.';
-    options.appendChild(mediaNote);
+    options.append(close, mediaNote);
     [
         { method: 'whatsapp', label: 'WhatsApp', icon: 'fab fa-whatsapp', hint: 'Open a WhatsApp chat' },
         { method: 'sms', label: 'SMS', icon: 'fas fa-comment-sms', hint: 'Open a text message' },
@@ -1870,7 +1880,9 @@ function queueBusinessProductCartAfterAuth(productId, quantity) {
     if (typeof window.openAuthModal === 'function') {
         window.openAuthModal('login');
     } else {
-        window.location.assign('/marketplace?auth=login');
+        const returnUrl = new URL(window.location.href);
+        returnUrl.searchParams.set('auth', 'login');
+        window.location.assign(returnUrl.pathname + returnUrl.search + returnUrl.hash);
     }
 }
 
