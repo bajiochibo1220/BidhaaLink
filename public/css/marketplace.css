@@ -5494,6 +5494,17 @@ body.index-body .marketplace-social-layout[data-expanded="feed"] .marketplace-fe
   body.index-body.marketplace-businesses-active .top-bar .top-bar-right { flex: 0 0 auto; margin-left: auto; }
   body.index-body.marketplace-social-feed-active #publicNavTop,
   body.index-body.marketplace-businesses-active #publicNavTop { flex-wrap: nowrap; gap: 4px !important; white-space: nowrap; }
+  body.index-body.marketplace-social-feed-active .top-bar-right,
+  body.index-body.marketplace-businesses-active .top-bar-right {
+    min-width: 0;
+    max-width: 58%;
+  }
+  body.index-body.marketplace-social-feed-active #publicNavTop,
+  body.index-body.marketplace-businesses-active #publicNavTop {
+    justify-content: flex-end;
+    flex: 0 1 auto;
+    min-width: 0;
+  }
   body.index-body.marketplace-social-feed-active #publicNavTop .admin-access-dot,
   body.index-body.marketplace-businesses-active #publicNavTop .admin-access-dot { display: none !important; }
   body.index-body.marketplace-social-feed-active #topRegisterLink,
@@ -5509,6 +5520,22 @@ body.index-body .marketplace-social-layout[data-expanded="feed"] .marketplace-fe
     line-height: 1;
     white-space: nowrap;
   }
+  body.index-body.marketplace-social-feed-active #topRegisterLink,
+  body.index-body.marketplace-social-feed-active #topLoginLink,
+  body.index-body.marketplace-businesses-active #topRegisterLink,
+  body.index-body.marketplace-businesses-active #topLoginLink {
+    flex: 0 1 auto;
+    padding: 5px 6px !important;
+    font-size: .65rem !important;
+  }
+  body.index-body.marketplace-social-feed-active #topLoginLink,
+  body.index-body.marketplace-businesses-active #topLoginLink { order: 1; visibility: visible !important; opacity: 1 !important; }
+  body.index-body.marketplace-social-feed-active #topRegisterLink,
+  body.index-body.marketplace-businesses-active #topRegisterLink { order: 2; }
+  body.index-body.marketplace-social-feed-active #topRegisterLink i,
+  body.index-body.marketplace-social-feed-active #topLoginLink i,
+  body.index-body.marketplace-businesses-active #topRegisterLink i,
+  body.index-body.marketplace-businesses-active #topLoginLink i { display: none !important; }
   body.index-body.marketplace-social-feed-active .marketplace-social-layout[data-expanded="feed"],
   body.index-body.marketplace-businesses-active .marketplace-social-layout[data-expanded="businesses"] {
     position: fixed !important;
@@ -5555,7 +5582,13 @@ body.index-body .marketplace-social-layout[data-expanded="feed"] .marketplace-fe
   body.index-body.marketplace-social-feed-active .marketplace-social-business-heading,
   body.index-body.marketplace-businesses-active .marketplace-social-heading-cell:not(.marketplace-social-business-heading) { display: none !important; }
   body.index-body.marketplace-social-feed-active .marketplace-heading-copy,
-  body.index-body.marketplace-businesses-active .marketplace-heading-copy { flex: 0 1 auto !important; min-width: 0; }
+  body.index-body.marketplace-businesses-active .marketplace-heading-copy {
+    flex: 0 1 34% !important;
+    width: 34%;
+    max-width: 34%;
+    min-width: 0;
+    overflow: hidden;
+  }
   body.index-body.marketplace-social-feed-active .marketplace-social-heading-cell h2,
   body.index-body.marketplace-businesses-active .marketplace-social-heading-cell h2 {
     overflow: hidden;
@@ -5566,7 +5599,7 @@ body.index-body .marketplace-social-layout[data-expanded="feed"] .marketplace-fe
   body.index-body.marketplace-social-feed-active .marketplace-pane-search,
   body.index-body.marketplace-businesses-active .marketplace-pane-search {
     display: flex !important;
-    flex: 1 1 90px;
+    flex: 1 1 120px;
     min-width: 0;
     max-width: none;
   }
@@ -5580,6 +5613,8 @@ body.index-body .marketplace-social-layout[data-expanded="feed"] .marketplace-fe
   body.index-body.marketplace-businesses-active .marketplace-pane-search .search-submit-label { display: none; }
   body.index-body.marketplace-social-feed-active .marketplace-feed-heading-actions,
   body.index-body.marketplace-businesses-active .marketplace-social-heading-cell .marketplace-pane-toggle { display: flex; flex: 0 0 auto; }
+  body.index-body.marketplace-social-feed-active #marketplaceFeedToggle,
+  body.index-body.marketplace-businesses-active #marketplaceBusinessesToggle { display: none !important; }
   body.index-body.marketplace-social-feed-active .marketplace-feed-heading-actions button,
   body.index-body.marketplace-businesses-active .marketplace-social-heading-cell .marketplace-pane-toggle { width: 34px; height: 34px; }
   body.index-body.marketplace-social-feed-active .marketplace-social-layout[data-expanded="feed"] > .marketplace-feed,
@@ -5620,6 +5655,11 @@ body.index-body .marketplace-social-layout[data-expanded="feed"] .marketplace-fe
   body.index-body.marketplace-social-feed-active .marketplace-feed-media > img,
   body.index-body.marketplace-social-feed-active .marketplace-feed-media > video {
     background: #000 !important;
+  }
+  body.index-body.marketplace-social-feed-active .marketplace-feed-media {
+    inset: 0 0 48%;
+    width: auto;
+    height: auto;
   }
   body.index-body.marketplace-social-feed-active .marketplace-feed-media > img,
   body.index-body.marketplace-social-feed-active .marketplace-feed-media > video {
