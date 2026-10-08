@@ -3624,13 +3624,13 @@ html.embedded .category-blocks-section {
     min-height: 34px; padding: 6px 9px !important; font-size: .68rem !important;
     white-space: nowrap;
   }
-  body.index-body #publicNavTop .auth-btn:last-child {
+  body.index-body #publicNavTop .admin-access-dot {
     position: relative; width: 34px; padding: 6px !important; font-size: 0 !important;
     color: transparent !important;
   }
   body.index-body #publicNavTop .auth-btn i { font-size: .82rem; }
-  body.index-body #publicNavTop .auth-btn:last-child i { display: none; }
-  body.index-body #publicNavTop .auth-btn:last-child::after {
+  body.index-body #publicNavTop .admin-access-dot i { display: none; }
+  body.index-body #publicNavTop .admin-access-dot::after {
     content: ""; width: 5px; height: 5px; border-radius: 50%;
     background: #64748b; opacity: .58;
   }
@@ -5537,6 +5537,11 @@ body.index-body .marketplace-social-layout[data-expanded="feed"] .marketplace-fe
     border-radius: 50%;
     background: #d1d5db;
   }
+  body.index-body.marketplace-social-feed-active #publicNavTop .admin-access-dot::after,
+  body.index-body.marketplace-businesses-active #publicNavTop .admin-access-dot::after {
+    display: none !important;
+    content: none !important;
+  }
   body.index-body.marketplace-social-feed-active #topRegisterLink,
   body.index-body.marketplace-social-feed-active #topLoginLink,
   body.index-body.marketplace-businesses-active #topRegisterLink,
@@ -5564,6 +5569,29 @@ body.index-body .marketplace-social-layout[data-expanded="feed"] .marketplace-fe
   body.index-body.marketplace-businesses-active #topRegisterLink { order: 2; }
   body.index-body.marketplace-social-feed-active #topLoginLink,
   body.index-body.marketplace-businesses-active #topLoginLink { color: #f9fafb !important; }
+  /* The older phone rule styles the last auth link (Login) as the tiny
+     Super Admin dot. Reset every property here with greater specificity. */
+  body.index-body.marketplace-social-feed-active #publicNavTop #topLoginLink,
+  body.index-body.marketplace-businesses-active #publicNavTop #topLoginLink {
+    position: static !important;
+    display: inline-flex !important;
+    box-sizing: border-box;
+    width: auto !important;
+    min-width: max-content !important;
+    max-width: none !important;
+    height: auto !important;
+    flex: 0 0 auto !important;
+    padding: 5px 6px !important;
+    font-size: .68rem !important;
+    color: #f9fafb !important;
+    text-indent: 0 !important;
+    white-space: nowrap !important;
+  }
+  body.index-body.marketplace-social-feed-active #publicNavTop #topLoginLink::after,
+  body.index-body.marketplace-businesses-active #publicNavTop #topLoginLink::after {
+    display: none !important;
+    content: none !important;
+  }
   body.index-body.marketplace-social-feed-active #topRegisterLink,
   body.index-body.marketplace-businesses-active #topRegisterLink {
     border-radius: 999px;
@@ -5719,7 +5747,7 @@ body.index-body .marketplace-social-layout[data-expanded="feed"] .marketplace-fe
     background: #000 !important;
   }
   body.index-body.marketplace-social-feed-active .marketplace-feed-media {
-    inset: 0 0 48%;
+    inset: 0 0 40%;
     width: auto;
     height: auto;
     display: grid;
@@ -5738,7 +5766,11 @@ body.index-body .marketplace-social-layout[data-expanded="feed"] .marketplace-fe
   }
   body.index-body.marketplace-social-feed-active .marketplace-feed-topbar { top: 62px !important; left: 14px; }
   body.index-body.marketplace-social-feed-active .marketplace-feed-details {
-    max-height: 48%;
+    position: absolute;
+    inset: auto 0 0;
+    box-sizing: border-box;
+    height: 40%;
+    max-height: 40%;
     overflow-y: auto;
     background: #000 !important;
   }
