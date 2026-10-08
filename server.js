@@ -46,7 +46,7 @@ const crypto = require('crypto');
 
 const { pool, logError } = require('./src/config/database');
 const { globalErrorHandler } = require('./src/middleware/errorHandler');
-const { generalLimiter, sensitiveLimiter } = require('./src/middleware/rateLimiter');
+const { generalLimiter, sensitiveLimiter, assistantLimiter } = require('./src/middleware/rateLimiter');
 const { setupSocketHandlers } = require('./src/socket/socketHandler');
 const { initPaypalClient } = require('./src/services/paypal');
 const { restockOrder, appendOrderStatus, getSystemSetting } = require('./src/services/orderService');
@@ -76,6 +76,7 @@ const orderRoutes = require('./src/routes/orders');
 const paymentRoutes = require('./src/routes/payments');
 const adminRoutes = require('./src/routes/admin');
 const chatRoutes = require('./src/routes/chat');
+const assistantRoutes = require('./src/routes/assistant');
 const locationRoutes = require('./src/routes/location');
 const analyticsRoutes = require('./src/routes/analytics');
 const addressRoutes = require('./src/routes/addresses');
@@ -456,6 +457,7 @@ app.use('/api/auth/customer/login', sensitiveLimiter);
 app.use('/api/auth/business/login', sensitiveLimiter);
 app.use('/api/orders', sensitiveLimiter);
 app.use('/api/payments', sensitiveLimiter);
+app.use('/api/assistant', assistantLimiter);
 
 // ============================================================
 //  API ROUTES
@@ -469,6 +471,7 @@ app.use('/api/orders', orderRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/chat', chatRoutes);
+app.use('/api/assistant', assistantRoutes);
 app.use('/api/location', locationRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/addresses', addressRoutes);

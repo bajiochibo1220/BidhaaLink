@@ -18,4 +18,12 @@ const sensitiveLimiter = rateLimit({
   message: { error: 'Too many attempts. Please try again later.' }
 });
 
-module.exports = { generalLimiter, loginLimiter, sensitiveLimiter };
+const assistantLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 20,
+  standardHeaders: 'draft-8',
+  legacyHeaders: false,
+  message: { error: 'The assistant is receiving too many requests. Please wait a minute and try again.' }
+});
+
+module.exports = { generalLimiter, loginLimiter, sensitiveLimiter, assistantLimiter };
