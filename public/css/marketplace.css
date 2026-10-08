@@ -5927,6 +5927,23 @@ body.index-body .marketplace-social-layout[data-expanded="feed"] .marketplace-fe
   }
 }
 
+/* Reuse the business-profile canvas throughout business discovery. */
+body.index-body .marketplace-business-rail,
+body.index-body.marketplace-businesses-active .marketplace-business-rail {
+  background-color: #e8d8b5 !important;
+  background-image:
+    repeating-linear-gradient(45deg, transparent 0 35px, rgba(139, 105, 58, .09) 35px 36px, transparent 36px 70px),
+    repeating-linear-gradient(-45deg, transparent 0 35px, rgba(139, 105, 58, .09) 35px 36px, transparent 36px 70px) !important;
+  background-size: 70px 70px, 70px 70px !important;
+}
+body.index-body .marketplace-business-rail .category-block {
+  background-color: #e8d8b5 !important;
+  background-image:
+    repeating-linear-gradient(45deg, transparent 0 35px, rgba(139, 105, 58, .09) 35px 36px, transparent 36px 70px),
+    repeating-linear-gradient(-45deg, transparent 0 35px, rgba(139, 105, 58, .09) 35px 36px, transparent 36px 70px) !important;
+  background-size: 70px 70px, 70px 70px !important;
+}
+
 /* Final feed card layout overrides legacy phone flow rules above. */
 .marketplace-feed-card {
   position: relative !important;
