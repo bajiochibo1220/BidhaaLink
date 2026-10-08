@@ -4281,6 +4281,16 @@ body.marketplace-pane-expanded { overflow: hidden; }
 .marketplace-business-rail .business-card .card-body .business-distance { background: #193326; color: #bbf7d0; }
 .marketplace-business-rail .category-load-more { border-color: #c9c4ba; background: #dedbd4; color: #344154; }
 
+/* Business cards are a soft off-white, distinct from their warmer category panels. */
+.marketplace-business-rail .business-card,
+.marketplace-business-rail .block-card {
+  background: #f4f2ed;
+}
+.marketplace-business-rail .business-card:hover,
+.marketplace-business-rail .block-card:hover {
+  background: #f8f7f3;
+}
+
 /* Black matte belongs to the immersive phone feed. */
 @media (max-width: 640px) {
 .marketplace-feed,
