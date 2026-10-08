@@ -2144,6 +2144,12 @@ window.isBusinessAdminViewer = isBusinessAdminViewer;
 window.renderBusinessProductGrid = renderBusinessProductGrid;
 window.openBusinessImagePreviewFromButton = openBusinessImagePreviewFromButton;
 window.closeBusinessImagePreview = closeBusinessImagePreview;
+window.closeDetails = function closeDetails() {
+    const modal = document.getElementById('detailModal');
+    if (!modal) return;
+    modal.classList.remove('active');
+    modal.setAttribute('aria-hidden', 'true');
+};
 window.populateBusinessProductCategories = populateBusinessProductCategories;
 window.businessFallbackImage = businessFallbackImage;
 

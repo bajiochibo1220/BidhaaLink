@@ -577,8 +577,11 @@ function setupMarketplacePaneToggles() {
   };
   // A pane is always selected on phones so the fixed mobile navigation has
   // a clear active view and cannot leave the user with neither section.
-  const mobile = window.matchMedia('(max-width: 640px)');
+  const mobile = window.matchMedia('(max-width: 900px)');
   update(mobile.matches ? 'feed' : '');
+  const handleViewportModeChange = event => update(event.matches ? 'feed' : '');
+  if (mobile.addEventListener) mobile.addEventListener('change', handleViewportModeChange);
+  else if (mobile.addListener) mobile.addListener(handleViewportModeChange);
   businessesToggle.addEventListener('click', () => {
     update(!mobile.matches && layout.dataset.expanded === 'businesses' ? '' : 'businesses');
   });
