@@ -682,6 +682,11 @@ function createMarketplaceFeedCard(item) {
   article.className = `marketplace-feed-card marketplace-feed-${isCustomerPost ? 'customer-post' : item.item_type === 'service' ? 'service' : 'product'}`;
   const media = document.createElement('div');
   media.className = 'marketplace-feed-media';
+  const setMediaAspectRatio = (width, height) => {
+    if (Number.isFinite(width) && Number.isFinite(height) && width > 0 && height > 0) {
+      media.style.setProperty('--marketplace-media-ratio', `${width} / ${height}`);
+    }
+  };
   let swipeStart = null;
   media.addEventListener('pointerdown', event => {
     if (event.pointerType !== 'touch' || !item.business_slug) return;
@@ -708,19 +713,24 @@ function createMarketplaceFeedCard(item) {
     const initialMediaCount = document.querySelectorAll('#marketplaceFeedList .marketplace-feed-card').length;
     video.preload = initialMediaCount < 2 ? 'auto' : 'metadata';
     video.setAttribute('aria-label', `${item.title || 'Offer'} video`);
+    video.addEventListener('loadedmetadata', () => setMediaAspectRatio(video.videoWidth, video.videoHeight), { once: true });
     media.append(video);
+    if (video.readyState >= 1) setMediaAspectRatio(video.videoWidth, video.videoHeight);
     marketplaceFeedVideoObserver?.observe(video);
     marketplaceFeedMediaObserver?.observe(video);
   } else if (item.media_url) {
     const image = document.createElement('img');
     image.src = item.media_url;
     image.alt = item.title || 'Business offer';
+    const applyImageAspectRatio = () => setMediaAspectRatio(image.naturalWidth, image.naturalHeight);
+    image.addEventListener('load', applyImageAspectRatio, { once: true });
     const initialMediaCount = document.querySelectorAll('#marketplaceFeedList .marketplace-feed-card').length;
     image.loading = initialMediaCount < 3 ? 'eager' : 'lazy';
     image.decoding = 'async';
     if (initialMediaCount < 2) image.fetchPriority = 'high';
     image.onerror = () => { image.remove(); media.classList.add('marketplace-feed-no-media'); };
     media.append(image);
+    if (image.complete) applyImageAspectRatio();
     marketplaceFeedMediaObserver?.observe(image);
   } else {
     media.classList.add('marketplace-feed-no-media');
