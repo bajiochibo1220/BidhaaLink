@@ -16,7 +16,6 @@
 //
 //  Section B — missing-category warning
 //
-//  Section C — Business location activation
 //
 //  Section H — Cart and order visibility
 //
@@ -71,45 +70,6 @@
 //   The whole feature is optional. The server never refuses a
 //   short or empty list; the 5-row target is a UI hint.
 //
-//  Tile provider migration (this revision):
-//   OpenStreetMap's volunteer tile servers block requests from
-//   deployments that are not plain human-browsing traffic. Any
-//   request from a custom domain, an ngrok tunnel, or a cloud
-//   host (including ours) is refused with HTTP 403, so every
-//   business-admin map showed "Access blocked" tiles.
-//
-//   The fix replaces the OSM tile URL with CartoDB Positron,
-//   a free, attribution-friendly raster basemap hosted on a
-//   proper CDN. It is the closest visual match to OSM's default
-//   style, needs no API key, and is explicitly allowed for
-//   production web apps.
-//
-//   This file now uses CARTO_TILE_URL as the single source of
-//   truth for the tile layer, so any future provider change is
-//   one constant. business-profile.js, track.js, seller-track.js
-//   and order-tracking.js have each been updated to use the same
-//   URL, and server.js has been updated so Helmet's imgSrc and
-//   connectSrc CSP directives whitelist basemaps.cartocdn.com.
-// ============================================================
-
-// ============================================================
-//  TILE PROVIDER — single source of truth
-//
-//  CartoDB Positron (light_all) is a free, no-signup raster
-//  basemap served from a global CDN. It reads well behind
-//  marker pins and matches the neutral look of the previous
-//  OSM tiles.
-//
-//  `{s}` is a subdomain placeholder Leaflet fills in with a, b,
-//  or c automatically. `{r}` is the retina placeholder Leaflet
-//  fills in with "@2x" on high-DPI screens, or an empty string
-//  otherwise. Both are handled by Leaflet, not by us.
-// ============================================================
-
-const CARTO_TILE_URL = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}';
-const CARTO_TILE_ATTRIBUTION = 'Tiles &copy; Esri';
-const CARTO_TILE_SUBDOMAINS = undefined;
-
 // Check if running in embedded mode (inside dashboard panel)
 const isEmbeddedBA = new URLSearchParams(window.location.search).get('embedded') === '1';
 
@@ -158,15 +118,6 @@ let variantCounter = 0;
 // Section J.2 — has the in-page ad management surface been initialised?
 let adManagementInitialised = false;
 
-// Section C — map + location state
-let businessLocationMap = null;
-let businessLocationMarker = null;
-let currentLocationState = {
-    activated: false,
-    complete: false,
-    latitude: null,
-    longitude: null
-};
 
 // Section I.6 — read-only environment label value from the server
 let currentMpesaEnvironment = 'sandbox';
@@ -390,13 +341,6 @@ async function verifyBusinessAccess() {
 
         applyCategoryWarning(data.has_business_category === true);
 
-        applyLocationState({
-            activated: data.business.location_activated === true,
-            complete: data.business.location_complete === true,
-            latitude: data.business.latitude || null,
-            longitude: data.business.longitude || null
-        });
-
         hydrateSearchTagFromBusiness(businessData);
 
         initSocket();
@@ -490,246 +434,6 @@ function applyCategoryWarning(hasCategory) {
         if (mainContent) {
             mainContent.insertBefore(banner, mainContent.firstChild);
         }
-    }
-}
-
-// ============================================================
-//  Section C — location state helpers
-// ============================================================
-
-function applyLocationState(state) {
-    if (!state) return;
-    currentLocationState = {
-        activated: state.activated === true,
-        complete: state.complete === true,
-        latitude: state.latitude || null,
-        longitude: state.longitude || null
-    };
-
-    updateLocationStatusBadge(currentLocationState);
-    renderLocationWarning(currentLocationState);
-}
-
-function updateLocationStatusBadge(state = currentLocationState) {
-    const activatedBadge = document.getElementById('locationStatusBadge');
-    const inactiveBadge = document.getElementById('locationStatusBadgeInactive');
-    const refreshBtn = document.getElementById('refreshLocationBtn');
-    const activateBtn = document.getElementById('activateLocationBtn');
-
-    if (state.activated) {
-        if (activatedBadge) activatedBadge.style.display = 'inline-block';
-        if (inactiveBadge) inactiveBadge.style.display = 'none';
-        if (refreshBtn) refreshBtn.style.display = 'inline-flex';
-        if (activateBtn) activateBtn.style.display = 'none';
-    } else {
-        if (activatedBadge) activatedBadge.style.display = 'none';
-        if (inactiveBadge) inactiveBadge.style.display = 'inline-block';
-        if (refreshBtn) refreshBtn.style.display = 'none';
-        if (activateBtn) activateBtn.style.display = 'inline-flex';
-    }
-}
-
-function renderLocationWarning(state = currentLocationState) {
-    const warning = document.getElementById('businessLocationWarning');
-    if (!warning) return;
-
-    const hasCoordinates = Boolean(state.latitude && state.longitude);
-    const hasName = Boolean(
-        document.getElementById('bTown')?.value?.trim() ||
-        document.getElementById('bCounty')?.value?.trim()
-    );
-
-    if (!hasCoordinates && !hasName) {
-        warning.style.display = 'block';
-    } else {
-        warning.style.display = 'none';
-    }
-}
-
-function renderBusinessLocationMap(latitude, longitude) {
-    const wrapper = document.getElementById('businessLocationMapWrapper');
-    const mapContainer = document.getElementById('businessLocationMap');
-    if (!wrapper || !mapContainer) return;
-    if (typeof L === 'undefined') return;
-
-    const lat = parseFloat(latitude);
-    const lng = parseFloat(longitude);
-    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
-
-    wrapper.style.display = 'block';
-
-    if (!businessLocationMap) {
-        businessLocationMap = L.map(mapContainer).setView([lat, lng], 15);
-        L.tileLayer(CARTO_TILE_URL, {
-            attribution: CARTO_TILE_ATTRIBUTION,
-            subdomains: CARTO_TILE_SUBDOMAINS,
-            maxZoom: 19
-        }).addTo(businessLocationMap);
-    } else {
-        businessLocationMap.setView([lat, lng], 15);
-    }
-
-    if (businessLocationMarker) {
-        businessLocationMarker.setLatLng([lat, lng]);
-    } else {
-        businessLocationMarker = L.marker([lat, lng], { draggable: true }).addTo(businessLocationMap);
-    }
-
-    setTimeout(() => {
-        try { businessLocationMap.invalidateSize(); } catch (err) { /* noop */ }
-    }, 250);
-}
-
-async function activateBusinessLocation() {
-    const statusEl = document.getElementById('locationActivationStatus');
-    const activateBtn = document.getElementById('activateLocationBtn');
-    const refreshBtn = document.getElementById('refreshLocationBtn');
-
-    if (!navigator.geolocation) {
-        if (statusEl) {
-            statusEl.textContent = '❌ Your browser does not support location. Please use a modern browser.';
-            statusEl.style.color = '#ef4444';
-        }
-        return;
-    }
-
-    if (statusEl) {
-        statusEl.textContent = '⏳ Getting your location...';
-        statusEl.style.color = '#2563eb';
-    }
-    if (activateBtn) activateBtn.disabled = true;
-    if (refreshBtn) refreshBtn.disabled = true;
-
-    navigator.geolocation.getCurrentPosition(
-        async (position) => {
-            const latitude = position.coords.latitude;
-            const longitude = position.coords.longitude;
-            const accuracy = position.coords.accuracy;
-
-            try {
-                const res = await fetch('/api/business-admin/location/activate', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
-                    },
-                    body: JSON.stringify({ latitude, longitude, accuracy })
-                });
-                const data = await res.json();
-
-                if (!res.ok || !data.success) {
-                    throw new Error(data.error || 'Failed to save location');
-                }
-
-                if (statusEl) {
-                    statusEl.textContent = '✅ Location activated successfully!';
-                    statusEl.style.color = '#16a34a';
-                }
-                showToast('✅ Location activated!', 'success');
-
-                applyLocationState({
-                    activated: true,
-                    complete: data.location?.complete === true,
-                    latitude: data.location?.latitude || latitude,
-                    longitude: data.location?.longitude || longitude
-                });
-
-                renderBusinessLocationMap(latitude, longitude);
-
-                if (businessData) {
-                    businessData.latitude = String(latitude);
-                    businessData.longitude = String(longitude);
-                    businessData.location_activated = true;
-                    businessData.location_complete = data.location?.complete === true;
-                }
-            } catch (err) {
-                console.error('Activate location error:', err);
-                if (statusEl) {
-                    statusEl.textContent = '❌ ' + err.message;
-                    statusEl.style.color = '#ef4444';
-                }
-                showToast('❌ ' + err.message, 'error');
-            } finally {
-                if (activateBtn) activateBtn.disabled = false;
-                if (refreshBtn) refreshBtn.disabled = false;
-            }
-        },
-        (error) => {
-            console.warn('Geolocation error:', error);
-            let message = 'Unable to get your location.';
-            if (error.code === error.PERMISSION_DENIED) {
-                message = 'Location permission was denied. Please allow it in your browser settings, then try again.';
-            } else if (error.code === error.POSITION_UNAVAILABLE) {
-                message = 'Your location is currently unavailable. Please try again in a moment.';
-            } else if (error.code === error.TIMEOUT) {
-                message = 'Getting your location timed out. Please try again.';
-            }
-
-            if (statusEl) {
-                statusEl.textContent = '❌ ' + message;
-                statusEl.style.color = '#ef4444';
-            }
-            showToast('❌ ' + message, 'error');
-
-            if (activateBtn) activateBtn.disabled = false;
-            if (refreshBtn) refreshBtn.disabled = false;
-        },
-        {
-            enableHighAccuracy: true,
-            timeout: 15000,
-            maximumAge: 0
-        }
-    );
-}
-
-async function saveAdjustedBusinessPin() {
-    if (!businessLocationMarker) {
-        showToast('Activate the location first, then drag the pin.', 'warning');
-        return;
-    }
-
-    const pos = businessLocationMarker.getLatLng();
-    const statusEl = document.getElementById('locationActivationStatus');
-
-    if (statusEl) {
-        statusEl.textContent = '⏳ Saving adjusted pin...';
-        statusEl.style.color = '#2563eb';
-    }
-
-    try {
-        const res = await fetch('/api/business-admin/location', {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify({ latitude: pos.lat, longitude: pos.lng })
-        });
-        const data = await res.json();
-
-        if (!res.ok || !data.success) {
-            throw new Error(data.detail || data.error || 'Failed to save pin');
-        }
-
-        if (statusEl) {
-            statusEl.textContent = '✅ Pin updated successfully!';
-            statusEl.style.color = '#16a34a';
-        }
-        showToast('✅ Pin saved!', 'success');
-
-        applyLocationState({
-            activated: true,
-            complete: data.location?.complete === true,
-            latitude: data.location?.latitude || pos.lat,
-            longitude: data.location?.longitude || pos.lng
-        });
-    } catch (err) {
-        console.error('Save pin error:', err);
-        if (statusEl) {
-            statusEl.textContent = '❌ ' + err.message;
-            statusEl.style.color = '#ef4444';
-        }
-        showToast('❌ ' + err.message, 'error');
     }
 }
 
@@ -2914,16 +2618,6 @@ async function loadBusinessProfile() {
         if (deliveryToggle) deliveryToggle.checked = business.delivery_enabled !== false;
 
         const publicLocation = publicBusiness.location || {};
-        applyLocationState({
-            activated: publicLocation.activated === true || business.location_activated === true,
-            complete: publicLocation.complete === true || business.location_complete === true,
-            latitude: business.latitude || publicLocation.latitude || null,
-            longitude: business.longitude || publicLocation.longitude || null
-        });
-
-        if (business.latitude && business.longitude) {
-            renderBusinessLocationMap(business.latitude, business.longitude);
-        }
 
         hydrateSearchTagFromBusiness(business);
 
@@ -2980,13 +2674,6 @@ document.getElementById('profileForm')?.addEventListener('submit', async functio
             }).then(r => r.ok ? r.json() : { has_business_category: false })
               .catch(() => ({ has_business_category: false }));
             applyCategoryWarning(afterSave.has_business_category === true);
-
-            applyLocationState({
-                activated: businessData.location_activated === true,
-                complete: businessData.location_complete === true,
-                latitude: businessData.latitude || null,
-                longitude: businessData.longitude || null
-            });
 
             await loadProductCategories(true);
 
@@ -4959,12 +4646,6 @@ window.showToast = showToast;
 
 window.applyCategoryWarning = applyCategoryWarning;
 
-window.activateBusinessLocation = activateBusinessLocation;
-window.saveAdjustedBusinessPin = saveAdjustedBusinessPin;
-window.applyLocationState = applyLocationState;
-window.updateLocationStatusBadge = updateLocationStatusBadge;
-window.renderLocationWarning = renderLocationWarning;
-window.renderBusinessLocationMap = renderBusinessLocationMap;
 
 window.updateOrderDeliveryWarning = updateOrderDeliveryWarning;
 

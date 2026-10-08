@@ -142,10 +142,8 @@
 
       <h3>Location data</h3>
       <ul class="legal-list">
-        <li>Customer GPS coordinates, only if the Customer activates location sharing.</li>
-        <li>Customer preferred area names (county, town, and so on), only if the Customer sets them.</li>
-        <li>Business GPS coordinates, once the Business activates its location.</li>
-        <li>Approximate location derived from IP address, when a visitor has not given precise location.</li>
+        <li>Business-provided location names, such as county and town, for discovery when a visitor searches for a place.</li>
+        <li>Delivery addresses and any delivery coordinates a Customer provides with an order.</li>
       </ul>
 
       <h3>Usage data</h3>
@@ -181,7 +179,7 @@
         <li>Process payments through the payment providers.</li>
         <li>Send transactional email (order confirmations, status updates, password reset, dispute notices).</li>
         <li>Let Customers and Businesses communicate about an order.</li>
-        <li>Rank nearby businesses when a Customer uses the "Near Me" feature.</li>
+        <li>Show businesses whose business-provided location names match a place typed into marketplace search.</li>
         <li>Detect and prevent fraud, abuse, and platform misuse.</li>
         <li>Comply with legal obligations.</li>
         <li>Improve the Marketplace: aggregate, non-identifying statistics about usage.</li>
@@ -254,26 +252,21 @@
     <section id="location-data" class="legal-section">
       <h2>7. Location data</h2>
       <p>
-        A Customer can choose to share their device's GPS coordinates with the
-        Marketplace. The coordinates are stored on the Customer's own record and are
-        used only to compute distance from a Business when the Customer searches
-        "near me" or sorts by distance.
+        Marketplace discovery does not request a Customer's device GPS, save a preferred
+        shopping area, or estimate a visitor's location from their IP address. Visitors
+        can type a town, county, or other place into the single search field. Search
+        matches business-provided location names.
       </p>
       <p>
-        <strong>Coordinates of a Customer are never returned to a Business.</strong>
-        A Business sees only the pickup or delivery address the Customer typed, and
-        only for the order that has been placed with that Business. See
-        <a href="/terms.html#delivery">Terms — Delivery and pickup</a>.
+        If a Customer provides a delivery address or delivery coordinates for an order,
+        we use those details to fulfil that order and share them with the Business
+        responsible for delivery. This order information is separate from marketplace
+        discovery.
       </p>
       <p>
-        A Customer can turn off location sharing at any time from the account profile.
-        Turning it off clears the stored coordinates and disables the "near me"
-        feature for that customer.
-      </p>
-      <p>
-        If a Customer does not share GPS, the Marketplace fetches an approximate
-        location from the IP address, through ipapi.co. The result is cached in memory
-        for a short time and is not stored on the Customer's record.
+        Customer discovery coordinates or preferred areas saved before this feature was
+        retired are no longer used for search. They remain only as legacy account data
+        until the account is deleted; account deletion clears those fields.
       </p>
     </section>
 
@@ -341,7 +334,6 @@
         <li><strong>Airtel</strong> receives the phone number and the amount for an Airtel Money payment.</li>
         <li><strong>PayPal</strong> receives the amount and the order reference.</li>
         <li><strong>Cloudinary</strong> receives the media files uploaded by businesses.</li>
-        <li><strong>ipapi.co</strong> receives the requesting IP address and returns an approximate location.</li>
         <li><strong>Google (Gmail SMTP)</strong> or <strong>SendGrid</strong> receives the recipient address and the body of the transactional email.</li>
         <li><strong>OpenStreetMap Nominatim</strong> receives the search text a Customer typed for a place lookup.</li>
         <li><strong>CartoDB</strong> receives only the tile coordinates needed to render the map in the browser.</li>
@@ -378,7 +370,7 @@
         <li><strong>Order data</strong> — for as long as necessary to provide receipts, resolve disputes, and satisfy tax and accounting obligations.</li>
         <li><strong>Payment metadata</strong> — for as long as the payment can be disputed, plus the retention period required by the payment provider.</li>
         <li><strong>Chat messages</strong> — for as long as the order chat can be referred back to; order chat is kept with the order.</li>
-        <li><strong>GPS coordinates</strong> — until the Customer turns location sharing off. Once off, the coordinates are cleared.</li>
+        <li><strong>Legacy discovery location data</strong> ? until the account is deleted; this data is no longer used for search.</li>
         <li><strong>Reviews</strong> — for as long as the reviewed product or business exists on the platform.</li>
         <li><strong>Acceptance records</strong> — for the entire life of the account, plus the period required to defend against a legal claim.</li>
         <li><strong>Admin activity log</strong> — for as long as needed for audit purposes.</li>

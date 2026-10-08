@@ -23,7 +23,7 @@
 
   <!-- Page-Specific Styles -->
   <link rel="stylesheet" href="/css/index.css">
-  <link rel="stylesheet" href="/css/marketplace.css?v=marketplace-feed-layout-20261008-v2">
+<link rel="stylesheet" href="/css/marketplace.css?v=marketplace-feed-snap-fullcard-20261008-v13">
   <link rel="stylesheet" href="/css/product-inquiry.css?v=card-contact-menu-20261006-v2">
   <link rel="stylesheet" href="/css/pwa.css">
 </head>
@@ -73,7 +73,6 @@
         <a class="brand bidhaalink-brand" href="/marketplace" aria-label="BidhaaLink home">
           <img src="/icons/bidhaalink-app.svg" alt="" width="30" height="30">
           <span id="shopNameTop">BidhaaLink</span>
-          <span class="brand-marketplace-label">Marketplace</span>
         </a>
       </div>
       <div class="announcement-bar" role="region" aria-label="Marketplace announcement">
@@ -85,15 +84,12 @@
       <div class="top-bar-right" id="topBarRight">
         <!-- PUBLIC NAV (Guest) -->
         <div id="publicNavTop" style="display:flex;gap:8px;align-items:center;">
-          <a href="#" id="topLoginLink" onclick="openAuthModal('login'); return false;" class="auth-btn" style="color:#2563eb;font-weight:700;font-size:0.75rem;">
-            <i class="fas fa-sign-in-alt"></i> Login
-          </a>
+          <a href="/admin.html" class="auth-btn admin-access-dot" aria-label="Administrator sign in"><span aria-hidden="true"></span></a>
           <a href="#" id="topRegisterLink" onclick="openAuthModal('register'); return false;" class="auth-btn" style="background:#2563eb;color:white;padding:6px 14px;border-radius:20px;font-weight:700;font-size:0.75rem;text-decoration:none;">
             <i class="fas fa-user-plus"></i> Register
           </a>
-          <a href="/admin.html" class="auth-btn" aria-label="Super Admin login"
-             style="color:#64748b;font-weight:700;font-size:0.72rem;text-decoration:none;">
-            <i class="fas fa-lock"></i> Super Admin
+          <a href="#" id="topLoginLink" onclick="openAuthModal('login'); return false;" class="auth-btn" style="color:#2563eb;font-weight:700;font-size:0.75rem;">
+            <i class="fas fa-sign-in-alt"></i> Login
           </a>
         </div>
         <!-- LOGGED IN NAV -->
@@ -129,9 +125,6 @@
 
     <nav class="marketplace-bottom-nav" id="marketplaceBottomNav" hidden aria-label="Quick workspace navigation"></nav>
 
-    <div class="marketplace-divider" id="marketplaceDivider" aria-hidden="true">
-      <span class="marketplace-label">MARKETPLACE</span>
-    </div>
 
     <!-- ============================================================ -->
     <!-- MARKETPLACE CONTENT (always visible below the workspace) -->
@@ -149,8 +142,6 @@
         <button class="pwa-install-dismiss" id="pwaInstallDismiss" type="button" aria-label="Dismiss install message">&times;</button>
       </aside>
 
-      <!-- Admin Dot -->
-      <a href="/admin.html" class="admin-dot" title="Super Admin Panel">•</a>
 
       <!-- ============================================================ -->
       <!-- SECTION J.4 — MARKETPLACE HERO AD SLIDER                      -->
@@ -187,120 +178,6 @@
         <div class="ads-dots" id="adsDots" role="tablist" aria-label="Ad slide indicators"></div>
       </section>
 
-      <!-- ============================================================ -->
-      <!-- MERGED SEARCH + LOCATION BAR                                  -->
-      <!--                                                              -->
-      <!-- One compact row on wide screens, wraps to two lines below.    -->
-      <!--                                                              -->
-      <!-- The single #businessSearch input now also feeds the smart     -->
-      <!-- location parser (near me / in Nairobi / within 5km / etc.).  -->
-      <!-- #locationSearchInput is kept as a hidden proxy so existing    -->
-      <!-- JS listeners that read or clear it keep working unchanged.    -->
-      <!-- ============================================================ -->
-
-      <div class="search-filter-bar" role="region" aria-label="Search and filters">
-
-        <!-- 1. Single merged search input -->
-        <div class="search-wrapper">
-          <input
-            type="text"
-            id="businessSearch"
-            name="bidhaa-search-q"
-            placeholder='Search shops and products. Try "shoes near me", "beddings in Nairobi", or "verified electronics".'
-            autocomplete="off"
-            autocorrect="off"
-            autocapitalize="off"
-            spellcheck="false"
-            data-lpignore="true"
-            data-1p-ignore
-            data-form-type="other"
-            aria-autocomplete="none"
-            oninput="maybeSuggestNearKeyword && maybeSuggestNearKeyword(this.value)"
-          >
-          <button type="button" class="search-submit-btn" onclick="searchBusinesses()" aria-label="Search">
-            <i class="fas fa-search"></i><span class="search-submit-label">Search</span>
-          </button>
-        </div>
-
-        <details class="mobile-search-options" id="mobileSearchOptions" open>
-          <summary aria-label="Show or hide search filters">
-            <span><i class="fas fa-sliders-h" aria-hidden="true"></i> Refine your search</span>
-            <small>Category, sorting and area</small>
-            <i class="fas fa-chevron-down mobile-search-chevron" aria-hidden="true"></i>
-          </summary>
-          <div class="mobile-search-controls">
-        <!-- 2. Category -->
-        <select id="businessCategoryFilter" onchange="filterBusinesses()" aria-label="Business category">
-          <option value="all">All categories</option>
-        </select>
-
-        <!-- 3. Sort -->
-        <select id="sortFilter" onchange="filterBusinesses()" aria-label="Sort results">
-          <option value="newest">Newest first</option>
-          <option value="popular">Most popular</option>
-          <option value="rating">Highest rated</option>
-        </select>
-
-        <!-- 4. Region toggle (opens the collapsed dropdown row) -->
-        <button type="button" class="loc-filters-toggle" id="locationFiltersToggle"
-                aria-expanded="false" aria-controls="locationFilters">
-          <i class="fas fa-sliders-h"></i>
-          <span class="loc-filters-label">Select region</span>
-          <span class="loc-filters-count" id="locationFiltersCount" hidden>0</span>
-        </button>
-
-        <!-- 5. Find Near Me (becomes Refresh when location is active) -->
-        <button type="button" class="loc-pill loc-primary" id="findNearMeBtn">
-          <i class="fas fa-location-crosshairs"></i>
-          <span class="loc-pill-label">Near Me</span>
-        </button>
-
-        <!-- 6. Location status chip + one-tap turn-off -->
-        <span class="loc-status-chip" id="locationStatusChip" hidden></span>
-        <button type="button" class="loc-turnoff" id="turnOffLocationBtn" hidden
-                aria-label="Turn off location sharing" title="Turn off location sharing">
-          <i class="fas fa-times"></i>
-        </button>
-
-        <!-- Hidden proxy input: keeps every existing JS listener working. -->
-        <input
-          type="hidden"
-          id="locationSearchInput"
-          name="bidhaa-location-q"
-          value=""
-        >
-        <button type="button" class="loc-search-clear" id="locationSearchClearBtn"
-                hidden aria-label="Clear location search" style="display:none;">
-          <i class="fas fa-times"></i>
-        </button>
-          </div>
-          <div class="location-filters-row" id="locationFilters" hidden>
-            <select id="locationFilterContinent" data-location-field="continent" aria-label="Filter by continent"><option value="">All continents</option></select>
-            <select id="locationFilterCountry" data-location-field="country" aria-label="Filter by country"><option value="">All countries</option></select>
-            <select id="locationFilterCounty" data-location-field="county" aria-label="Filter by county"><option value="">All counties</option></select>
-            <select id="locationFilterSubCounty" data-location-field="sub_county" aria-label="Filter by sub-county"><option value="">All sub-counties</option></select>
-            <select id="locationFilterTown" data-location-field="town" aria-label="Filter by town"><option value="">All towns</option></select>
-            <select id="locationFilterWard" data-location-field="ward" aria-label="Filter by ward"><option value="">All wards</option></select>
-            <button type="button" class="location-clear-btn" id="clearLocationFiltersBtn" hidden><i class="fas fa-times"></i> Clear all</button>
-          </div>
-        </details>
-      </div>
-
-      <!-- Collapsed dropdown filters — opened by the Select region button above. -->
-      <!-- Guest location banner — hidden by default. Shown by index.js
-           when a guest types `near` without having activated location. -->
-      <div class="location-banner" id="locationBanner" hidden role="status">
-        <span class="location-banner-icon" aria-hidden="true">📍</span>
-        <div class="location-banner-text">
-          <strong>Turn on location to see what's closest to you.</strong>
-          <span class="location-banner-hint">Or type <code>in Nairobi</code> to search a specific area.</span>
-        </div>
-        <button type="button" class="location-banner-btn" id="enableLocationBtn">
-          <i class="fas fa-location-crosshairs"></i> Enable location
-        </button>
-      </div>
-
-      <!-- ============================================================ -->
       <!-- CATEGORY BLOCKS SECTION                                       -->
       <!--                                                              -->
       <!-- Injected and populated by public/js/category-blocks.js.       -->
@@ -317,9 +194,14 @@
       <div class="marketplace-social-layout">
       <div class="marketplace-social-headings" aria-label="Marketplace sections">
         <div class="marketplace-social-heading-cell">
-          <div>
+          <div class="marketplace-heading-copy">
             <h2>Discover products &amp; services</h2>
-            <p>Scroll to explore what businesses are offering.</p>
+          </div>
+          <div class="marketplace-pane-search" role="search" aria-label="Search products and services">
+            <div class="search-wrapper">
+              <input type="search" id="marketplaceFeedSearch" placeholder="Search products or services" autocomplete="off" aria-label="Search the social feed">
+              <button type="button" class="search-submit-btn" onclick="searchMarketplaceFeed()" aria-label="Search products and services"><i class="fas fa-search" aria-hidden="true"></i><span class="search-submit-label">Search</span></button>
+            </div>
           </div>
           <div class="marketplace-feed-heading-actions">
             <button type="button" class="marketplace-pane-toggle" id="marketplaceFeedToggle" aria-label="Expand products and services" aria-controls="marketplaceFeedSection" aria-pressed="false" title="Expand products and services"><i class="fas fa-arrow-right" aria-hidden="true"></i></button>
@@ -327,7 +209,13 @@
           </div>
         </div>
         <div class="marketplace-social-heading-cell marketplace-social-business-heading">
-          <h2>Businesses</h2>
+          <div class="marketplace-heading-copy"><h2>Businesses</h2></div>
+          <div class="marketplace-pane-search" role="search" aria-label="Search businesses">
+            <div class="search-wrapper">
+              <input type="search" id="businessSearch" name="bidhaa-search-q" placeholder="Search businesses or locations" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true" data-1p-ignore aria-label="Search businesses">
+              <button type="button" class="search-submit-btn" onclick="searchBusinesses()" aria-label="Search businesses"><i class="fas fa-search" aria-hidden="true"></i><span class="search-submit-label">Search</span></button>
+            </div>
+          </div>
           <button type="button" class="marketplace-pane-toggle" id="marketplaceBusinessesToggle" aria-label="Expand businesses" aria-controls="marketplaceBusinessRail" aria-pressed="false" title="Expand businesses"><i class="fas fa-arrow-left" aria-hidden="true"></i></button>
         </div>
       </div>
@@ -342,9 +230,8 @@
 
       <!-- ============================================================ -->
       <!-- FLAT BUSINESS GRID                                            -->
-      <!-- Shown on top of the category blocks whenever the customer     -->
-      <!-- searches, filters, sorts, activates Near Me, or picks a       -->
-      <!-- region. Also shown when a search-tag resolves to a single     -->
+      <!-- Shown when search results need a flat listing or when a      -->
+      <!-- search tag resolves to a single business.                    -->
       <!-- business. The JS controls visibility by adding or removing    -->
       <!-- the body.category-blocks-active class.                        -->
       <!-- ============================================================ -->
@@ -369,7 +256,6 @@
         <div class="marketplace-feed-heading">
           <div>
             <h2>Discover products &amp; services</h2>
-            <p>Scroll to explore what businesses are offering.</p>
           </div>
           <div class="marketplace-feed-heading-actions">
             <button type="button" id="marketplaceFeedRefresh" data-refresh-feed aria-label="Refresh feed" title="Refresh feed"><i class="fas fa-rotate" aria-hidden="true"></i></button>
@@ -702,7 +588,7 @@
 <script src="/js/cart-store.js?v=unified-cart-20261006-v1"></script>
 <script src="/js/cookie-auth-client.js"></script>
 <script src="/js/navigation.js"></script>
-<script src="/js/index.js?v=marketplace-feed-profile-link-20261008-v2"></script>
+<script src="/js/index.js?v=independent-pane-search-20261008-v1"></script>
 <script src="/js/product-inquiry.js?v=card-contact-menu-20261006-v6"></script>
 <script src="/js/category-blocks.js"></script>
 <script src="/js/legal.js"></script>

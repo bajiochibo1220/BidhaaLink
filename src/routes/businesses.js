@@ -7,10 +7,8 @@
 //         list, plus a product_category_id filter.
 //
 //  Section C:
-//   C.8 — Public business-by-slug response exposes location activation state.
-//   C.9 — Public business-by-slug response exposes location_complete.
 //
-//  Section D — Smart customer search and nearby ranking.
+//  Section D — Smart text search across business, product and place names.
 //
 //  Section E.4 — Smart default ranking (sort=smart).
 //
@@ -49,7 +47,6 @@ const { body, validationResult } = require('express-validator');
 const { pool, logError } = require('../config/database');
 const { authMiddleware } = require('../middleware/auth');
 const Business = require('../models/Business');
-const Customer = require('../models/Customer');
 // Phase 1 / Phase 2 — variant resolution for the shop page and
 // the product detail page. The service owns every read from
 // product_variants, so no route in this file queries that table
@@ -64,8 +61,48 @@ function productFallbackImage(name) {
     return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
 }
 
-const LOCATION_FIELDS = ['continent', 'country', 'county', 'sub_county', 'ward', 'town', 'specific_area', 'postal_code'];
+const LOCATION_FIELDS = ['location', 'address', 'continent', 'country', 'county', 'sub_county', 'ward', 'town', 'specific_area', 'postal_code'];
 const locationSql = LOCATION_FIELDS.map(field => `COALESCE(b.${field}, '')`).join(", ' ', ");
+
+
+function parseSearchQuery(rawQuery) {
+    const result = {
+        text: '', place: '', verified: false, featured: false, isNew: false,
+        open: false, delivery: false, pickup: false, minRating: null, cheap: false,
+        radiusKm: null
+    };
+    if (typeof rawQuery !== 'string' || !rawQuery.trim()) return result;
+
+    let working = rawQuery.toLowerCase().replace(/\s+/g, ' ').trim();
+    working = working.replace(/\b(?:near|nearby|nearest|closest|close to|around)\s+(?:me|here|my area)\b/g, ' ');
+    working = working.replace(/\bwithin\s+\d+\s*k?m?s?\b/g, ' ');
+
+    const placeMatch = working.match(/\b(?:in|around|at|near)\s+([a-z][a-z\s-]{1,80})$/i);
+    if (placeMatch && !/^(me|here|my area)$/i.test(placeMatch[1].trim())) {
+        result.place = placeMatch[1].trim().slice(0, 100);
+        working = working.slice(0, placeMatch.index).trim();
+    }
+
+    const removeFlag = (pattern) => {
+        if (!pattern.test(working)) return false;
+        working = working.replace(pattern, ' ').replace(/\s+/g, ' ').trim();
+        return true;
+    };
+    result.verified = removeFlag(/\bverified\b/g);
+    result.featured = removeFlag(/\bfeatured\b/g);
+    result.isNew = removeFlag(/\bnew\b/g);
+    result.open = removeFlag(/\bopen\b/g);
+    result.delivery = removeFlag(/\bdelivery\b/g);
+    result.pickup = removeFlag(/\bpickup\b/g);
+    result.cheap = removeFlag(/\b(?:cheap|affordable)\b/g);
+    const rating = working.match(/\brated\s+(\d)\+?\b/);
+    if (rating) {
+        result.minRating = Number.parseInt(rating[1], 10);
+        working = working.replace(rating[0], ' ').replace(/\s+/g, ' ').trim();
+    }
+    result.text = working;
+    return result;
+}
 
 // ============================================================
 //  Category JSON subquery
@@ -102,214 +139,8 @@ function coerceProductKeywords(raw) {
 //  Section D — keyword parsing
 // ============================================================
 
-const ANCHOR_SELF_KEYWORDS = [
-    'karibu na mimi',
-    'karibu nami',
-    'karibu nasi',
-    'mtaa yangu',
-    'area yangu',
-    'side yangu',
-    'hapa karibu',
-    'kwetu',
-    'nyumbani',
-    'mtaani',
-    'mtaa',
-    'hapa',
-    'huku',
-    'karibu',
-
-    'closest to me',
-    'closer to me',
-    'close to me',
-    'next to me',
-    'beside me',
-    'around my area',
-    'near where i am',
-    'in my area',
-    'my location',
-    'near my shop',
-    'near my home',
-    'near home',
-    'near here',
-    'around here',
-    'around me',
-    'near me',
-    'close by me',
-    'in my side',
-    'my side',
-    'my area',
-
-    'nearby',
-    'nearer',
-    'nearest',
-    'closest',
-    'closer',
-    'closeby',
-    'close by',
-    'near',
-    'close'
-];
-
 // ============================================================
 //  Section M.2 — Filler words
-// ============================================================
-
-const FILLER_WORDS = [
-    'i', 'me', 'my', 'we', 'us', 'you',
-    'need', 'want', 'looking', 'for', 'show', 'find', 'get',
-    'give', 'bring', 'please', 'some', 'a', 'an', 'the',
-    'any', 'all', 'is', 'are', 'of', 'with', 'to', 'that', 'this',
-
-    'nataka', 'ninataka', 'naomba', 'tafadhali', 'nipe', 'nilete',
-    'kwa', 'ya', 'na'
-];
-
-const FILLER_WORD_REGEX = new RegExp(
-    `\\b(${FILLER_WORDS.map(w => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})\\b`,
-    'g'
-);
-
-const DEFAULT_NEAR_ME_RADIUS_KM = 50;
-
-const geocodeCache = new Map();
-const GEOCODE_CACHE_TTL_MS = 60 * 60 * 1000;
-
-async function geocodePlace(placeName) {
-    if (!placeName || typeof fetch !== 'function') return null;
-
-    const key = placeName.trim().toLowerCase();
-    const cached = geocodeCache.get(key);
-    if (cached && Date.now() - cached.cachedAt < GEOCODE_CACHE_TTL_MS) {
-        return { latitude: cached.latitude, longitude: cached.longitude };
-    }
-
-    try {
-        const controller = new AbortController();
-        const timer = setTimeout(() => controller.abort(), 5000);
-        const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&q=${encodeURIComponent(placeName)}`;
-        const response = await fetch(url, {
-            headers: { 'User-Agent': 'BidhaaLink/1.0 (customer search)' },
-            signal: controller.signal
-        });
-        clearTimeout(timer);
-        const results = response.ok ? await response.json() : [];
-        if (!results[0]) return null;
-
-        const latitude = parseFloat(results[0].lat);
-        const longitude = parseFloat(results[0].lon);
-        if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return null;
-
-        geocodeCache.set(key, { latitude, longitude, cachedAt: Date.now() });
-        return { latitude, longitude };
-    } catch (err) {
-        console.warn('Geocoding skipped:', err.message);
-        return null;
-    }
-}
-
-/**
- * Section D + M — parse a customer-typed search sentence.
- */
-function parseSearchQuery(rawQuery) {
-    const result = {
-        text: '',
-        anchor: null,
-        anchorPlace: null,
-        radiusKm: null,
-        verified: false,
-        featured: false,
-        isNew: false,
-        open: false,
-        delivery: false,
-        pickup: false,
-        minRating: null,
-        cheap: false
-    };
-
-    if (!rawQuery || typeof rawQuery !== 'string') return result;
-
-    let working = ' ' + rawQuery.toLowerCase().trim() + ' ';
-    working = working.replace(/\s+/g, ' ');
-
-    // -------- 1. radius anchor: "within 5km" / "within 5 kms" --------
-    const withinMatch = working.match(/\bwithin\s+(\d+)\s*k?m?s?\b/);
-    if (withinMatch) {
-        result.radiusKm = Math.min(Math.max(parseInt(withinMatch[1], 10) || 0, 1), 500);
-        result.anchor = 'self';
-        working = working.replace(withinMatch[0], ' ');
-    }
-
-    // -------- 2. place anchor: "in nairobi" / "around westlands" --------
-    const placeMatch = working.match(/\b(?:in|around|at)\s+([a-z0-9][a-z0-9\s\-'.]{1,60})/);
-    if (placeMatch && !result.anchor) {
-        const place = placeMatch[1].trim();
-        if (place && !/^(near|nearby|me|my|verified|featured|new|open|delivery|pickup)$/.test(place)) {
-            result.anchor = 'place';
-            result.anchorPlace = place;
-            working = working.replace(placeMatch[0], ' ');
-        }
-    }
-
-    // -------- 3. self anchor: "near me", "hapa", "kwetu" --------
-    if (!result.anchor) {
-        for (const keyword of ANCHOR_SELF_KEYWORDS) {
-            const regex = new RegExp(`\\b${keyword.replace(/\s+/g, '\\s+')}\\b`);
-            if (regex.test(working)) {
-                result.anchor = 'self';
-                working = working.replace(regex, ' ');
-                break;
-            }
-        }
-    }
-
-    // -------- 4. flag keywords --------
-    if (/\bverified\b/.test(working))       { result.verified = true; working = working.replace(/\bverified\b/g, ' '); }
-    if (/\bfeatured\b/.test(working))       { result.featured = true; working = working.replace(/\bfeatured\b/g, ' '); }
-    if (/\bnew\b/.test(working))            { result.isNew = true;    working = working.replace(/\bnew\b/g, ' '); }
-    if (/\bopen\b/.test(working))           { result.open = true;     working = working.replace(/\bopen\b/g, ' '); }
-    if (/\bdelivery\b/.test(working))       { result.delivery = true; working = working.replace(/\bdelivery\b/g, ' '); }
-    if (/\bpickup\b/.test(working))         { result.pickup = true;   working = working.replace(/\bpickup\b/g, ' '); }
-    if (/\b(cheap|affordable)\b/.test(working)) {
-        result.cheap = true;
-        working = working.replace(/\b(cheap|affordable)\b/g, ' ');
-    }
-
-    const ratedMatch = working.match(/\brated\s+(\d)(\+)?\b/);
-    if (ratedMatch) {
-        result.minRating = parseInt(ratedMatch[1], 10);
-        working = working.replace(ratedMatch[0], ' ');
-    }
-
-    // -------- 5. filler words (English + Swahili) --------
-    working = working.replace(FILLER_WORD_REGEX, ' ');
-
-    // -------- 6. normalise whitespace and keep the real word --------
-    result.text = working.trim().replace(/\s+/g, ' ');
-
-    return result;
-}
-
-const LOCATION_FILTER_FIELDS = ['continent', 'country', 'county', 'sub_county', 'ward', 'town', 'specific_area'];
-
-function buildLocationNameConditions(query, startParamIndex) {
-    const conditions = [];
-    const params = [];
-    let paramIndex = startParamIndex;
-
-    for (const field of LOCATION_FILTER_FIELDS) {
-        const raw = query[field];
-        if (!raw) continue;
-        const value = String(raw).trim();
-        if (!value) continue;
-        conditions.push(`b.${field} ILIKE $${paramIndex}`);
-        params.push(`%${value}%`);
-        paramIndex++;
-    }
-
-    return { conditions, params, nextIndex: paramIndex };
-}
-
-// ============================================================
 //  Section K — Search regex builders
 // ============================================================
 
@@ -346,7 +177,7 @@ function buildFuzzyText(rawText) {
 //  Section E.4 — Smart score (JS-side, after the query)
 // ============================================================
 
-function computeSmartScore(row, searchText, hasAnchor, preferredCounty, preferredTown) {
+function computeSmartScore(row, searchText, hasAnchor) {
     const safe = (n) => (Number.isFinite(n) ? n : 0);
 
     let relevance = 0;
@@ -367,25 +198,10 @@ function computeSmartScore(row, searchText, hasAnchor, preferredCounty, preferre
         distanceScore = Math.max(0, Math.min(1, 1 - Math.min(km, 50) / 50));
     }
 
-    let preferredBonus = 0;
-    if (preferredCounty) {
-        const businessCounty = String(row.county || '').toLowerCase();
-        if (businessCounty && businessCounty.includes(preferredCounty.toLowerCase())) {
-            preferredBonus += 0.1;
-        }
-    }
-    if (preferredTown) {
-        const businessTown = String(row.town || '').toLowerCase();
-        if (businessTown && businessTown.includes(preferredTown.toLowerCase())) {
-            preferredBonus += 0.05;
-        }
-    }
-
     const score =
         0.45 * relevanceScore +
         0.35 * ratingScore +
-        0.20 * distanceScore +
-        preferredBonus;
+        0.20 * distanceScore;
 
     return score;
 }
@@ -517,85 +333,6 @@ router.get('/categories/all', async (req, res) => {
 
 // ============================================================
 //  LOCATIONS — distinct values per location field (D.7)
-// ============================================================
-router.get('/locations/distinct', async (req, res) => {
-    try {
-        const field = String(req.query.field || 'county');
-        if (!LOCATION_FIELDS.includes(field)) {
-            return res.status(400).json({ error: 'Invalid location field' });
-        }
-        const result = await pool.query(`
-            SELECT ${field} AS value, COUNT(*)::int AS business_count
-            FROM businesses
-            WHERE is_active = true AND NULLIF(BTRIM(${field}), '') IS NOT NULL
-            GROUP BY ${field}
-            ORDER BY business_count DESC, value ASC
-        `);
-        res.json({ field, locations: result.rows });
-    } catch (err) {
-        logError(err, 'Get distinct business locations');
-        res.status(500).json({ error: 'Unable to load locations' });
-    }
-});
-
-router.get('/filter', async (req, res) => {
-    try {
-        const values = [];
-        const conditions = ['b.is_active = true'];
-        for (const field of LOCATION_FIELDS) {
-            if (req.query[field]) {
-                values.push(`%${String(req.query[field]).trim()}%`);
-                conditions.push(`b.${field} ILIKE $${values.length}`);
-            }
-        }
-        const result = await pool.query(`SELECT b.* FROM businesses b WHERE ${conditions.join(' AND ')} ORDER BY b.business_name`, values);
-        res.json({ businesses: result.rows });
-    } catch (err) {
-        logError(err, 'Filter businesses by location');
-        res.status(500).json({ error: 'Unable to filter businesses' });
-    }
-});
-
-// ============================================================
-//  NEARBY — sorted by distance ascending (kept for compatibility)
-// ============================================================
-router.get('/nearby', async (req, res) => {
-    try {
-        const latitude = Number(req.query.latitude);
-        const longitude = Number(req.query.longitude);
-        const radiusKm = Math.min(Math.max(Number(req.query.radius || 10), 1), 200);
-        if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
-            return res.status(400).json({ error: 'Valid latitude and longitude are required' });
-        }
-        const result = await pool.query(`
-            SELECT b.*,
-                   6371 * acos(LEAST(1, GREATEST(-1,
-                      cos(radians($1)) * cos(radians(b.latitude::numeric)) *
-                      cos(radians(b.longitude::numeric) - radians($2)) +
-                      sin(radians($1)) * sin(radians(b.latitude::numeric))
-                   ))) AS distance_km,
-                   (SELECT COUNT(*) FROM products WHERE business_id = b.id AND is_active = true) as product_count,
-                   (SELECT COALESCE(AVG(rating), 0) FROM business_reviews WHERE business_id = b.id) as avg_rating,
-                   (SELECT COUNT(*) FROM business_reviews WHERE business_id = b.id) as review_count,
-                   (SELECT COUNT(*) FROM business_followers WHERE business_id = b.id) as follower_count
-            FROM businesses b
-            WHERE b.is_active = true
-              AND b.latitude IS NOT NULL AND b.longitude IS NOT NULL
-              AND b.latitude ~ '^-?[0-9]+(\\.[0-9]+)?$'
-              AND b.longitude ~ '^-?[0-9]+(\\.[0-9]+)?$'
-            ORDER BY distance_km ASC
-        `, [latitude, longitude]);
-        res.json({
-            radius_km: radiusKm,
-            businesses: result.rows.filter(row => Number(row.distance_km) <= radiusKm)
-        });
-    } catch (err) {
-        logError(err, 'Get nearby businesses');
-        res.status(500).json({ error: 'Unable to find nearby businesses' });
-    }
-});
-
-// ============================================================
 //  SECTION J / N — PUBLIC ADS FEED (HERO SLIDER ON MARKETPLACE)
 // ============================================================
 
@@ -739,8 +476,6 @@ router.get('/', async (req, res) => {
             featured,
             verified,
             sort,
-            latitude,
-            longitude
         } = req.query;
 
         const parsed = parseSearchQuery(search || '');
@@ -770,7 +505,7 @@ router.get('/', async (req, res) => {
             featured !== 'true' &&
             verified !== 'true' &&
             sort !== 'urgent' &&
-            !parsed.anchor &&
+            !parsed.place &&
             !parsed.verified &&
             !parsed.featured &&
             !parsed.isNew &&
@@ -801,7 +536,6 @@ router.get('/', async (req, res) => {
                 effective_radius_km: null,
                 urgent: false,
                 smart: false,
-                preferred_anchor: null,
                 rotation: {
                     applied: false,
                     seed: null,
@@ -828,54 +562,19 @@ router.get('/', async (req, res) => {
             });
         }
 
-        let anchorLat = null;
-        let anchorLng = null;
-        let anchorSource = null;
-
-        if (parsed.anchor === 'self') {
-            const selfLat = Number(latitude);
-            const selfLng = Number(longitude);
-            if (Number.isFinite(selfLat) && Number.isFinite(selfLng)) {
-                anchorLat = selfLat;
-                anchorLng = selfLng;
-                anchorSource = 'self';
-            }
-        } else if (parsed.anchor === 'place' && parsed.anchorPlace) {
-            const geo = await geocodePlace(parsed.anchorPlace);
-            if (geo) {
-                anchorLat = geo.latitude;
-                anchorLng = geo.longitude;
-                anchorSource = 'place';
-            }
-        }
+        const hasAnchor = false;
+        const anchorSource = null;
+        const effectiveRadiusKm = null;
 
         const urgentMode = sort === 'urgent';
-        if (urgentMode && anchorSource === null) {
-            const selfLat = Number(latitude);
-            const selfLng = Number(longitude);
-            if (Number.isFinite(selfLat) && Number.isFinite(selfLng)) {
-                anchorLat = selfLat;
-                anchorLng = selfLng;
-                anchorSource = 'self';
-            }
-        }
 
-        const hasAnchor = anchorSource !== null && Number.isFinite(anchorLat) && Number.isFinite(anchorLng);
 
-        let effectiveRadiusKm = parsed.radiusKm;
-        if (!effectiveRadiusKm && anchorSource === 'self') {
-            effectiveRadiusKm = DEFAULT_NEAR_ME_RADIUS_KM;
-        }
-
-        const preferredCounty = req.query.preferred_county ? String(req.query.preferred_county).trim() : '';
-        const preferredTown = req.query.preferred_town ? String(req.query.preferred_town).trim() : '';
-        const hasPreferredAnchor = Boolean(preferredCounty || preferredTown);
 
         const smartMode =
             !sort &&
             !urgentMode &&
             !searchText &&
-            !parsed.anchor &&
+            !parsed.place &&
             !hasAnchor;
 
         const explicitSort = Boolean(sort);
@@ -883,7 +582,7 @@ router.get('/', async (req, res) => {
             !explicitSort &&
             !urgentMode &&
             !searchText &&
-            !parsed.anchor &&
+            !parsed.place &&
             !hasAnchor;
 
         let rotationSeed = null;
@@ -914,16 +613,6 @@ router.get('/', async (req, res) => {
             const params = [];
             let paramIndex = 1;
 
-            if (hasAnchor) {
-                query += `,
-                       6371 * acos(LEAST(1, GREATEST(-1,
-                          cos(radians($${paramIndex})) * cos(radians(b.latitude::numeric)) *
-                          cos(radians(b.longitude::numeric) - radians($${paramIndex + 1})) +
-                          sin(radians($${paramIndex})) * sin(radians(b.latitude::numeric))
-                       ))) AS distance_km`;
-                params.push(anchorLat, anchorLng);
-                paramIndex += 2;
-            }
 
             query += ` FROM businesses b WHERE b.is_active = true`;
             const conditions = [];
@@ -959,6 +648,12 @@ router.get('/', async (req, res) => {
                 }
             }
 
+            if (parsed.place) {
+                conditions.push(`CONCAT_WS(' ', ${locationSql}) ILIKE $${paramIndex}`);
+                params.push(`%${parsed.place}%`);
+                paramIndex++;
+            }
+
             if (featured === 'true' || parsed.featured) {
                 conditions.push(`b.is_featured = true`);
             }
@@ -990,13 +685,6 @@ router.get('/', async (req, res) => {
                     SELECT COALESCE(PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY CAST(NULLIF(REGEXP_REPLACE(price, '[^0-9.]', '', 'g'), '') AS NUMERIC)), 0)
                     FROM products WHERE is_active = true AND price ~ '[0-9]'
                 )`);
-            }
-
-            const locationFilter = buildLocationNameConditions(req.query, paramIndex);
-            if (locationFilter.conditions.length > 0) {
-                conditions.push(...locationFilter.conditions);
-                params.push(...locationFilter.params);
-                paramIndex = locationFilter.nextIndex;
             }
 
             if (category && category !== 'all') {
@@ -1057,16 +745,6 @@ router.get('/', async (req, res) => {
             const productParams = [];
             let productParamIndex = 1;
 
-            if (hasAnchor) {
-                productQuery += `,
-                      6371 * acos(LEAST(1, GREATEST(-1,
-                          cos(radians($${productParamIndex})) * cos(radians(b.latitude::numeric)) *
-                          cos(radians(b.longitude::numeric) - radians($${productParamIndex + 1})) +
-                          sin(radians($${productParamIndex})) * sin(radians(b.latitude::numeric))
-                       ))) AS distance_km`;
-                productParams.push(anchorLat, anchorLng);
-                productParamIndex += 2;
-            }
 
             productQuery += `
                 FROM products p
@@ -1083,19 +761,22 @@ router.get('/', async (req, res) => {
                     productParams.push(fuzzyText);
                     productParamIndex++;
                 } else {
-                    productQuery += ` AND (p.name ~* $${productParamIndex} OR p.description ~* $${productParamIndex})`;
+                    productQuery += ` AND (
+                        p.name ~* $${productParamIndex}
+                        OR p.description ~* $${productParamIndex}
+                        OR b.business_name ~* $${productParamIndex}
+                        OR b.description ~* $${productParamIndex}
+                        OR CONCAT_WS(' ', ${locationSql}) ILIKE $${productParamIndex + 1}
+                    )`;
                     productParams.push(searchRegex);
-                    productParamIndex++;
+                    productParams.push(`%${searchText}%`);
+                    productParamIndex += 2;
                 }
             }
 
-            for (const field of LOCATION_FILTER_FIELDS) {
-                const raw = req.query[field];
-                if (!raw) continue;
-                const value = String(raw).trim();
-                if (!value) continue;
-                productQuery += ` AND b.${field} ILIKE $${productParamIndex}`;
-                productParams.push(`%${value}%`);
+            if (parsed.place) {
+                productQuery += ` AND CONCAT_WS(' ', ${locationSql}) ILIKE $${productParamIndex}`;
+                productParams.push(`%${parsed.place}%`);
                 productParamIndex++;
             }
 
@@ -1163,7 +844,10 @@ router.get('/', async (req, res) => {
                 if (!searchText) return true;
                 const q = searchText.toLowerCase();
                 return String(row.business_name || '').toLowerCase().includes(q)
-                    || String(row.description || '').toLowerCase().includes(q);
+                    || String(row.description || '').toLowerCase().includes(q)
+                    || String(row.location || '').toLowerCase().includes(q)
+                    || String(row.address || '').toLowerCase().includes(q)
+                    || LOCATION_FIELDS.some(field => String(row[field] || '').toLowerCase().includes(q));
             });
 
         if (searchText && !hasMeaningfulResults) {
@@ -1211,8 +895,6 @@ router.get('/', async (req, res) => {
                     row,
                     searchText,
                     hasAnchor,
-                    preferredCounty,
-                    preferredTown
                 )
             }));
             businessRows.sort((a, b) => {
@@ -1324,6 +1006,11 @@ router.get('/', async (req, res) => {
                 countIndex += 2;
             }
         }
+        if (parsed.place) {
+            countQuery += ` AND CONCAT_WS(' ', ${locationSql}) ILIKE $${countIndex}`;
+            countParams.push(`%${parsed.place}%`);
+            countIndex++;
+        }
         if (featured === 'true' || parsed.featured) {
             countQuery += ` AND b.is_featured = true`;
         }
@@ -1357,13 +1044,6 @@ router.get('/', async (req, res) => {
             )`;
         }
 
-        const locationCountFilter = buildLocationNameConditions(req.query, countIndex);
-        if (locationCountFilter.conditions.length > 0) {
-            countQuery += ' AND ' + locationCountFilter.conditions.join(' AND ');
-            countParams.push(...locationCountFilter.params);
-            countIndex = locationCountFilter.nextIndex;
-        }
-
         if (category && category !== 'all') {
             const parsedCategory = parseInt(category, 10);
             if (Number.isFinite(parsedCategory)) {
@@ -1390,15 +1070,11 @@ router.get('/', async (req, res) => {
             search_tag: searchTagNormalized || null,
 
             anchor: hasAnchor ? anchorSource : null,
-            anchor_place: anchorSource === 'place' ? parsed.anchorPlace : null,
+            anchor_place: anchorSource === 'place' ? parsed.place : null,
             radius_km: parsed.radiusKm || null,
             effective_radius_km: effectiveRadiusKm || null,
             urgent: urgentMode,
             smart: smartMode,
-            preferred_anchor: hasPreferredAnchor ? {
-                county: preferredCounty || null,
-                town: preferredTown || null
-            } : null,
 
             rotation: {
                 applied: rotationApplied,
@@ -1476,24 +1152,16 @@ router.get('/:slug', async (req, res) => {
         `, [business.id]);
 
         const deliverySettings = await Business.getDeliverySettings(business.id);
-
-        const locationActivated = business.location_activated === true;
-        const locationComplete = business.location_complete === true;
+        for (const field of ['location_activated', 'location_activated_at', 'location_pin_updated_at', 'location_source', 'location_accuracy', 'location_complete']) delete business[field];
 
         const productKeywords = coerceProductKeywords(business.product_keywords);
 
         res.json({
             business: {
                 ...business,
-                product_keywords: productKeywords,
-                location_activated: locationActivated,
-                location_complete: locationComplete
+                product_keywords: productKeywords
             },
             location: {
-                activated: locationActivated,
-                complete: locationComplete,
-                activated_at: business.location_activated_at || null,
-                source: business.location_source || null,
                 latitude: business.latitude || null,
                 longitude: business.longitude || null,
                 names: {

@@ -9,8 +9,7 @@
         sidebar item removed).
       - Public Preview removed from sidebar; it becomes a
         button inside My Shop.
-      - Live Chat and Customer Tracking removed from sidebar;
-        they become secondary buttons inside the Messages
+      - Live Chat remains inside the Messages
         section (which is a small in-page hub, not an iframe,
         because the sidebar no longer has a "Messages" data
         target — Messages now uses the in-page hub).
@@ -84,7 +83,6 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
   <!-- Leaflet (Section C.5 — map preview for activated location) -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 
   <!-- Page-Specific Styles -->
   <link rel="stylesheet" href="/css/business-admin.css?v=service-chat-inbox-20261006">
@@ -814,12 +812,7 @@
     </div>
 
     <!-- ============================================================ -->
-    <!-- SECTION: MESSAGES (Section 8 — new in-page hub)              -->
-    <!--                                                              -->
-    <!-- Replaces the old sidebar entry that opened the marketplace   -->
-    <!-- chat. Now the admin gets a small hub with two buttons:       -->
-    <!-- Live Chat (opens the marketplace chat panel) and Customer    -->
-    <!-- Tracking (opens /seller-track.html in a new tab).           -->
+    <!-- SECTION: MESSAGES                                           -->
     <!-- ============================================================ -->
     <div class="section" id="section-messages">
       <div class="section-header">
@@ -851,16 +844,12 @@
           Talk to your customers
         </h3>
         <p style="font-size:0.82rem; color:#64748b; margin:0 0 14px 0;">
-          Open the live chat to reply to customers, or see where your
-          active customers are right now.
+          Open the live chat to reply to customers.
         </p>
 
         <div class="quick-actions" style="flex-wrap:wrap;">
           <button class="btn-save" onclick="openMarketplaceMessages()">
             <i class="fas fa-comment"></i> Open Live Chat
-          </button>
-          <button class="btn-secondary" onclick="window.open('/seller-track.html', '_blank', 'noopener')">
-            <i class="fas fa-map"></i> Customer Tracking
           </button>
         </div>
       </div>
@@ -1098,58 +1087,6 @@
       <div class="section" id="section-profile">
         <div class="section-header">
           <h2>🏪 Business Profile Setup</h2>
-        </div>
-
-        <div id="businessLocationWarning" style="display:none; margin:0 0 12px 0; padding:14px 18px; background:#fef2f2; border-radius:10px; border-left:4px solid #ef4444; color:#991b1b; font-size:0.85rem;">
-          <strong>⚠️ Your business cannot be found by nearby customers until you add a location.</strong>
-          <p style="margin:4px 0 0 0; color:#7f1d1d;">
-            Press <em>Activate Your Location</em> below, or fill in at least your town or county.
-          </p>
-        </div>
-
-        <div class="settings-section" id="locationActivationSection">
-          <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:14px; flex-wrap:wrap;">
-            <div style="flex:1; min-width:220px;">
-              <h3 style="font-size:1rem; font-weight:800; margin:0 0 4px 0;">
-                📍 Make people find you by your location
-              </h3>
-              <p style="font-size:0.8rem; color:#64748b; margin:0 0 8px 0;">
-                Let nearby customers find your business. Use GPS to set or update your location.
-              </p>
-              <div id="locationStatusBadge" style="display:none; font-size:0.8rem; font-weight:600; color:#166534; background:#dcfce7; padding:4px 12px; border-radius:20px; display:inline-block;">
-                ✅ Location Activated
-              </div>
-              <div id="locationStatusBadgeInactive" style="font-size:0.8rem; font-weight:600; color:#92400e; background:#fef3c7; padding:4px 12px; border-radius:20px; display:inline-block;">
-                ⏳ Location Not Activated
-              </div>
-            </div>
-
-            <div style="display:flex; flex-direction:column; gap:6px; min-width:180px;">
-              <button type="button" class="btn-save" id="activateLocationBtn" onclick="activateBusinessLocation()" style="background:#16a34a; padding:10px 18px;">
-                <i class="fas fa-location-crosshairs"></i> Activate Your Location
-              </button>
-              <button type="button" class="btn-secondary" id="refreshLocationBtn" onclick="activateBusinessLocation()" style="display:none;">
-                <i class="fas fa-sync-alt"></i> Refresh Location
-              </button>
-              <small style="font-size:0.65rem; color:#94a3b8; text-align:center;">
-                Your browser will ask for permission
-              </small>
-            </div>
-          </div>
-
-          <div id="businessLocationMapWrapper" style="display:none; margin-top:14px;">
-            <div id="businessLocationMap" style="width:100%; height:260px; border-radius:10px; border:1px solid #e2e8f0;"></div>
-            <p style="font-size:0.75rem; color:#64748b; margin:6px 0 0 0;">
-              Drag the pin to adjust. Then press one of the buttons below.
-            </p>
-            <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:8px;">
-              <button type="button" class="btn-save" onclick="saveAdjustedBusinessPin()" style="background:#2563eb;">
-                <i class="fas fa-check"></i> Yes, this is correct
-              </button>
-            </div>
-          </div>
-
-          <div id="locationActivationStatus" style="margin-top:8px; font-size:0.85rem;"></div>
         </div>
 
         <!-- ============================================================ -->
@@ -2149,7 +2086,7 @@
 <script src="/socket.io/socket.io.js"></script>
 <script src="/js/cookie-auth-client.js"></script>
 <script src="/js/business-admin-variants.js"></script>
-<script src="/js/business-admin.js?v=product-inquiry-20261006"></script>
+<script src="/js/business-admin.js?v=no-location-activation-20261008-v1"></script>
 <script src="/js/ad-management.js"></script>
 
 <!-- Section 7 — inline helper for the read-only search tag copy button. -->

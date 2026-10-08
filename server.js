@@ -11,9 +11,8 @@
 //   including our deployment — with HTTP 403. Every Leaflet map
 //   in the app was showing "Access blocked" tiles as a result.
 //
-//   All five map-rendering files (business-admin.js,
-//   business-profile.js, track.js, seller-track.js, and
-//   order-tracking.js) have been updated to load CartoDB
+//   The map-rendering files (business-admin.js,
+//   business-profile.js, track.js, and order-tracking.js) load CartoDB
 //   Positron from basemaps.cartocdn.com instead. This file now
 //   whitelists that host, and keeps a small allowance for the
 //   subdomains Leaflet generates (a, b, c, d).

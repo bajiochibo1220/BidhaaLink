@@ -121,26 +121,6 @@ let marketplaceSearchWasTyped = false;
 // Cache of business categories loaded once from the API.
 let businessCategoriesCache = null;
 
-// Section D — per-page customer coordinates. Never persisted.
-let marketplaceCustomerCoords = {
-  latitude: null,
-  longitude: null,
-  source: null          // 'ip' | 'gps' | 'account' | null
-};
-
-// Has the customer already been asked for GPS on this page?
-let gpsUpgradeAttempted = false;
-
-// Cache of distinct location values per field, fetched once per page.
-const locationValuesCache = {};
-
-// ------------------------------------------------------------
-// Typed location search state (Section D.7)
-// ------------------------------------------------------------
-let locationSearchText = '';
-let locationSearchDebounceTimer = null;
-const LOCATION_SEARCH_DEBOUNCE_MS = 350;
-
 // ------------------------------------------------------------
 // Section K — Product-match state for the current search.
 // ------------------------------------------------------------
@@ -158,6 +138,8 @@ let marketplaceFeedRequestController = null;
 let marketplaceFeedGeneration = 0;
 let marketplaceFeedSeed = '';
 let marketplaceSearchDebounceTimer = null;
+let marketplaceFeedSearchDebounceTimer = null;
+let marketplaceFeedSearchWasTyped = false;
 let activeBusinessDescription = null;
 
 // ------------------------------------------------------------
@@ -306,8 +288,8 @@ function clearSpuriousSearchAutofill(inputId, wasTyped = () => false) {
 //  SEARCH QUERY HELPERS (Section D)
 // ============================================================
 
-function getMarketplaceSearchQuery() {
-  const input = document.getElementById('businessSearch');
+function getMarketplaceSearchQuery(inputId = 'businessSearch') {
+  const input = document.getElementById(inputId);
   const value = input?.value?.trim() || '';
   if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
     if (input) input.value = '';
@@ -316,326 +298,8 @@ function getMarketplaceSearchQuery() {
   return value;
 }
 
-function getLocationSearchQuery() {
-  const input = document.getElementById('locationSearchInput');
-  const value = input?.value?.trim() || '';
-  if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
-    if (input) input.value = '';
-    return '';
-  }
-  return value;
-}
-
-function queryNeedsCustomerLocation(query) {
-  if (!query) return false;
-  const q = String(query).toLowerCase();
-
-  if (/\bwithin\s+\d+\s*k?m?s?\b/.test(q)) return true;
-
-  if (/\b(near|nearby|nearer|nearest|close|closer|closest)\b/.test(q)) return true;
-  if (/\b(near|close|closest|closer)\s+to\s+me\b/.test(q)) return true;
-  if (/\bnear\s+me\b/.test(q)) return true;
-  if (/\baround\s+me\b/.test(q)) return true;
-  if (/\baround\s+here\b/.test(q)) return true;
-  if (/\bnear\s+here\b/.test(q)) return true;
-  if (/\bin\s+my\s+(area|side)\b/.test(q)) return true;
-  if (/\bmy\s+(area|side|location)\b/.test(q)) return true;
-  if (/\bnear\s+my\s+(home|shop)\b/.test(q)) return true;
-  if (/\bnear\s+home\b/.test(q)) return true;
-  if (/\b(next|beside)\s+to\s+me\b/.test(q)) return true;
-
-  if (/\b(karibu|hapa|huku|mtaa|mtaani|kwetu|nyumbani)\b/.test(q)) return true;
-  if (/\bkaribu\s+(nami|na\s+mimi|nasi)\b/.test(q)) return true;
-  if (/\b(mtaa|area|side)\s+yangu\b/.test(q)) return true;
-  if (/\bhapa\s+karibu\b/.test(q)) return true;
-
-  return false;
-}
-
-function maybeSuggestNearKeyword(value) {
-  const hint = document.getElementById('searchNearHint');
-  const input = document.getElementById('businessSearch');
-  if (!input) return;
-  const v = String(value || '').trim().toLowerCase();
-
-  if (hint) hint.remove();
-
-  if (!v) return;
-  if (!/^n(e(a(r)?)?)?$/.test(v)) return;
-
-  const el = document.createElement('div');
-  el.id = 'searchNearHint';
-  el.className = 'search-near-hint';
-  el.innerHTML = `Press <strong>Enter</strong> to search <em>"${v} me"</em>`;
-  input.parentElement.appendChild(el);
-
-  setTimeout(() => { if (el.parentElement) el.remove(); }, 2500);
-}
-
-function requestCustomerCoordinates() {
-  return new Promise((resolve) => {
-    if (!navigator.geolocation) return resolve(null);
-    navigator.geolocation.getCurrentPosition(
-      (pos) => resolve({
-        latitude: pos.coords.latitude,
-        longitude: pos.coords.longitude,
-        accuracy: pos.coords.accuracy
-      }),
-      () => resolve(null),
-      { enableHighAccuracy: true, timeout: 12000, maximumAge: 60000 }
-    );
-  });
-}
-
-async function fetchApproximateLocationFromIp() {
-  try {
-    const res = await fetch('/api/location/ip-locate', {
-      method: 'GET',
-      credentials: 'same-origin',
-      cache: 'no-store'
-    });
-    if (!res.ok) return null;
-    const data = await res.json();
-    const latitude = Number(data?.latitude);
-    const longitude = Number(data?.longitude);
-    if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return null;
-    return {
-      latitude,
-      longitude,
-      city: data.city || null,
-      region: data.region || null,
-      country: data.country || null,
-      source: 'ip'
-    };
-  } catch (err) {
-    return null;
-  }
-}
-
-async function ensureCustomerCoordinates() {
-  if (marketplaceCustomerCoords.latitude !== null) return marketplaceCustomerCoords;
-
-  const approx = await fetchApproximateLocationFromIp();
-  if (approx) {
-    marketplaceCustomerCoords = approx;
-    updateLocationStatusChip();
-    return marketplaceCustomerCoords;
-  }
-
-  const coords = await requestCustomerCoordinates();
-  if (coords) {
-    marketplaceCustomerCoords = {
-      latitude: coords.latitude,
-      longitude: coords.longitude,
-      accuracy: coords.accuracy,
-      source: 'gps'
-    };
-    updateLocationStatusChip();
-  }
-  return marketplaceCustomerCoords;
-}
-
-function showLocationBanner() {
-  const banner = document.getElementById('locationBanner');
-  if (banner) banner.hidden = false;
-}
-
-function hideLocationBanner() {
-  const banner = document.getElementById('locationBanner');
-  if (banner) banner.hidden = true;
-}
-
-// ============================================================
-//  SECTION D — Location status chip + controls wiring
-// ============================================================
-
-function updateLocationStatusChip() {
-  const chip = document.getElementById('locationStatusChip');
-  const offBtn = document.getElementById('turnOffLocationBtn');
-  const findBtn = document.getElementById('findNearMeBtn');
-  const hasCoords = marketplaceCustomerCoords.latitude !== null;
-
-  if (chip) {
-    if (hasCoords) {
-      const short = marketplaceCustomerCoords.source === 'gps'
-        ? { label: 'GPS', title: 'Precise GPS location active' }
-        : marketplaceCustomerCoords.source === 'account'
-          ? { label: 'Saved', title: 'Location saved to your account' }
-          : { label: 'Approx', title: 'Approximate location (estimated from IP)' };
-
-      chip.innerHTML = `<i class="fas fa-map-marker-alt"></i> ${short.label}`;
-      chip.title = short.title;
-      chip.hidden = false;
-    } else {
-      chip.hidden = true;
-      chip.removeAttribute('title');
-    }
-  }
-
-  if (offBtn) offBtn.hidden = !hasCoords;
-
-  if (findBtn) {
-    findBtn.innerHTML = hasCoords
-      ? '<i class="fas fa-sync-alt"></i> <span class="loc-pill-label">Refresh</span>'
-      : '<i class="fas fa-location-crosshairs"></i> <span class="loc-pill-label">Near Me</span>';
-  }
-}
-
-function bindLocationControls() {
-  const findBtn = document.getElementById('findNearMeBtn');
-  const offBtn = document.getElementById('turnOffLocationBtn');
-  const clearFiltersBtn = document.getElementById('clearLocationFiltersBtn');
-  const filtersToggle = document.getElementById('locationFiltersToggle');
-  const filtersPanel = document.getElementById('locationFilters');
-
-  if (findBtn) {
-    findBtn.addEventListener('click', async () => {
-      const original = findBtn.innerHTML;
-      findBtn.disabled = true;
-      findBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> <span class="loc-pill-label">Locating…</span>';
-
-      const coords = await requestCustomerCoordinates();
-      findBtn.disabled = false;
-      findBtn.innerHTML = original;
-
-      if (!coords) {
-        showToast('We could not get your precise location. You can still type a place name, e.g. "in Nairobi".', 'warning');
-        return;
-      }
-
-      marketplaceCustomerCoords = {
-        latitude: coords.latitude,
-        longitude: coords.longitude,
-        accuracy: coords.accuracy,
-        source: 'gps'
-      };
-      updateLocationStatusChip();
-      hideLocationBanner();
-
-      loadBusinesses(true, { forceNearest: true });
-      loadMarketplaceFeed(true);
-    });
-  }
-
-  if (offBtn) {
-    offBtn.addEventListener('click', async () => {
-      marketplaceCustomerCoords = { latitude: null, longitude: null, source: null };
-      gpsUpgradeAttempted = true;
-      updateLocationStatusChip();
-      showToast('Location sharing is off for this session.', 'info');
-
-      try {
-        await fetch('/api/location/customer/deactivate', {
-          method: 'POST',
-          credentials: 'same-origin'
-        });
-      } catch (err) {
-        // Non-fatal.
-      }
-
-      loadBusinesses(true);
-      loadMarketplaceFeed(true);
-    });
-  }
-
-  if (filtersToggle && filtersPanel) {
-    filtersToggle.addEventListener('click', () => {
-      const expanded = filtersToggle.getAttribute('aria-expanded') === 'true';
-      const next = !expanded;
-      filtersToggle.setAttribute('aria-expanded', String(next));
-      filtersPanel.hidden = !next;
-    });
-  }
-
-  if (clearFiltersBtn) {
-    clearFiltersBtn.addEventListener('click', () => {
-      document.querySelectorAll('#locationFilters select').forEach(sel => {
-        sel.value = '';
-      });
-      locationSearchText = '';
-      clearFiltersBtn.hidden = true;
-      updateLocationFiltersCount();
-      loadBusinesses(true);
-      loadMarketplaceFeed(true);
-    });
-  }
-
-  document.querySelectorAll('#locationFilters select').forEach(sel => {
-    sel.addEventListener('change', () => {
-      updateLocationFiltersCount();
-      loadBusinesses(true);
-      loadMarketplaceFeed(true);
-    });
-  });
-
-  populateLocationFilters();
-}
-
-function updateLocationFiltersCount() {
-  const countEl = document.getElementById('locationFiltersCount');
-  const clearBtn = document.getElementById('clearLocationFiltersBtn');
-  const anyDropdown = Array.from(document.querySelectorAll('#locationFilters select'))
-    .filter(s => s.value).length;
-  const hasText = locationSearchText.length > 0;
-  const total = anyDropdown + (hasText ? 1 : 0);
-
-  if (countEl) {
-    countEl.textContent = String(total);
-    countEl.hidden = total === 0;
-  }
-  if (clearBtn) clearBtn.hidden = total === 0;
-}
-
-function getCombinedSearchText() {
-  const marketplaceSearch = getMarketplaceSearchQuery();
-  const hiddenLocationSearch = getLocationSearchQuery();
-  return marketplaceSearch || hiddenLocationSearch;
-}
-
-async function populateLocationFilters() {
-  const fields = ['continent', 'country', 'county', 'sub_county', 'town', 'ward'];
-
-  for (const field of fields) {
-    const select = document.querySelector(`#locationFilters select[data-location-field="${field}"]`);
-    if (!select) continue;
-
-    try {
-      let values = locationValuesCache[field];
-      if (!values) {
-        const res = await fetch(`/api/businesses/locations/distinct?field=${encodeURIComponent(field)}`, {
-          credentials: 'same-origin',
-          cache: 'no-store'
-        });
-        if (!res.ok) {
-          select.disabled = true;
-          continue;
-        }
-        const data = await res.json();
-        values = Array.isArray(data.locations) ? data.locations : [];
-        locationValuesCache[field] = values;
-      }
-
-      if (!values.length) {
-        select.innerHTML = `<option value="">No ${field.replace('_', ' ')} data yet</option>`;
-        select.disabled = true;
-        continue;
-      }
-
-      const current = select.value;
-      select.innerHTML = `<option value="">All ${field.replace('_', ' ')}s</option>` +
-        values.map(v => {
-          const raw = String(v.value || '').trim();
-          if (!raw) return '';
-          return `<option value="${raw.replace(/"/g, '&quot;')}">${raw} (${v.business_count || 0})</option>`;
-        }).join('');
-
-      if (current) select.value = current;
-      select.disabled = false;
-    } catch (err) {
-      select.disabled = true;
-    }
-  }
-}
+function getBusinessSearchText() { return getMarketplaceSearchQuery('businessSearch'); }
+function getFeedSearchText() { return getMarketplaceSearchQuery('marketplaceFeedSearch'); }
 
 // ============================================================
 //  INIT
@@ -645,10 +309,9 @@ document.addEventListener('DOMContentLoaded', function() {
   if (!document.getElementById('businessGrid')) return;
   console.log('📄 Index page loaded');
 
-  clearSpuriousSearchAutofill('businessSearch', () => marketplaceSearchWasTyped);
-
   const businessSearch = document.getElementById('businessSearch');
   if (businessSearch) {
+    clearSpuriousSearchAutofill('businessSearch', () => marketplaceSearchWasTyped);
     businessSearch.value = '';
     businessSearch.defaultValue = '';
 
@@ -683,11 +346,31 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 
-  bindLocationBanner();
-  bindLocationControls();
-  updateLocationFiltersCount();
-  primeIpLocationOnLoad();
-  document.addEventListener('click', upgradeToPreciseLocationOnce, { once: true });
+  const feedSearch = document.getElementById('marketplaceFeedSearch');
+  if (feedSearch) {
+    clearSpuriousSearchAutofill('marketplaceFeedSearch', () => marketplaceFeedSearchWasTyped);
+    feedSearch.value = '';
+    feedSearch.defaultValue = '';
+    feedSearch.addEventListener('pointerdown', () => { marketplaceFeedSearchWasTyped = true; }, { once: true });
+    feedSearch.addEventListener('keydown', () => { marketplaceFeedSearchWasTyped = true; }, { once: true });
+    feedSearch.addEventListener('paste', () => { marketplaceFeedSearchWasTyped = true; }, { once: true });
+    feedSearch.addEventListener('beforeinput', () => { marketplaceFeedSearchWasTyped = true; }, { once: true });
+    feedSearch.addEventListener('input', event => {
+      marketplaceFeedSearchWasTyped ||= ['insertText', 'insertFromPaste'].includes(event.inputType);
+      clearTimeout(marketplaceFeedSearchDebounceTimer);
+      marketplaceFeedSearchDebounceTimer = setTimeout(searchMarketplaceFeed, 350);
+    });
+    setTimeout(() => {
+      if (!marketplaceFeedSearchWasTyped) feedSearch.value = '';
+    }, 500);
+    feedSearch.addEventListener('keydown', event => {
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        searchMarketplaceFeed();
+      }
+    });
+  }
+
 
   setupMarketplaceFeed();
 
@@ -715,80 +398,6 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // ============================================================
-//  LOCATION BANNER (Section D)
-// ============================================================
-
-function bindLocationBanner() {
-  const btn = document.getElementById('enableLocationBtn');
-  if (!btn) return;
-  btn.addEventListener('click', async () => {
-    btn.disabled = true;
-    const original = btn.innerHTML;
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Getting location...';
-    const coords = await requestCustomerCoordinates();
-    btn.disabled = false;
-    btn.innerHTML = original;
-
-    if (coords) {
-      marketplaceCustomerCoords = {
-        latitude: coords.latitude,
-        longitude: coords.longitude,
-        accuracy: coords.accuracy,
-        source: 'gps'
-      };
-      updateLocationStatusChip();
-      hideLocationBanner();
-      searchBusinesses();
-    } else {
-      showToast('We could not get your location. You can still search by typing a place name, e.g. "in Nairobi".', 'warning');
-    }
-  });
-}
-
-// ============================================================
-//  SILENT IP LOCATION + FIRST-CLICK GPS UPGRADE
-// ============================================================
-
-async function primeIpLocationOnLoad() {
-  if (marketplaceCustomerCoords.latitude !== null) return;
-
-  const approx = await fetchApproximateLocationFromIp();
-  if (!approx) return;
-
-  if (marketplaceCustomerCoords.latitude === null) {
-    marketplaceCustomerCoords = approx;
-    updateLocationStatusChip();
-    console.log(`📍 Approximate location ready (${approx.city || approx.country || 'unknown'})`);
-  }
-}
-
-async function upgradeToPreciseLocationOnce() {
-  if (gpsUpgradeAttempted) return;
-  gpsUpgradeAttempted = true;
-
-  if (marketplaceCustomerCoords.source === 'gps') return;
-  if (!navigator.geolocation) return;
-
-  const coords = await requestCustomerCoordinates();
-  if (!coords) return;
-
-  marketplaceCustomerCoords = {
-    latitude: coords.latitude,
-    longitude: coords.longitude,
-    accuracy: coords.accuracy,
-    source: 'gps'
-  };
-  updateLocationStatusChip();
-  console.log('📍 Upgraded to precise GPS location');
-
-  const activeQuery = getCombinedSearchText();
-  if (queryNeedsCustomerLocation(activeQuery)) {
-    loadBusinesses(true);
-    loadMarketplaceFeed(true);
-  }
-}
-
-// ============================================================
 //  LOAD MARKETPLACE
 // ============================================================
 
@@ -796,7 +405,7 @@ async function loadMarketplace() {
   try {
     // These endpoints do not depend on one another. Starting them together
     // removes three round trips from the marketplace's first visible load.
-    await Promise.all([loadCategories(), loadAds(), loadBusinesses(), loadPlatformStats(), loadMarketplaceFeed(true)]);
+    await Promise.all([loadAds(), loadBusinesses(), loadPlatformStats(), loadMarketplaceFeed(true)]);
     updateCartBadge();
     console.log('✅ Marketplace loaded successfully');
   } catch (err) {
@@ -1013,15 +622,9 @@ async function loadMarketplaceFeed(reset = false) {
       limit: '8',
       seed: marketplaceFeedSeed
     });
-    const search = getCombinedSearchText();
+    const search = getFeedSearchText();
     if (search) params.set('search', search);
-    const category = document.getElementById('businessCategoryFilter')?.value || 'all';
-    const sort = document.getElementById('sortFilter')?.value || 'newest';
-    if (category !== 'all') params.set('category', category);
-    if (sort) params.set('sort', sort);
-    document.querySelectorAll('#locationFilters select').forEach(select => {
-      if (select.dataset.locationField && select.value) params.set(select.dataset.locationField, select.value);
-    });
+    params.set('sort', 'newest');
     const response = await fetch(`/api/marketplace/feed?${params}`, {
       credentials: 'same-origin',
       signal: marketplaceFeedRequestController.signal
@@ -1341,42 +944,6 @@ async function openMarketplaceServiceGallery(item, trigger) {
 }
 
 // ============================================================
-//  LOAD CATEGORIES (for marketplace filter)
-// ============================================================
-
-async function loadCategories() {
-  const select = document.getElementById('businessCategoryFilter');
-  const defaultOption = '<option value="all">All categories</option>';
-
-  try {
-    const res = await fetch('/api/businesses/categories/all');
-    if (!res.ok) {
-      console.warn(`⚠️ Categories endpoint returned ${res.status}; using default option.`);
-      if (select) select.innerHTML = defaultOption;
-      return;
-    }
-
-    const categories = await res.json();
-
-    if (!select) return;
-
-    if (!Array.isArray(categories) || categories.length === 0) {
-      select.innerHTML = defaultOption;
-      return;
-    }
-
-    let html = defaultOption;
-    categories.forEach(cat => {
-      const value = String(cat.id);
-      const label = `${cat.icon || '📦'} ${cat.name}`;
-      html += `<option value="${value.replace(/"/g, '&quot;')}">${label.replace(/</g, '&lt;')}</option>`;
-    });
-    select.innerHTML = html;
-  } catch (err) {
-    console.warn('⚠️ Error loading categories:', err.message);
-    if (select) select.innerHTML = defaultOption;
-  }
-}
 
 // ============================================================
 //  SECTION J — MARKETPLACE AD SLIDER
@@ -2118,7 +1685,7 @@ function renderProductMatches(reset, products) {
   }
   lastSearchHadProducts = lastProductMatches.length > 0;
 
-  const activeSearch = lastSearchWord || getCombinedSearchText();
+  const activeSearch = lastSearchWord || getBusinessSearchText();
   if (!activeSearch || lastProductMatches.length === 0) {
     section.hidden = true;
     if (reset) grid.innerHTML = '';
@@ -2182,7 +1749,7 @@ function renderFuzzySearchHint(show, word) {
 //  LOAD BUSINESSES (Section D — smart search)
 // ============================================================
 
-async function loadBusinesses(reset = true, options = {}) {
+async function loadBusinesses(reset = true) {
   if (reset) {
     currentPage = 1;
     hasMore = true;
@@ -2203,44 +1770,14 @@ async function loadBusinesses(reset = true, options = {}) {
 
   isLoading = true;
 
-  const search = getCombinedSearchText();
-  const category = document.getElementById('businessCategoryFilter')?.value || 'all';
-  let sort = document.getElementById('sortFilter')?.value || 'newest';
-
-  const forceNearest = options.forceNearest === true;
-
-  let coords = marketplaceCustomerCoords;
-  if (forceNearest || queryNeedsCustomerLocation(search)) {
-    if (coords.latitude === null) {
-      coords = await ensureCustomerCoordinates();
-    }
-    if (coords.latitude === null) {
-      showLocationBanner();
-    } else {
-      hideLocationBanner();
-    }
-  } else {
-    hideLocationBanner();
-  }
+  const search = getBusinessSearchText();
+  const sort = 'newest';
 
   const params = new URLSearchParams();
   params.set('page', String(currentPage));
   params.set('limit', String(limit));
   if (search) params.set('search', search);
-  if (category && category !== 'all') params.set('category', category);
-  if (sort) params.set('sort', sort);
-
-  document.querySelectorAll('#locationFilters select').forEach(sel => {
-    const field = sel.dataset.locationField;
-    const value = sel.value;
-    if (field && value) params.set(field, value);
-  });
-
-  const shouldSendCoords = forceNearest || queryNeedsCustomerLocation(search);
-  if (shouldSendCoords && coords.latitude !== null && coords.longitude !== null) {
-    params.set('latitude', String(coords.latitude));
-    params.set('longitude', String(coords.longitude));
-  }
+  params.set('sort', sort);
 
   params.set('_', String(Date.now()));
 
@@ -2735,24 +2272,27 @@ async function loadPlatformStats() {
 // ============================================================
 
 function searchBusinesses() {
-  getMarketplaceSearchQuery();
+  getBusinessSearchText();
   lastProductMatches = [];
   lastSearchHadProducts = false;
   lastSearchWord = '';
   lastSearchMode = null;
   renderProductMatches(true, []);
   loadBusinesses(true);
-  loadMarketplaceFeed(true);
 }
 
 function filterBusinesses() {
-  getMarketplaceSearchQuery();
+  getBusinessSearchText();
   lastProductMatches = [];
   lastSearchHadProducts = false;
   lastSearchWord = '';
   lastSearchMode = null;
   renderProductMatches(true, []);
   loadBusinesses(true);
+}
+
+function searchMarketplaceFeed() {
+  getFeedSearchText();
   loadMarketplaceFeed(true);
 }
 
@@ -3451,8 +2991,7 @@ function showToast(message, type = 'success') {
 // ============================================================
 
 function getCurrentSortMode() {
-  const sort = document.getElementById('sortFilter')?.value || 'newest';
-  return sort;
+  return 'newest';
 }
 
 function shouldRenderAsCategoryBlocks(businesses) {
@@ -3527,7 +3066,6 @@ window.handleBusinessRegister = handleBusinessRegister;
 window.continueAfterBusinessRegister = continueAfterBusinessRegister;
 window.showToast = showToast;
 window.loadBusinessCategoriesForRegistration = loadBusinessCategoriesForRegistration;
-window.maybeSuggestNearKeyword = maybeSuggestNearKeyword;
 
 window.getOrderStatusBadge = getOrderStatusBadge;
 
@@ -3669,34 +3207,7 @@ async function checkAuthState() {
   if (document.getElementById('publicNav') && typeof window.updateNavigation === 'function') window.updateNavigation();
   if (requestedWorkspace) openDashboardPanel(requestedWorkspace);
 
-  hydrateLocationFromAccount();
   return true;
-}
-
-async function hydrateLocationFromAccount() {
-  if (!currentUser?.email) return;
-  if (isBusinessMarketplaceUser(currentUser)) return;
-  if (marketplaceCustomerCoords.source === 'gps') return;
-
-  try {
-    const res = await fetch('/api/location/customer/location', {
-      credentials: 'same-origin',
-      cache: 'no-store'
-    });
-    if (!res.ok) return;
-    const data = await res.json();
-    if (data.activated && Number.isFinite(Number(data.latitude)) && Number.isFinite(Number(data.longitude))) {
-      marketplaceCustomerCoords = {
-        latitude: Number(data.latitude),
-        longitude: Number(data.longitude),
-        accuracy: data.accuracy ? Number(data.accuracy) : null,
-        source: 'account'
-      };
-      updateLocationStatusChip();
-    }
-  } catch (err) {
-    // Non-fatal.
-  }
 }
 
 function showLoggedInState(user) {
@@ -3965,17 +3476,11 @@ async function handleLogout() {
   workspaceSubsection = null;
   businessCategoriesCache = null;
 
-  marketplaceCustomerCoords = { latitude: null, longitude: null, source: null };
-  gpsUpgradeAttempted = false;
-  locationSearchText = '';
   marketplaceSearchWasTyped = false;
   lastProductMatches = [];
   lastSearchHadProducts = false;
   lastSearchWord = '';
   lastSearchMode = null;
-  hideLocationBanner();
-  updateLocationStatusChip();
-  updateLocationFiltersCount();
 
   resetInFeedAdStrips();
 

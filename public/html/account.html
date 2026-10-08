@@ -533,7 +533,7 @@
 
   <!-- ============================================================ -->
   <!-- PROFILE PANEL — Section 9 merged:                            -->
-  <!--   Personal info · Location · Preferred area ·                -->
+  <!--   Personal info ? Addresses ? Payments ?                  -->
   <!--   Addresses · Payment history · Danger zone (Section 11.A)   -->
   <!-- ============================================================ -->
   <div class="account-content-panel" id="panel-profile">
@@ -688,107 +688,6 @@
     </section>
 
     <!-- ======================= -->
-    <!-- SECTION: Location       -->
-    <!-- ======================= -->
-    <section class="profile-subsection" id="profileSectionLocation">
-      <h3 class="profile-subsection-title">
-        <i class="fas fa-location-crosshairs"></i> Location
-      </h3>
-
-      <div class="customer-location-card" id="customerLocationSection">
-        <h3 style="font-size:1rem; font-weight:800; margin:0 0 4px 0;">
-          📍 Activate your location to find businesses near you
-        </h3>
-        <p style="font-size:0.8rem; color:#475569; margin:0 0 10px 0;">
-          When you activate your location, we use it only to sort nearby businesses nearest-first.
-          Your coordinates are never shared with any business.
-        </p>
-
-        <div id="customerLocationStatusBadge"
-             style="display:none; font-size:0.8rem; font-weight:600; color:#166534; background:#dcfce7; padding:4px 12px; border-radius:20px;">
-          ✅ Location active
-        </div>
-        <div id="customerLocationStatusBadgeInactive"
-             style="font-size:0.8rem; font-weight:600; color:#92400e; background:#fef3c7; padding:4px 12px; border-radius:20px;">
-          ⏳ Location not activated
-        </div>
-
-        <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:10px;">
-          <button type="button" class="btn-quick primary" id="customerActivateLocationBtn" onclick="activateCustomerLocation()" style="padding:10px 18px;">
-            <i class="fas fa-location-crosshairs"></i> Activate Your Location
-          </button>
-          <button type="button" class="btn-quick" id="customerRefreshLocationBtn" onclick="activateCustomerLocation()" style="display:none; padding:10px 18px; background:#e2e8f0; color:#1e293b;">
-            <i class="fas fa-sync-alt"></i> Refresh Location
-          </button>
-          <button type="button" class="btn-quick" id="customerDeactivateLocationBtn" onclick="deactivateCustomerLocation()" style="display:none; padding:10px 18px; background:#fee2e2; color:#991b1b;">
-            <i class="fas fa-location-arrow"></i> Turn off location sharing
-          </button>
-        </div>
-
-        <div id="customerLocationStatus" style="margin-top:8px; font-size:0.85rem;"></div>
-      </div>
-    </section>
-
-    <!-- ======================= -->
-    <!-- SECTION: Preferred area -->
-    <!-- ======================= -->
-    <section class="profile-subsection" id="profileSectionPreferred">
-      <h3 class="profile-subsection-title">
-        <i class="fas fa-map"></i> Preferred area (optional)
-      </h3>
-
-      <div class="customer-preferred-area-card" id="customerPreferredAreaSection">
-        <p style="font-size:0.8rem; color:#475569; margin:0 0 10px 0;">
-          If you prefer not to share your GPS location, you can set a preferred area instead.
-          We use it only to rank nearby results towards the area you choose. It is never shared with any business.
-        </p>
-
-        <div id="customerPreferredAreaBadge"
-             style="display:none; font-size:0.8rem; font-weight:600; color:#1e40af; background:#dbeafe; padding:4px 12px; border-radius:20px; margin-bottom:8px;">
-          ✅ Preferred area set
-        </div>
-
-        <div class="preferred-area-fields" style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
-          <div class="form-group">
-            <label style="font-size:0.75rem;">Continent</label>
-            <input type="text" id="preferredContinent" placeholder="e.g., Africa">
-          </div>
-          <div class="form-group">
-            <label style="font-size:0.75rem;">Country</label>
-            <input type="text" id="preferredCountry" placeholder="e.g., Kenya">
-          </div>
-          <div class="form-group">
-            <label style="font-size:0.75rem;">County</label>
-            <input type="text" id="preferredCounty" placeholder="e.g., Nairobi">
-          </div>
-          <div class="form-group">
-            <label style="font-size:0.75rem;">Sub-County</label>
-            <input type="text" id="preferredSubCounty" placeholder="e.g., Westlands">
-          </div>
-          <div class="form-group">
-            <label style="font-size:0.75rem;">Ward</label>
-            <input type="text" id="preferredWard" placeholder="e.g., Parklands">
-          </div>
-          <div class="form-group">
-            <label style="font-size:0.75rem;">Town / City</label>
-            <input type="text" id="preferredTown" placeholder="e.g., Nairobi">
-          </div>
-        </div>
-
-        <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:10px;">
-          <button type="button" class="btn-quick primary" id="savePreferredAreaBtn" onclick="saveCustomerPreferredArea()" style="padding:10px 18px;">
-            <i class="fas fa-save"></i> Save preferred area
-          </button>
-          <button type="button" class="btn-quick" id="clearPreferredAreaBtn" onclick="clearCustomerPreferredArea()" style="padding:10px 18px; background:#fee2e2; color:#991b1b;">
-            <i class="fas fa-times"></i> Clear preferred area
-          </button>
-        </div>
-
-        <div id="customerPreferredAreaStatus" style="margin-top:8px; font-size:0.85rem;"></div>
-      </div>
-    </section>
-
-    <!-- ======================= -->
     <!-- SECTION: Addresses      -->
     <!-- ======================= -->
     <section class="profile-subsection" id="profileSectionAddresses">
@@ -886,52 +785,6 @@
   </div>
 
   <!-- ============================================================ -->
-  <!-- MARKETPLACE SECTION — Section 9: hidden.                     -->
-  <!-- Kept as a hidden placeholder so any lingering reference in   -->
-  <!-- account.js does not throw.                                   -->
-  <!-- ============================================================ -->
-
-  <div class="marketplace-section-account" hidden>
-
-    <div class="marketplace-header">
-      <h2><i class="fas fa-store"></i> Marketplace</h2>
-      <a href="/">View All Businesses <i class="fas fa-arrow-right"></i></a>
-    </div>
-
-    <div class="search-filter-bar-account">
-      <div class="search-wrapper">
-        <input type="search" id="businessSearchAccount" name="account-business-search" placeholder="Search businesses..." autocomplete="off" data-lpignore="true">
-        <button onclick="searchBusinessesAccount()"><i class="fas fa-search"></i> Search</button>
-      </div>
-      <select id="businessCategoryFilterAccount">
-        <option value="all">All Business Categories</option>
-      </select>
-      <select id="sortFilterAccount">
-        <option value="newest">Newest</option>
-        <option value="popular">Most Popular</option>
-        <option value="rating">Highest Rated</option>
-      </select>
-    </div>
-
-    <div id="featuredGridAccount" hidden></div>
-
-    <h3 style="font-size:0.9rem; font-weight:700; color:#0f172a; margin:16px 0 10px;">
-      📋 All Businesses
-    </h3>
-    <div class="business-grid-account" id="businessGridAccount">
-      <p style="text-align:center;padding:20px;color:#94a3b8;grid-column:1/-1;">Loading businesses...</p>
-    </div>
-
-    <div style="text-align:center;margin-top:16px;">
-      <button class="btn-quick primary" id="loadMoreBtnAccount" onclick="loadMoreBusinessesAccount()" style="display:none;">
-        <i class="fas fa-arrow-down"></i> Load More
-      </button>
-    </div>
-  </div>
-
-</div>
-
-<!-- ============================================================ -->
 <!-- FLOATING CART BUTTON — Section 9                             -->
 <!-- ============================================================ -->
 
@@ -1117,7 +970,7 @@
 
     <ul class="deletion-step-list">
       <li>Your name, email, and phone number will be removed.</li>
-      <li>Your saved addresses and location will be cleared.</li>
+      <li>Your saved delivery addresses will be cleared.</li>
       <li>Your chat history will remain but will no longer be linked to you.</li>
       <li>Past orders will remain on record for the businesses that fulfilled them.</li>
     </ul>
@@ -1156,7 +1009,7 @@
 
 <script src="/js/cart-store.js?v=unified-cart-20261006-v1"></script>
 <script src="/js/cookie-auth-client.js"></script>
-<script src="/js/account.js?v=customer-social-profile-20261007-v1"></script>
+<script src="/js/account.js?v=no-customer-location-20261008-v1"></script>
 
 <!-- ============================================================ -->
 <!-- LEGAL FOOTER — BidhaaLink                                     -->

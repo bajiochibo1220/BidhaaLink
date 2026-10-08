@@ -109,22 +109,6 @@ function setupSocketHandlers(io) {
       }
     });
 
-    // ---- Customer Location ----
-    socket.on('customer-location', (data) => {
-      if (!socket.customerId || socket.role !== 'customer') return;
-      socket.broadcast.emit('customer-update', {
-        socketId: socket.id,
-        lat: data.lat,
-        lng: data.lng,
-        name: data.name || 'Customer'
-      });
-    });
-
-    // ---- Get Customers ----
-    socket.on('get-customers', () => {
-      socket.emit('customer-list', []);
-    });
-
     // ---- Join Order Room ----
     socket.on('join-order-room', (orderId) => {
       socket.join(`order_${orderId}`);
@@ -137,19 +121,9 @@ function setupSocketHandlers(io) {
       console.log(`Socket ${socket.id} left order room: ${orderId}`);
     });
 
-    // ---- Admin Location Update ----
-    socket.on('admin-location-update', (data) => {
-      if (!socket.customerId || !['business_admin', 'super_admin'].includes(socket.role)) return;
-      const { lat, lng } = data;
-      if (lat && lng) {
-        socket.broadcast.emit('admin_location', { lat, lng });
-      }
-    });
-
     // ---- Disconnect ----
     socket.on('disconnect', () => {
       console.log('Client disconnected:', socket.id);
-      socket.broadcast.emit('customer-left', socket.id);
     });
   });
 }

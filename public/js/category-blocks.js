@@ -14,7 +14,7 @@
 //  It never touches:
 //    - the existing #businessGrid
 //    - the search bar, category dropdown, sort dropdown,
-//      Near Me button, or location dropdowns
+//      text search
 //    - the product-match tiles
 //    - the in-feed ad strips
 //    - the ad slider

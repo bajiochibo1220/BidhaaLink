@@ -8,24 +8,8 @@
 //   A.5 — primary category saved with the business record
 //   A.6 — primary + additional categories supported
 //
-//  Section D — Customer location (profile-bound):
-//   D.1 — PUT /customer/profile now accepts latitude/longitude and
-//         marks the customer's location as activated when supplied.
-//   D.2 — Coordinates are persisted on the customer's own row.
-//   D.10 — PUT /customer/profile accepts location_activated = false
-//          to turn off location sharing (clears the stored coords).
-//   D.11 — GET /customer/verify still does NOT return coordinates.
-//          No auth route exposes a customer's coordinates.
-//   D.12 — The same PUT endpoint is used to refresh coordinates.
-//
-//  Section E.2 / G.3 — Customer preferred locations:
-//   PUT /customer/profile now also accepts preferred area names
-//   (preferred_continent, preferred_country, preferred_county,
-//   preferred_sub_county, preferred_ward, preferred_town). Any
-//   value supplied is saved against the requesting customer's own
-//   row. Nothing is exposed on GET /customer/verify (D.11
-//   preserved).
-//
+// Customer discovery location is text-only; GPS and preferred-area profile fields are retired.
+
 //  Section 6 — Customer registration simplified:
 //   Required: name, phone, password.
 //   Optional: email (kept for password recovery).
@@ -159,52 +143,6 @@ const upload = multer({
 
 // ============================================================
 //  Section D — coordinate validation helpers
-// ============================================================
-
-function parseCoordinatePair(inputLat, inputLng) {
-    if (inputLat === undefined || inputLat === null || inputLat === '') {
-        return { ok: false, error: 'Latitude is required' };
-    }
-    if (inputLng === undefined || inputLng === null || inputLng === '') {
-        return { ok: false, error: 'Longitude is required' };
-    }
-
-    const lat = Number.parseFloat(inputLat);
-    const lng = Number.parseFloat(inputLng);
-
-    if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
-        return { ok: false, error: 'Valid latitude and longitude are required' };
-    }
-    if (lat < -90 || lat > 90) {
-        return { ok: false, error: 'Latitude must be between -90 and 90' };
-    }
-    if (lng < -180 || lng > 180) {
-        return { ok: false, error: 'Longitude must be between -180 and 180' };
-    }
-
-    return { ok: true, lat, lng };
-}
-
-function normaliseAccuracy(value) {
-    if (value === undefined || value === null || value === '') return null;
-    const num = Number.parseFloat(value);
-    if (!Number.isFinite(num) || num < 0) return null;
-    return Math.round(num);
-}
-
-// ============================================================
-//  Section E.2 — preferred-location normaliser
-// ============================================================
-
-function normalisePreferred(value) {
-    if (value === undefined || value === null) return undefined;   // "not sent"
-    const str = String(value).trim();
-    if (str === '') return null;                                    // "sent empty" → clear
-    return str.slice(0, 100);
-}
-
-// ============================================================
-//  BUSINESS SEARCH TAG — helpers
 // ============================================================
 
 function normalizeSearchTagPart(value) {
@@ -1488,226 +1426,27 @@ router.get('/customer/verify', authMiddleware, async (req, res) => {
 //  CUSTOMER UPDATE PROFILE
 // ============================================================
 
+// Customer discovery location is text-only: the profile API accepts
+// no GPS coordinates or preferred-area data.
 router.put('/customer/profile', authMiddleware, async (req, res) => {
-  const {
-    name, phone, email,
-    latitude, longitude, accuracy, location_activated,
-    preferred_continent, preferred_country, preferred_county,
-    preferred_sub_county, preferred_ward, preferred_town
-  } = req.body;
-
+  const { name, phone, email } = req.body || {};
   try {
     if (phone && !validateKenyanPhone(phone)) {
       return res.status(400).json({ error: 'Invalid phone number. Must be a valid Kenyan number.' });
     }
-
     const cleanPhone = phone ? phone.replace(/[^0-9]/g, '') : null;
-
-    const preferredUpdates = {};
-    const preferredKeys = [
-      ['preferred_continent', preferred_continent],
-      ['preferred_country', preferred_country],
-      ['preferred_county', preferred_county],
-      ['preferred_sub_county', preferred_sub_county],
-      ['preferred_ward', preferred_ward],
-      ['preferred_town', preferred_town]
-    ];
-    let preferredSent = false;
-    let preferredHasValue = false;
-    for (const [column, raw] of preferredKeys) {
-      const normalised = normalisePreferred(raw);
-      if (normalised !== undefined) {
-        preferredUpdates[column] = normalised;
-        preferredSent = true;
-        if (normalised !== null) preferredHasValue = true;
-      }
-    }
-
-    if (location_activated === false) {
-      const clearResult = await pool.query(`
-        UPDATE customers
-        SET name = COALESCE($1, name),
-            phone = COALESCE($2, phone),
-            email = COALESCE($3, email),
-            latitude = NULL,
-            longitude = NULL,
-            location_accuracy = NULL,
-            location_activated = FALSE,
-            location_activated_at = NULL,
-            location_source = NULL,
-            updated_at = NOW()
-        WHERE id = $4
-        RETURNING id, name, username, email, phone, profile_image,
-                  latitude, longitude, location_accuracy,
-                  location_activated, location_activated_at, location_source
-      `, [name || null, cleanPhone, email || null, req.userId]);
-
-      if (clearResult.rows.length === 0) {
-        return res.status(404).json({ error: 'User not found' });
-      }
-
-      let preferredBlock = null;
-      if (preferredSent) {
-        preferredBlock = await applyPreferredUpdates(req.userId, preferredUpdates, preferredHasValue);
-      }
-
-      return res.json({
-        user: clearResult.rows[0],
-        location: {
-          activated: false,
-          latitude: null,
-          longitude: null,
-          accuracy: null,
-          activated_at: null,
-          source: null
-        },
-        preferred_locations: preferredBlock
-      });
-    }
-
-    const wantsLocationSave =
-      latitude !== undefined && latitude !== null && latitude !== '' &&
-      longitude !== undefined && longitude !== null && longitude !== '';
-
-    if (wantsLocationSave) {
-      const parsed = parseCoordinatePair(latitude, longitude);
-      if (!parsed.ok) {
-        return res.status(400).json({ error: parsed.error });
-      }
-
-      const accuracyValue = normaliseAccuracy(accuracy);
-
-      const result = await pool.query(`
-        UPDATE customers
-        SET name = COALESCE($1, name),
-            phone = COALESCE($2, phone),
-            email = COALESCE($3, email),
-            latitude = $4,
-            longitude = $5,
-            location_accuracy = COALESCE($6, location_accuracy),
-            location_activated = TRUE,
-            location_activated_at = NOW(),
-            location_source = 'browser',
-            updated_at = NOW()
-        WHERE id = $7
-        RETURNING id, name, username, email, phone, profile_image,
-                  latitude, longitude, location_accuracy,
-                  location_activated, location_activated_at, location_source
-      `, [
-        name || null,
-        cleanPhone,
-        email || null,
-        parsed.lat.toString(),
-        parsed.lng.toString(),
-        accuracyValue,
-        req.userId
-      ]);
-
-      if (result.rows.length === 0) {
-        return res.status(404).json({ error: 'User not found' });
-      }
-
-      const row = result.rows[0];
-
-      let preferredBlock = null;
-      if (preferredSent) {
-        preferredBlock = await applyPreferredUpdates(req.userId, preferredUpdates, preferredHasValue);
-      }
-
-      return res.json({
-        user: row,
-        location: {
-          activated: row.location_activated === true,
-          latitude: row.latitude,
-          longitude: row.longitude,
-          accuracy: row.location_accuracy,
-          activated_at: row.location_activated_at,
-          source: row.location_source
-        },
-        preferred_locations: preferredBlock
-      });
-    }
-
     const result = await pool.query(
-      'UPDATE customers SET name = COALESCE($1, name), phone = COALESCE($2, phone), email = COALESCE($3, email) WHERE id = $4 RETURNING id, name, username, email, phone, profile_image',
-      [name, cleanPhone, email, req.userId]
+      'UPDATE customers SET name = COALESCE($1, name), phone = COALESCE($2, phone), email = COALESCE($3, email), updated_at = NOW() WHERE id = $4 RETURNING id, name, username, email, phone, profile_image',
+      [name || null, cleanPhone, email || null, req.userId]
     );
-
-    if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'User not found' });
-    }
-
-    let preferredBlock = null;
-    if (preferredSent) {
-      preferredBlock = await applyPreferredUpdates(req.userId, preferredUpdates, preferredHasValue);
-    }
-
-    res.json({
-      user: result.rows[0],
-      preferred_locations: preferredBlock
-    });
-
+    if (result.rows.length === 0) return res.status(404).json({ error: 'User not found' });
+    res.json({ user: result.rows[0] });
   } catch (err) {
-    console.error('❌ Profile update error:', err);
+    console.error('Profile update error:', err);
     res.status(500).json({ error: err.message });
   }
 });
 
-async function applyPreferredUpdates(customerId, updates, hasValue) {
-  const columns = [
-    'preferred_continent',
-    'preferred_country',
-    'preferred_county',
-    'preferred_sub_county',
-    'preferred_ward',
-    'preferred_town'
-  ];
-
-  const values = columns.map(col =>
-    Object.prototype.hasOwnProperty.call(updates, col) ? updates[col] : null
-  );
-
-  const result = await pool.query(`
-    UPDATE customers
-    SET preferred_continent = $1,
-        preferred_country = $2,
-        preferred_county = $3,
-        preferred_sub_county = $4,
-        preferred_ward = $5,
-        preferred_town = $6,
-        preferred_locations_updated_at = CASE WHEN $7 THEN NOW() ELSE NULL END,
-        updated_at = NOW()
-    WHERE id = $8
-    RETURNING
-      preferred_continent,
-      preferred_country,
-      preferred_county,
-      preferred_sub_county,
-      preferred_ward,
-      preferred_town,
-      preferred_locations_updated_at
-  `, [...values, hasValue, customerId]);
-
-  if (result.rows.length === 0) return null;
-
-  const row = result.rows[0];
-  const block = {
-    continent: row.preferred_continent || null,
-    country: row.preferred_country || null,
-    county: row.preferred_county || null,
-    sub_county: row.preferred_sub_county || null,
-    ward: row.preferred_ward || null,
-    town: row.preferred_town || null,
-    updated_at: row.preferred_locations_updated_at || null
-  };
-  block.has_any = Boolean(
-    block.continent || block.country || block.county ||
-    block.sub_county || block.ward || block.town
-  );
-  return block;
-}
-
-// ============================================================
 //  CUSTOMER LOGOUT
 // ============================================================
 

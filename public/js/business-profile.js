@@ -53,9 +53,6 @@ if (typeof window.businessProfileLoaded === 'undefined') {
 if (typeof window.isFollowing === 'undefined') {
     window.isFollowing = false;
 }
-if (typeof window.customerLocation === 'undefined') {
-    window.customerLocation = null;
-}
 if (typeof window.isOwnBusiness === 'undefined') {
     window.isOwnBusiness = false;
 }
@@ -84,7 +81,6 @@ let businessLiveMarker = window.businessLiveMarker;
 let businessLiveRoute = window.businessLiveRoute;
 let businessProfileLoaded = window.businessProfileLoaded;
 let isFollowing = window.isFollowing;
-let customerLocation = window.customerLocation;
 let isOwnBusiness = window.isOwnBusiness;
 
 // ============================================================
@@ -386,7 +382,6 @@ async function loadBusinessProfile() {
 
         if (isCustomerViewer()) {
             checkFollowStatus();
-            checkLocationStatus();
         } else {
             hideFollowButtonForNonCustomer();
         }
@@ -2043,92 +2038,6 @@ async function toggleFollow() {
         console.error('Follow error:', err);
         alert('Could not update follow status. Please try again.');
     }
-}
-
-// ============================================================
-//  LOCATION
-// ============================================================
-
-async function checkLocationStatus() {
-    if (!isCustomerViewer()) return false;
-    try {
-        const res = await fetch('/api/location/customer/status');
-        if (!res.ok) return false;
-        const data = await res.json();
-        if (data.status === 'approved') {
-            const liveSection = document.getElementById('liveLocationSection');
-            if (liveSection) liveSection.style.display = 'block';
-            initBusinessLiveMap();
-            return true;
-        }
-        return false;
-    } catch (err) {
-        console.error('Location error:', err);
-        return false;
-    }
-}
-
-function initBusinessLiveMap() {
-    if (typeof L === 'undefined' || !businessData) return;
-    const container = document.getElementById('liveMap');
-    if (!container) return;
-    const lat = parseFloat(businessData.admin_lat) || parseFloat(businessData.latitude);
-    const lng = parseFloat(businessData.admin_lng) || parseFloat(businessData.longitude);
-    if (!lat || !lng || isNaN(lat) || isNaN(lng)) return;
-
-    if (businessLiveMap) businessLiveMap.remove();
-    window.businessLiveMap = L.map(container).setView([lat, lng], 14);
-    businessLiveMap = window.businessLiveMap;
-    L.tileLayer(CARTO_TILE_URL, {
-        attribution: CARTO_TILE_ATTRIBUTION,
-        subdomains: CARTO_TILE_SUBDOMAINS,
-        maxZoom: 19
-    }).addTo(businessLiveMap);
-
-    window.businessLiveMarker = L.marker([lat, lng], {
-        icon: L.divIcon({ className: 'admin-live-marker', html: '??', iconSize: [30, 30] })
-    }).addTo(businessLiveMap);
-    businessLiveMarker = window.businessLiveMarker;
-
-    if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-            (pos) => {
-                const userLat = pos.coords.latitude;
-                const userLng = pos.coords.longitude;
-                const dist = getBusinessDistance(userLat, userLng, lat, lng);
-                const distEl = document.getElementById('liveDistance');
-                if (distEl) distEl.textContent = '?? Distance: ' + formatBusinessDistance(dist);
-                if (businessLiveRoute) businessLiveMap.removeLayer(businessLiveRoute);
-                window.businessLiveRoute = L.polyline([[userLat, userLng], [lat, lng]], {
-                    color: '#2563eb',
-                    weight: 3,
-                    dashArray: '8, 5'
-                }).addTo(businessLiveMap);
-                businessLiveRoute = window.businessLiveRoute;
-                window.customerLocation = { lat: userLat, lng: userLng };
-                customerLocation = window.customerLocation;
-            },
-            () => {
-                const distEl = document.getElementById('liveDistance');
-                if (distEl) distEl.textContent = '?? Turn on GPS to see distance';
-            }
-        );
-    }
-}
-
-function getBusinessDistance(lat1, lng1, lat2, lng2) {
-    const R = 6371e3;
-    const p1 = lat1 * Math.PI / 180;
-    const p2 = lat2 * Math.PI / 180;
-    const dp = (lat2 - lat1) * Math.PI / 180;
-    const dl = (lng2 - lng1) * Math.PI / 180;
-    const a = Math.sin(dp/2)**2 + Math.cos(p1) * Math.cos(p2) * Math.sin(dl/2)**2;
-    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-}
-
-function formatBusinessDistance(meters) {
-    if (meters < 1000) return Math.round(meters) + ' m';
-    return (meters/1000).toFixed(1) + ' km';
 }
 
 // ============================================================
