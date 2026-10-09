@@ -67,12 +67,22 @@ router.get('/', async (req, res) => {
                  p.price::text AS price,
                  CASE
                    WHEN p.media_type = 'video' AND NULLIF(BTRIM(p.video), '') IS NOT NULL THEN p.video
-                   ELSE COALESCE(NULLIF(BTRIM(p.image), ''), NULLIF(BTRIM(p.video_poster_url), ''), NULLIF(BTRIM(p.video), ''), NULLIF(BTRIM(b.heroImage), ''), b.logo)
+                   ELSE COALESCE(NULLIF(BTRIM(p.image), ''), NULLIF(BTRIM(p.video_poster_url), ''),
+                                 primary_variant.media_url, NULLIF(BTRIM(p.video), ''),
+                                 NULLIF(BTRIM(b.heroImage), ''), NULLIF(BTRIM(b.logo), ''))
                  END AS media_url,
-                 CASE WHEN p.media_type = 'video' THEN NULLIF(BTRIM(p.video_poster_url), '') ELSE NULL END AS media_poster_url,
+                 CASE
+                   WHEN p.media_type = 'video' THEN NULLIF(BTRIM(p.video_poster_url), '')
+                   WHEN primary_variant.media_kind = 'video' THEN primary_variant.poster_url
+                   ELSE NULL
+                 END AS media_poster_url,
                  CASE
                    WHEN p.media_type = 'video' AND NULLIF(BTRIM(p.video), '') IS NOT NULL THEN 'video'
-                   WHEN COALESCE(NULLIF(BTRIM(p.image), ''), NULLIF(BTRIM(p.video_poster_url), ''), NULLIF(BTRIM(p.video), ''), NULLIF(BTRIM(b.heroImage), ''), b.logo) IS NOT NULL THEN 'image'
+                   WHEN NULLIF(BTRIM(p.image), '') IS NOT NULL
+                     OR NULLIF(BTRIM(p.video_poster_url), '') IS NOT NULL THEN 'image'
+                   WHEN primary_variant.media_url IS NOT NULL THEN primary_variant.media_kind
+                   WHEN NULLIF(BTRIM(p.video), '') IS NOT NULL THEN 'video'
+                   WHEN COALESCE(NULLIF(BTRIM(b.heroImage), ''), NULLIF(BTRIM(b.logo), '')) IS NOT NULL THEN 'image'
                    ELSE 'none'
                  END AS media_kind,
                  NULL::text AS service_area,
@@ -82,7 +92,6 @@ router.get('/', async (req, res) => {
                     FROM product_variants pv
                    WHERE pv.product_id = p.id
                      AND pv.is_active = TRUE
-                     AND LOWER(COALESCE(pv.name, '')) <> 'default'
                      AND (NULLIF(BTRIM(pv.image), '') IS NOT NULL
                        OR NULLIF(BTRIM(pv.video), '') IS NOT NULL))
                    + CASE
@@ -94,6 +103,32 @@ router.get('/', async (req, res) => {
                  ,concat_ws(' ', to_jsonb(b)->>'location', to_jsonb(b)->>'address', to_jsonb(b)->>'continent', to_jsonb(b)->>'country', to_jsonb(b)->>'county', to_jsonb(b)->>'sub_county', to_jsonb(b)->>'town', to_jsonb(b)->>'ward') AS location_text
             FROM products p
             JOIN businesses b ON b.id = p.business_id
+            LEFT JOIN LATERAL (
+              SELECT CASE
+                       WHEN NULLIF(BTRIM(pv.image), '') IS NOT NULL THEN NULLIF(BTRIM(pv.image), '')
+                       WHEN NULLIF(BTRIM(pv.video_poster_url), '') IS NOT NULL THEN NULLIF(BTRIM(pv.video_poster_url), '')
+                       ELSE NULLIF(BTRIM(pv.video), '')
+                     END AS media_url,
+                     CASE
+                       WHEN NULLIF(BTRIM(pv.image), '') IS NOT NULL
+                         OR NULLIF(BTRIM(pv.video_poster_url), '') IS NOT NULL THEN 'image'
+                       ELSE 'video'
+                     END AS media_kind,
+                     NULLIF(BTRIM(pv.video_poster_url), '') AS poster_url
+                FROM product_variants pv
+               WHERE pv.product_id = p.id
+                 AND pv.is_active = TRUE
+                 AND LOWER(COALESCE(pv.name, '')) <> 'default'
+                 AND (NULLIF(BTRIM(pv.image), '') IS NOT NULL
+                   OR NULLIF(BTRIM(pv.video_poster_url), '') IS NOT NULL
+                   OR NULLIF(BTRIM(pv.video), '') IS NOT NULL)
+               ORDER BY CASE
+                          WHEN NULLIF(BTRIM(pv.image), '') IS NOT NULL THEN 0
+                          WHEN NULLIF(BTRIM(pv.video_poster_url), '') IS NOT NULL THEN 1
+                          ELSE 2
+                        END, pv.display_order, pv.id
+               LIMIT 1
+            ) primary_variant ON TRUE
            WHERE p.is_active = TRUE AND b.is_active = TRUE
 
           UNION ALL

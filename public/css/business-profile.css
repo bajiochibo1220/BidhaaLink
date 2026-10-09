@@ -106,6 +106,24 @@ body.index-body {
   }
 }
 
+/* Keep guest auth links uniform and expand the mobile business search. */
+@media (max-width: 640px) {
+  #publicNav .auth-btn#authLoginBtn,
+  #publicNav .auth-btn#authRegisterBtn {
+    min-height:34px !important;
+    padding:4px 6px !important;
+    border:0 !important;
+    border-radius:0 !important;
+    background:transparent !important;
+    color:#2563eb !important;
+    font-size:.78rem !important;
+    font-weight:700 !important;
+    text-decoration:none !important;
+  }
+  #publicNav .auth-btn#authLoginBtn i,
+  #publicNav .auth-btn#authRegisterBtn i { display:none !important; }
+}
+
 /* ============================================================
    HERO — three-column band
    LEFT   : 25% logo column (plain, no writing)

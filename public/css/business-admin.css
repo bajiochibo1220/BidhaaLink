@@ -2171,4 +2171,17 @@ html.embedded .sidebar { display: none !important; }
   .embedded-sidebar-toggle { background:#176b42 !important; border-radius:10px !important; }
   .sidebar { background:#14532d !important; }
   .sidebar .sidebar-menu .menu-item.active { background:#176b42 !important; }
+  .admin-header .header-right .logout-btn {
+    width:auto !important;
+    min-width:0 !important;
+    height:auto !important;
+    padding:7px 9px !important;
+    border:0 !important;
+    border-radius:8px !important;
+    background:transparent !important;
+    color:#fca5a5 !important;
+    font-size:.82rem !important;
+    font-weight:700;
+  }
+  .admin-header .header-right .logout-btn::before { content:none !important; display:none !important; }
 }

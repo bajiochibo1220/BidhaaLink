@@ -7149,4 +7149,114 @@ body.index-body .marketplace-gallery-more[hidden] { display: none !important; }
   body.index-body:not(.business-profile-page) .marketplace-social-layout[data-expanded="feed"] .marketplace-feed-media video {
     display:block !important; visibility:visible !important; opacity:1 !important;
   }
+  body.index-body:not(.business-profile-page) .marketplace-social-layout[data-expanded="feed"] .marketplace-feed-no-media {
+    display:grid !important;
+    place-items:center;
+    background:#111827 !important;
+    color:#cbd5e1 !important;
+  }
+  body.index-body:not(.business-profile-page) .marketplace-social-layout[data-expanded="feed"] .marketplace-feed-media-fallback {
+    color:#cbd5e1 !important;
+    font-size:clamp(2.5rem, 12vw, 5rem);
+  }
+}
+
+/* Correct the mobile search rows and guest links without touching desktop. */
+@media (max-width: 900px) {
+  body.index-body:not(.business-profile-page) #topLoginLink,
+  body.index-body:not(.business-profile-page) #topRegisterLink {
+    color:#2563eb !important;
+    font-size:.9rem !important;
+    font-weight:700 !important;
+  }
+  body.index-body:not(.business-profile-page) .marketplace-social-layout[data-expanded="businesses"] .marketplace-social-business-heading .marketplace-heading-copy {
+    display:none !important;
+  }
+  body.index-body:not(.business-profile-page) .marketplace-social-layout[data-expanded="businesses"] .marketplace-social-business-heading {
+    justify-content:stretch !important;
+    padding:4px 10px !important;
+    gap:0 !important;
+    background:#e8d8b5 !important;
+    border:0 !important;
+  }
+  body.index-body:not(.business-profile-page) .marketplace-social-layout[data-expanded="businesses"] .marketplace-social-business-heading .marketplace-pane-search {
+    display:block !important;
+    flex:1 1 100% !important;
+    width:100% !important;
+    min-width:0 !important;
+    margin:0 !important;
+    background:#e8d8b5 !important;
+    border:0 !important;
+  }
+  body.index-body:not(.business-profile-page) .marketplace-social-layout[data-expanded="businesses"] .marketplace-social-business-heading .search-wrapper {
+    gap:0 !important;
+    padding:0 !important;
+    border:0 !important;
+    border-radius:0 !important;
+    outline:0 !important;
+    background:#e8d8b5 !important;
+    box-shadow:none !important;
+  }
+  body.index-body:not(.business-profile-page) .marketplace-social-layout[data-expanded="businesses"] #businessSearch {
+    min-height:42px !important;
+    border:0 !important;
+    border-radius:0 !important;
+    outline:0 !important;
+    background:#e8d8b5 !important;
+    color:#263746 !important;
+    box-shadow:none !important;
+  }
+  body.index-body:not(.business-profile-page) .marketplace-social-layout[data-expanded="businesses"] #businessSearch::placeholder {
+    color:#64748b !important;
+    opacity:1;
+  }
+  body.index-body:not(.business-profile-page) .marketplace-social-layout[data-expanded="businesses"] .marketplace-social-business-heading .search-submit-btn {
+    border:0 !important;
+    border-radius:0 !important;
+    background:#e8d8b5 !important;
+    color:#315e3a !important;
+    box-shadow:none !important;
+  }
+  body.index-body:not(.business-profile-page) .marketplace-social-layout[data-expanded="feed"] .marketplace-pane-search .search-wrapper {
+    gap:0 !important;
+    padding:0 !important;
+    border:0 !important;
+    border-radius:0 !important;
+    outline:0 !important;
+    background:#000 !important;
+    box-shadow:none !important;
+  }
+  body.index-body:not(.business-profile-page) .marketplace-social-layout[data-expanded="feed"] #marketplaceFeedSearch {
+    min-height:42px !important;
+    border:0 !important;
+    border-radius:0 !important;
+    outline:0 !important;
+    background:#000 !important;
+    color:#fff !important;
+    box-shadow:none !important;
+  }
+  body.index-body:not(.business-profile-page) .marketplace-social-layout[data-expanded="feed"] #marketplaceFeedSearch::placeholder {
+    color:#cbd5e1 !important;
+    opacity:1;
+  }
+  body.index-body:not(.business-profile-page) .marketplace-social-layout[data-expanded="feed"] .search-submit-btn,
+  body.index-body:not(.business-profile-page) .marketplace-social-layout[data-expanded="feed"] .marketplace-feed-refresh {
+    min-width:42px !important;
+    min-height:42px !important;
+    border:0 !important;
+    border-radius:0 !important;
+    outline:0 !important;
+    background:#000 !important;
+    color:#fff !important;
+    box-shadow:none !important;
+  }
+  body.index-body:not(.business-profile-page) .marketplace-social-layout[data-expanded="feed"] .marketplace-feed-heading-actions {
+    gap:0 !important;
+    background:#000 !important;
+  }
+  body.index-body:not(.business-profile-page) .marketplace-social-layout[data-expanded="feed"] .marketplace-social-headings,
+  body.index-body:not(.business-profile-page) .marketplace-social-layout[data-expanded="feed"] .marketplace-social-heading-cell {
+    border:0 !important;
+    border-radius:0 !important;
+  }
 }

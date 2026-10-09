@@ -728,7 +728,8 @@ function createMarketplaceFeedCard(item) {
   if (item.media_kind === 'video' && item.media_url) {
     const video = document.createElement('video');
     video.src = resolveMarketplaceMediaUrl(item.media_url);
-    if (item.media_poster_url) video.poster = resolveMarketplaceMediaUrl(item.media_poster_url);
+    const videoFallback = item.media_poster_url || (isCustomerPost ? item.customer_profile_image : item.business_logo);
+    if (videoFallback) video.poster = resolveMarketplaceMediaUrl(videoFallback);
     video.muted = true;
     video.loop = true;
     video.playsInline = true;
