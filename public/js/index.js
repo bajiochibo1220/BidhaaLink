@@ -701,6 +701,10 @@ function resolveMarketplaceMediaUrl(value) {
 }
 
 async function getMarketplaceProfileMedia(item) {
+  if (item?.item_type === 'customer_post') {
+    const customerUrl = item.media_poster_url || item.customer_profile_image;
+    return customerUrl ? { url: resolveMarketplaceMediaUrl(customerUrl), kind: 'image' } : null;
+  }
   if (!['product', 'service'].includes(item?.item_type) || !item.business_slug || !item.item_id) return null;
   const cacheKey = `${item.item_type}:${item.business_slug}`;
   if (!marketplaceFeedProductMediaCache.has(cacheKey)) {
@@ -729,12 +733,15 @@ function createMarketplaceFeedCard(item) {
   media.className = 'marketplace-feed-media';
   let profileMediaRequested = false;
   const applyProfileMediaFallback = async target => {
-    if (profileMediaRequested || !['product', 'service'].includes(item.item_type)) return;
+    if (profileMediaRequested || !['product', 'service', 'customer_post'].includes(item.item_type)) return;
     profileMediaRequested = true;
-    const fallback = await getMarketplaceProfileMedia(item);
-    if (!fallback?.url || !target.isConnected) return;
+    const profileMedia = await getMarketplaceProfileMedia(item);
+    const fallbackUrl = profileMedia?.url || resolveMarketplaceMediaUrl(
+      item.item_type === 'customer_post' ? item.customer_profile_image : item.business_logo
+    );
+    if (!fallbackUrl || !target.isConnected) return;
     const image = document.createElement('img');
-    image.src = fallback.url;
+    image.src = fallbackUrl;
     image.alt = item.title || 'Business offer';
     image.loading = 'eager';
     image.decoding = 'async';
@@ -778,7 +785,7 @@ function createMarketplaceFeedCard(item) {
     video.autoplay = true;
     video.controls = false;
     const initialMediaCount = document.querySelectorAll('#marketplaceFeedList .marketplace-feed-card').length;
-    video.preload = initialMediaCount < 2 ? 'auto' : 'metadata';
+    video.preload = initialMediaCount < 2 || window.matchMedia('(max-width: 900px)').matches ? 'auto' : 'metadata';
     video.setAttribute('aria-label', `${item.title || 'Offer'} video`);
     video.addEventListener('loadedmetadata', () => setMediaAspectRatio(video.videoWidth, video.videoHeight), { once: true });
     video.addEventListener('error', async () => {
@@ -802,17 +809,11 @@ function createMarketplaceFeedCard(item) {
     image.loading = initialMediaCount < 3 ? 'eager' : 'lazy';
     image.decoding = 'async';
     if (initialMediaCount < 2) image.fetchPriority = 'high';
-    image.onerror = () => {
-      if (!image.dataset.triedProfileMedia && item.item_type === 'product' && item.business_slug) {
+    image.onerror = async () => {
+      if (!image.dataset.triedProfileMedia && ['product', 'service', 'customer_post'].includes(item.item_type)) {
         image.dataset.triedProfileMedia = 'true';
-        getMarketplaceProfileMedia(item).then(profileMedia => {
-          if (profileMedia?.url && profileMedia.url !== image.src && image.isConnected) {
-            image.src = profileMedia.url;
-            return;
-          }
-          image.onerror();
-        });
-        return;
+        await applyProfileMediaFallback(image);
+        if (!image.isConnected) return;
       }
       const fallback = isCustomerPost ? item.customer_profile_image : item.business_logo;
       const fallbackUrl = resolveMarketplaceMediaUrl(fallback);
@@ -833,7 +834,7 @@ function createMarketplaceFeedCard(item) {
     media.append(image);
     if (image.complete) applyImageAspectRatio();
     marketplaceFeedMediaObserver?.observe(image);
-  } else if (['product', 'service'].includes(item.item_type)) {
+  } else if (['product', 'service', 'customer_post'].includes(item.item_type)) {
     media.classList.add('marketplace-feed-no-media');
     applyProfileMediaFallback(media);
   } else {
@@ -841,6 +842,16 @@ function createMarketplaceFeedCard(item) {
     const icon = document.createElement('i');
     icon.className = item.item_type === 'service' ? 'fas fa-handshake' : 'fas fa-box-open';
     media.append(icon);
+  }
+
+  if (window.matchMedia('(max-width: 900px)').matches && ['product', 'service', 'customer_post'].includes(item.item_type)) {
+    window.setTimeout(() => {
+      if (!media.isConnected) return;
+      const current = media.querySelector('img, video');
+      const imageLoaded = current instanceof HTMLImageElement && current.complete && current.naturalWidth > 0;
+      const videoLoaded = current instanceof HTMLVideoElement && current.readyState >= 2 && current.videoWidth > 0;
+      if (!imageLoaded && !videoLoaded) applyProfileMediaFallback(current || media);
+    }, 8000);
   }
 
   const shade = document.createElement('div');

@@ -2834,8 +2834,6 @@ body.workspace-active .marketplace-container {
   }
 }
 
-
-
 @media (max-width: 720px) {
   .in-feed-ad-strip {
     grid-template-columns: repeat(2, 1fr);
@@ -7318,4 +7316,42 @@ body.index-body .marketplace-gallery-more[hidden] { display: none !important; }
     font-weight:700 !important;
     text-decoration:none !important;
   }
+}
+
+/* Mobile feed media must remain a full card layer under the text overlay. */
+@media (max-width: 900px) {
+  html body.index-body.marketplace-social-feed-active .marketplace-feed-card {
+    position:relative !important;
+    overflow:hidden !important;
+  }
+  html body.index-body.marketplace-social-feed-active .marketplace-feed-card > .marketplace-feed-media {
+    position:absolute !important;
+    inset:0 0 18% 0 !important;
+    display:block !important;
+    width:auto !important;
+    height:auto !important;
+    min-height:0 !important;
+    max-height:none !important;
+    aspect-ratio:auto !important;
+    overflow:hidden !important;
+    z-index:0 !important;
+    background:#000 !important;
+  }
+  html body.index-body.marketplace-social-feed-active .marketplace-feed-card > .marketplace-feed-media > img,
+  html body.index-body.marketplace-social-feed-active .marketplace-feed-card > .marketplace-feed-media > video {
+    position:absolute !important;
+    inset:0 !important;
+    display:block !important;
+    visibility:visible !important;
+    opacity:1 !important;
+    width:100% !important;
+    height:100% !important;
+    max-width:100% !important;
+    max-height:100% !important;
+    object-fit:contain !important;
+    object-position:center !important;
+    transform:none !important;
+  }
+  html body.index-body.marketplace-social-feed-active .marketplace-feed-shade { z-index:2 !important; }
+  html body.index-body.marketplace-social-feed-active .marketplace-feed-details { z-index:3 !important; }
 }
