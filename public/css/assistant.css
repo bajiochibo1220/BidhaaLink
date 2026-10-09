@@ -23,3 +23,30 @@
 .bl-assistant-note{padding:0 12px 9px;color:#708077;font-size:11px;background:#fff}
 @media(max-width:520px){.bl-assistant-launcher{right:12px;right:max(12px,env(safe-area-inset-right));bottom:12px;bottom:max(12px,env(safe-area-inset-bottom));padding:10px 12px;font-size:12px;font-weight:600;gap:7px}.bl-assistant-launcher>i{font-size:12px}.bl-assistant-pulse{width:7px;height:7px}.bl-assistant-panel{right:10px;bottom:66px;width:calc(100vw - 20px);height:min(620px,calc(100dvh - 86px))}}
 @media(prefers-reduced-motion:reduce){.bl-assistant-pulse{animation:none}}
+
+/* On laptop marketplace views, pin Ask BidhaaLink beside the search row. */
+@media (min-width: 901px) {
+  body.index-body.marketplace-pane-expanded:not(.workspace-active) #blAssistantLauncher {
+    top:96px;
+    right:22px;
+    bottom:auto;
+  }
+  body.index-body.marketplace-pane-expanded:not(.workspace-active) #blAssistantPanel {
+    top:146px;
+    right:22px;
+    bottom:auto;
+    height:min(620px, calc(100dvh - 164px));
+  }
+}
+
+/* Leave the assistant at the bottom of a business profile page. */
+body.business-profile-page #blAssistantLauncher {
+  top:auto;
+  right:22px;
+  bottom:22px;
+}
+body.business-profile-page #blAssistantPanel {
+  top:auto;
+  right:22px;
+  bottom:82px;
+}

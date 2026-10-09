@@ -6101,3 +6101,827 @@ body.index-body .marketplace-business-rail .category-block {
     inset: 0 0 18% !important;
   }
 }
+
+/* Business admins use one clear entry point, with all management areas inside. */
+.manage-business-trigger { display:inline-flex; align-items:center; gap:7px; min-height:36px; padding:0 12px; border:0; border-radius:9px; background:#138044; color:#fff; font:inherit; font-size:.78rem; font-weight:800; cursor:pointer; }
+.manage-business-trigger:hover { background:#0f6b38; }
+.manage-business-trigger[hidden] { display:none; }
+.business-admin-user .workspace-menu-toggle { display:none; }
+.business-admin-user .workspace-tabs { display:flex; flex-wrap:wrap; align-items:stretch; }
+
+.business-admin-user .workspace-tab { flex:1 1 175px; min-width:150px; border:1px solid #c8e6c8; border-radius:9px; }
+.business-admin-user .workspace-tab.is-active { border-color:#2f7d3f; }
+
+/* Keep marketplace listings and feed fully out of view while the admin workspace is open. */
+body.workspace-active .marketplace-container,
+body.workspace-active .marketplace-bottom-nav,
+body.workspace-active #marketplaceDivider { display:none !important; visibility:hidden !important; }
+
+/* Desktop uses fixed, independently scrolling marketplace panes; prevent the document and its backdrop from drifting behind them. */
+@media (min-width: 901px) {
+  html:has(body.index-body),
+  body.index-body { height:100%; min-height:100%; overflow:hidden !important; }
+  body.index-body .app-container { height:100dvh; min-height:0; overflow:hidden; }
+  body.index-body .main-content { min-height:0; overflow:hidden; }
+}
+
+
+/* Paint the narrow divider between the desktop feed and business panes. */
+@media (min-width: 901px) {
+  body.index-body .marketplace-social-layout { background:#dce8df; }
+}
+
+
+/* Laptop marketplace: switch between full-viewport Social and Businesses views. */
+.marketplace-view-tabs { display:none; }
+@media (min-width: 901px) {
+  body.index-body .marketplace-social-layout[data-expanded] {
+    position:fixed; inset:52px 12px 44px; z-index:10; display:grid; width:auto; height:auto; min-height:0;
+    grid-template-columns:minmax(0, 1fr); grid-template-rows:50px 62px minmax(0, 1fr);
+    grid-template-areas:"view-tabs" "headings" "feed"; gap:0; margin:0; padding:0; overflow:hidden; background:#dce8df;
+  }
+  body.index-body .marketplace-view-tabs { grid-area:view-tabs; display:flex; align-items:stretch; gap:8px; padding:4px 6px; background:#f1f8f2; border:1px solid #c8e6c8; border-bottom:0; }
+  body.index-body .marketplace-view-tabs button { flex:1; display:flex; align-items:center; justify-content:center; gap:9px; border:1px solid #b7d9b7; border-radius:9px 9px 0 0; background:#fff; color:#315e3a; font:inherit; font-size:.9rem; font-weight:900; letter-spacing:.04em; cursor:pointer; }
+  body.index-body .marketplace-view-tabs button[aria-pressed="true"] { background:#176b42; border-color:#176b42; color:#fff; }
+  body.index-body .marketplace-social-layout[data-expanded] .marketplace-social-headings { grid-area:headings; position:relative; top:auto; z-index:2; display:grid; grid-template-columns:minmax(0, 1fr); gap:0; padding:0; background:#f5f7fa; }
+  body.index-body .marketplace-social-layout[data-expanded] .marketplace-social-heading-cell { min-height:58px; }
+  body.index-body .marketplace-social-layout[data-expanded="businesses"] { grid-template-areas:"view-tabs" "headings" "businesses"; }
+  body.index-body .marketplace-social-layout[data-expanded="feed"] .marketplace-social-business-heading,
+  body.index-body .marketplace-social-layout[data-expanded="businesses"] .marketplace-social-heading-cell:not(.marketplace-social-business-heading) { display:none; }
+  body.index-body .marketplace-social-layout[data-expanded="feed"] > .marketplace-feed { grid-area:feed; display:flex; flex-direction:column; width:100%; height:100%; min-height:0; border-radius:0 0 12px 12px; }
+  body.index-body .marketplace-social-layout[data-expanded="feed"] .marketplace-feed-scroll { flex:1 1 0; width:100%; height:0; min-height:0; overflow-y:auto; }
+  body.index-body .marketplace-social-layout[data-expanded="feed"] .marketplace-feed-card,
+  body.index-body .marketplace-social-layout[data-expanded="feed"] .marketplace-feed-state { height:100%; min-height:100%; max-height:none; }
+  body.index-body .marketplace-social-layout[data-expanded="businesses"] > .marketplace-business-rail { grid-area:businesses; display:block; width:100%; height:100%; min-height:0; max-height:none; padding:8px 10px 18px; overflow:auto; background:#f8fafc; }
+  body.index-body .marketplace-social-layout[data-expanded="businesses"] .marketplace-business-rail .business-grid { grid-template-columns:repeat(auto-fill, minmax(min(100%, 260px), 1fr)); gap:16px; }
+  body.index-body .marketplace-social-layout[data-expanded] .marketplace-pane-toggle { display:none; }
+}
+
+/* Compact laptop view strip and keep search controls pinned above the content. */
+@media (min-width: 901px) {
+  body.index-body .marketplace-social-layout[data-expanded] {
+    grid-template-rows:40px 52px minmax(0, 1fr);
+  }
+  body.index-body .marketplace-view-tabs {
+    gap:0; padding:0; overflow:hidden; border:0; border-radius:7px 7px 0 0; background:#176b42;
+  }
+  body.index-body .marketplace-view-tabs button {
+    min-height:40px; border:0; border-radius:0; background:#176b42; color:#d9f3e3;
+    font-size:.8rem; letter-spacing:.025em; transition:background-color .15s ease, color .15s ease;
+  }
+  body.index-body .marketplace-view-tabs button + button { border-left:1px solid rgba(255,255,255,.2); }
+  body.index-body .marketplace-view-tabs button[aria-pressed="true"] {
+    background:#176b42; color:#fff; box-shadow:inset 0 -3px #facc15;
+  }
+  body.index-body .marketplace-social-layout[data-expanded] .marketplace-social-headings {
+    position:sticky; top:0; z-index:5; min-height:52px; background:#f1f8f2;
+  }
+  body.index-body .marketplace-social-layout[data-expanded] .marketplace-social-heading-cell {
+    min-height:52px; justify-content:flex-end; gap:8px; padding:4px 10px;
+    border:1px solid #c8e6c8; border-top:0; background:#f1f8f2;
+  }
+  body.index-body .marketplace-social-layout[data-expanded] .marketplace-heading-copy { display:none; }
+  body.index-body .marketplace-social-layout[data-expanded] .marketplace-pane-search {
+    flex:0 1 460px; width:min(460px, 48vw); margin-left:auto;
+  }
+  body.index-body .marketplace-social-layout[data-expanded] .marketplace-pane-search .search-wrapper { width:100%; }
+  body.index-body .marketplace-social-layout[data-expanded] .marketplace-pane-search input { min-width:0; }
+}
+
+/* Black search input for the Social marketplace filter. */
+@media (min-width: 901px) {
+  body.index-body #marketplaceFeedSearch {
+    background:#000 !important;
+    color:#fff !important;
+    border-color:#000 !important;
+    caret-color:#fff;
+  }
+  body.index-body #marketplaceFeedSearch::placeholder { color:#cbd5e1; opacity:1; }
+}
+
+/* Make the entire pinned marketplace search row black, including its empty space. */
+@media (min-width: 901px) {
+  body.index-body .marketplace-social-layout[data-expanded] .marketplace-social-headings,
+  body.index-body .marketplace-social-layout[data-expanded] .marketplace-social-heading-cell {
+    background:#000 !important;
+    border-color:#000 !important;
+  }
+  body.index-body .marketplace-social-layout[data-expanded] .marketplace-feed-heading-actions button,
+  body.index-body .marketplace-social-layout[data-expanded] .marketplace-pane-toggle {
+    background:#000 !important;
+    border-color:#555 !important;
+    color:#fff !important;
+  }
+}
+
+/* Remove the light border between the pinned filter row and the Social card. */
+@media (min-width: 901px) {
+  body.index-body .marketplace-social-layout[data-expanded="feed"] .marketplace-social-headings,
+  body.index-body .marketplace-social-layout[data-expanded="feed"] .marketplace-social-heading-cell {
+    margin-bottom:0 !important;
+    border-bottom:0 !important;
+  }
+  body.index-body .marketplace-social-layout[data-expanded="feed"] > .marketplace-feed {
+    border-top:0 !important;
+    box-shadow:none;
+  }
+  body.index-body .marketplace-social-layout[data-expanded="feed"] .marketplace-feed-scroll {
+    border-top:0 !important;
+    background:#000 !important;
+  }
+}
+
+/* Hide the Social feed scrollbar without disabling scrolling. */
+@media (min-width: 901px) {
+  body.index-body .marketplace-social-layout[data-expanded="feed"] .marketplace-feed-scroll {
+    scrollbar-width:none !important;
+    -ms-overflow-style:none;
+  }
+  body.index-body .marketplace-social-layout[data-expanded="feed"] .marketplace-feed-scroll::-webkit-scrollbar {
+    display:none !important;
+    width:0 !important;
+    height:0 !important;
+  }
+}
+
+/* Align pinned marketplace search fields to the left side of their row. */
+@media (min-width: 901px) {
+  body.index-body .marketplace-social-layout[data-expanded] .marketplace-social-heading-cell { justify-content:flex-start; }
+  body.index-body .marketplace-social-layout[data-expanded] .marketplace-pane-search { margin-left:0; }
+}
+
+/* Slightly narrower search field with a charcoal action button to match the black input. */
+@media (min-width: 901px) {
+  body.index-body .marketplace-social-layout[data-expanded] .marketplace-pane-search {
+    flex:0 1 360px;
+    width:min(360px, 38vw);
+  }
+  body.index-body .marketplace-social-layout[data-expanded] .marketplace-pane-search .search-submit-btn {
+    background:#252525 !important;
+    border-color:#555 !important;
+    color:#fff !important;
+  }
+  body.index-body .marketplace-social-layout[data-expanded] .marketplace-pane-search .search-submit-btn:hover,
+  body.index-body .marketplace-social-layout[data-expanded] .marketplace-pane-search .search-submit-btn:focus-visible {
+    background:#383838 !important;
+    border-color:#777 !important;
+  }
+}
+
+/* Keep business identity and its contact/cart actions on one top row. */
+@media (min-width: 901px) {
+  body.index-body.marketplace-social-feed-active .marketplace-feed-card .marketplace-feed-topbar {
+    right:14px !important;
+    display:flex !important;
+    flex-direction:row !important;
+    align-items:center !important;
+    gap:14px !important;
+    width:auto;
+  }
+  body.index-body.marketplace-social-feed-active .marketplace-feed-business {
+    flex:1 1 auto;
+    min-width:0;
+    max-width:none !important;
+  }
+  body.index-body.marketplace-social-feed-active .marketplace-feed-actions {
+    flex:0 0 auto;
+    flex-wrap:nowrap;
+    align-items:center;
+    gap:8px;
+  }
+  body.index-body.marketplace-social-feed-active .marketplace-feed-actions .marketplace-feed-talk,
+  body.index-body.marketplace-social-feed-active .marketplace-feed-actions .marketplace-feed-cart {
+    min-height:34px;
+    padding:5px 12px;
+    border-radius:999px;
+    font-size:.78rem;
+    font-weight:800;
+    text-shadow:none;
+    box-shadow:0 2px 10px rgba(0,0,0,.45);
+  }
+  body.index-body.marketplace-social-feed-active .marketplace-feed-actions .marketplace-feed-talk {
+    background:#083344 !important;
+    border-color:#22d3ee !important;
+    color:#cffafe !important;
+  }
+  body.index-body.marketplace-social-feed-active .marketplace-feed-actions .marketplace-feed-cart {
+    background:#14532d !important;
+    border-color:#4ade80 !important;
+    color:#dcfce7 !important;
+  }
+}
+
+/* Keep the Social actions beside the business name, not at the far edge. */
+@media (min-width: 901px) {
+  body.index-body.marketplace-social-feed-active .marketplace-feed-business {
+    flex:0 1 auto !important;
+    width:auto;
+    max-width:none !important;
+  }
+  body.index-body.marketplace-social-feed-active .marketplace-feed-actions {
+    margin-left:2px;
+    justify-content:flex-start;
+  }
+  body.index-body.marketplace-social-feed-active .marketplace-feed-actions .marketplace-feed-talk {
+    background:#06b6d4 !important;
+    border-color:#67e8f9 !important;
+    color:#082f49 !important;
+  }
+  body.index-body.marketplace-social-feed-active .marketplace-feed-actions .marketplace-feed-cart {
+    background:#f59e0b !important;
+    border-color:#fcd34d !important;
+    color:#1c1917 !important;
+  }
+}
+
+/* Keep both Social action buttons transparent with matching text colors. */
+@media (min-width: 901px) {
+  body.index-body.marketplace-social-feed-active .marketplace-feed-actions .marketplace-feed-talk,
+  body.index-body.marketplace-social-feed-active .marketplace-feed-actions .marketplace-feed-cart {
+    background:transparent !important;
+    border-color:rgba(255,255,255,.75) !important;
+    color:#fff !important;
+    box-shadow:none !important;
+  }
+  body.index-body.marketplace-social-feed-active .marketplace-feed-actions .marketplace-feed-talk:hover,
+  body.index-body.marketplace-social-feed-active .marketplace-feed-actions .marketplace-feed-cart:hover {
+    background:rgba(255,255,255,.12) !important;
+  }
+}
+
+/* Low-key slow pulse for the primary actions on Social cards. */
+@keyframes marketplacePrimaryActionPulse {
+  0%, 100% { opacity:.84; }
+  50% { opacity:1; }
+}
+@media (min-width: 901px) {
+  body.index-body.marketplace-social-feed-active .marketplace-feed-actions .marketplace-feed-talk,
+  body.index-body.marketplace-social-feed-active .marketplace-feed-actions .marketplace-feed-cart {
+    background:#303030 !important;
+    border-color:#666 !important;
+    color:#f8fafc !important;
+    animation:marketplacePrimaryActionPulse 2.8s ease-in-out infinite;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  body.index-body.marketplace-social-feed-active .marketplace-feed-actions .marketplace-feed-talk,
+  body.index-body.marketplace-social-feed-active .marketplace-feed-actions .marketplace-feed-cart { animation:none; }
+}
+
+/* Clear medium-gray primary buttons and a visible green Similar action. */
+@media (min-width: 901px) {
+  body.index-body.marketplace-social-feed-active .marketplace-feed-actions .marketplace-feed-talk,
+  body.index-body.marketplace-social-feed-active .marketplace-feed-actions .marketplace-feed-cart {
+    background:#808080 !important;
+    border-color:#b8b8b8 !important;
+    color:#fff !important;
+  }
+  body.index-body.marketplace-social-feed-active .marketplace-feed-details .marketplace-feed-similar {
+    display:inline-flex !important;
+    position:relative;
+    z-index:3;
+    margin:8px 0 2px;
+    padding:4px 0;
+    color:#22c55e !important;
+    font-size:.9rem !important;
+    font-weight:800 !important;
+    text-shadow:0 1px 4px #000 !important;
+    visibility:visible !important;
+    opacity:1 !important;
+  }
+}
+
+/* Keep the top announcement and marketplace view switcher visually uniform. */
+body.index-body .top-bar .announcement-bar {
+  background:#176b42 !important;
+  color:#fff !important;
+  text-shadow:none !important;
+  animation:none !important;
+}
+body.index-body .marketplace-view-tabs,
+body.index-body .marketplace-view-tabs button,
+body.index-body .marketplace-view-tabs button[aria-pressed="true"] {
+  background:#176b42 !important;
+  color:#fff !important;
+}
+body.index-body .marketplace-view-tabs button[aria-pressed="true"] {
+  box-shadow:inset 0 -2px rgba(255,255,255,.9) !important;
+}
+
+/* Always show the Similar count for product and service cards. */
+@media (min-width: 901px) {
+  body.index-body.marketplace-social-feed-active .marketplace-feed-details .marketplace-feed-similar {
+    display:inline-flex !important;
+    color:#22c55e !important;
+    visibility:visible !important;
+    opacity:1 !important;
+  }
+}
+
+/* Match the pinned filter strip to the active marketplace view. */
+@media (min-width: 901px) {
+  body.index-body .marketplace-social-layout[data-expanded="feed"] .marketplace-social-headings,
+  body.index-body .marketplace-social-layout[data-expanded="feed"] .marketplace-social-heading-cell {
+    background:#000 !important;
+    background-image:none !important;
+    border-color:#000 !important;
+  }
+  body.index-body .marketplace-social-layout[data-expanded="businesses"] .marketplace-social-headings,
+  body.index-body .marketplace-social-layout[data-expanded="businesses"] .marketplace-social-heading-cell {
+    background-color:#e8d8b5 !important;
+    background-image:
+      repeating-linear-gradient(45deg, transparent 0 35px, rgba(139,105,58,.09) 35px 36px, transparent 36px 70px),
+      repeating-linear-gradient(-45deg, transparent 0 35px, rgba(139,105,58,.09) 35px 36px, transparent 36px 70px) !important;
+    background-size:70px 70px, 70px 70px !important;
+    border-color:rgba(139,105,58,.2) !important;
+  }
+}
+
+/* Coordinate each Search button with its view and remove the business-row seam. */
+@media (min-width: 901px) {
+  body.index-body .marketplace-social-layout[data-expanded="feed"] .marketplace-pane-search .search-submit-btn {
+    background:#252525 !important;
+    border-color:#555 !important;
+    color:#fff !important;
+  }
+  body.index-body .marketplace-social-layout[data-expanded="businesses"] .marketplace-pane-search .search-submit-btn {
+    background:#e8d8b5 !important;
+    border-color:#b89b68 !important;
+    color:#4b3a1c !important;
+  }
+  body.index-body .marketplace-social-layout[data-expanded="businesses"] .marketplace-social-headings,
+  body.index-body .marketplace-social-layout[data-expanded="businesses"] .marketplace-social-heading-cell {
+    border-bottom:0 !important;
+    margin-bottom:0 !important;
+  }
+  body.index-body .marketplace-social-layout[data-expanded="businesses"] > .marketplace-business-rail {
+    padding-top:0 !important;
+    margin-top:0 !important;
+    border-top:0 !important;
+  }
+  body.index-body .marketplace-social-layout[data-expanded="businesses"] #categoryBlocksSection,
+  body.index-body .marketplace-social-layout[data-expanded="businesses"] .businesses-section {
+    margin-top:0 !important;
+  }
+}
+
+/* Light-green marketplace header and matching Social/Businesses tab cards. */
+body.index-body:not(.business-profile-page) .top-bar {
+  background:#e8f5e9 !important;
+  border-bottom-color:#b7d9b7 !important;
+}
+body.index-body:not(.business-profile-page) .top-bar .announcement-bar {
+  background:#e8f5e9 !important;
+  color:#14532d !important;
+  text-shadow:none !important;
+}
+body.index-body:not(.business-profile-page) .marketplace-view-tabs {
+  gap:6px !important;
+  padding:4px 6px !important;
+  background:#e8f5e9 !important;
+  border:1px solid #b7d9b7 !important;
+}
+body.index-body:not(.business-profile-page) .marketplace-view-tabs button,
+body.index-body:not(.business-profile-page) .marketplace-view-tabs button[aria-pressed="true"] {
+  min-height:38px;
+  border:1px solid #b7d9b7 !important;
+  border-radius:6px !important;
+  background:#d9efdd !important;
+  color:#245b35 !important;
+  box-shadow:none !important;
+}
+body.index-body:not(.business-profile-page) .marketplace-view-tabs button[aria-pressed="true"] {
+  background:#c8e6c9 !important;
+  border-color:#7dbb87 !important;
+  color:#14532d !important;
+}
+
+/* Deeper sage-green header and view cards. */
+body.index-body:not(.business-profile-page) .top-bar,
+body.index-body:not(.business-profile-page) .top-bar .announcement-bar,
+body.index-body:not(.business-profile-page) .marketplace-view-tabs {
+  background:#b8d9bd !important;
+}
+body.index-body:not(.business-profile-page) .top-bar .announcement-bar { color:#164b29 !important; }
+body.index-body:not(.business-profile-page) .marketplace-view-tabs button,
+body.index-body:not(.business-profile-page) .marketplace-view-tabs button[aria-pressed="true"] {
+  background:#a9d1af !important;
+  border-color:#82b88b !important;
+  color:#174d2b !important;
+}
+body.index-body:not(.business-profile-page) .marketplace-view-tabs button[aria-pressed="true"] {
+  background:#8fbe97 !important;
+  border-color:#5f9e6b !important;
+}
+
+/* Join the marketplace header and Social/Businesses strip into one uninterrupted surface. */
+@media (min-width: 901px) {
+  body.index-body:not(.business-profile-page) .top-bar {
+    border-bottom:0 !important;
+    box-shadow:none !important;
+  }
+  body.index-body:not(.business-profile-page) .marketplace-social-layout[data-expanded] {
+    top:45px !important;
+  }
+  body.index-body:not(.business-profile-page) .marketplace-view-tabs {
+    gap:0 !important;
+    padding:0 !important;
+    border:0 !important;
+    border-radius:0 !important;
+    background:#b8d9bd !important;
+  }
+  body.index-body:not(.business-profile-page) .marketplace-view-tabs button,
+  body.index-body:not(.business-profile-page) .marketplace-view-tabs button[aria-pressed="true"] {
+    border:0 !important;
+    border-radius:0 !important;
+    background:#b8d9bd !important;
+    color:#174d2b !important;
+    box-shadow:none !important;
+  }
+  body.index-body:not(.business-profile-page) .marketplace-view-tabs button + button {
+    border-left:0 !important;
+  }
+}
+
+/* Match the marketplace view labels and use outlined green feed actions. */
+@media (min-width: 901px) {
+  body.index-body:not(.business-profile-page) .marketplace-view-tabs [data-marketplace-view="feed"] {
+    text-transform:uppercase;
+  }
+  body.index-body.marketplace-social-feed-active .marketplace-feed-actions .marketplace-feed-talk,
+  body.index-body.marketplace-social-feed-active .marketplace-feed-actions .marketplace-feed-cart {
+    background:transparent !important;
+    border:1px solid #22c55e !important;
+    border-radius:999px !important;
+    color:#22c55e !important;
+    box-shadow:none !important;
+  }
+  body.index-body.marketplace-social-feed-active .marketplace-feed-actions .marketplace-feed-talk:hover,
+  body.index-body.marketplace-social-feed-active .marketplace-feed-actions .marketplace-feed-cart:hover {
+    background:rgba(34,197,94,.12) !important;
+  }
+}
+
+/* Put Social/Businesses in the main header where the announcement used to be. */
+body.index-body:not(.business-profile-page) .top-bar .announcement-bar {
+  display:none !important;
+}
+@media (min-width: 901px) {
+  body.index-body:not(.business-profile-page) .top-bar {
+    box-sizing:border-box;
+    height:52px;
+    min-height:52px;
+    padding:6px 14px;
+    gap:14px;
+  }
+  body.index-body:not(.business-profile-page) .marketplace-view-tabs {
+    position:static;
+    flex:0 1 460px;
+    width:min(460px, 44vw);
+    height:40px;
+    min-height:40px;
+    margin:0 auto;
+  }
+  body.index-body:not(.business-profile-page) .top-bar-right { margin-left:0 !important; }
+  body.index-body:not(.business-profile-page) .marketplace-social-layout[data-expanded] {
+    top:52px !important;
+    grid-template-rows:52px minmax(0, 1fr) !important;
+    grid-template-areas:"headings" "feed" !important;
+  }
+  body.index-body:not(.business-profile-page) .marketplace-social-layout[data-expanded="businesses"] {
+    grid-template-areas:"headings" "businesses" !important;
+  }
+  body.index-body:not(.business-profile-page) .marketplace-social-layout[data-expanded] .marketplace-view-tabs {
+    display:none !important;
+  }
+}
+@media (min-width: 901px) {
+  body.index-body.marketplace-pane-expanded:not(.workspace-active) #blAssistantLauncher { top:56px !important; }
+  body.index-body.marketplace-pane-expanded:not(.workspace-active) #blAssistantPanel { top:106px !important; }
+}
+
+/* Keep marketplace view names compact and blue; keep guest actions visually plain. */
+body.index-body:not(.business-profile-page) .marketplace-view-tabs button,
+body.index-body:not(.business-profile-page) .marketplace-view-tabs button[aria-pressed="true"] {
+  color: #2563eb !important;
+  text-transform: lowercase !important;
+}
+body.index-body #publicNavTop #topRegisterLink {
+  background: transparent !important;
+  color: #2563eb !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
+}
+body.index-body #publicNavTop .admin-access-dot { margin-left: 2px; }
+
+/* Make the view tabs and guest links easier to read without changing their layout. */
+body.index-body:not(.business-profile-page) .marketplace-view-tabs button { font-size: 1rem !important; }
+body.index-body #publicNavTop #topLoginLink,
+body.index-body #publicNavTop #topRegisterLink {
+  font-size: .9rem !important;
+  text-decoration: none !important;
+}
+
+/* Fit similar media inside the gallery viewport and show complete images/videos. */
+body.index-body dialog.marketplace-gallery-dialog[open] {
+  display: flex;
+  flex-direction: column;
+  width: min(900px, calc(100vw - 28px));
+  max-height: calc(100dvh - 24px);
+}
+body.index-body .marketplace-gallery-items {
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: none;
+  grid-auto-rows: minmax(0, 1fr);
+}
+body.index-body .marketplace-gallery-items figure {
+  height: clamp(180px, 38dvh, 420px);
+  min-height: 0;
+}
+body.index-body .marketplace-gallery-items img,
+body.index-body .marketplace-gallery-items video {
+  object-fit: contain;
+}
+body.index-body .marketplace-gallery-items {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
+  grid-auto-rows: auto;
+  align-content: start;
+  overflow-x: hidden;
+}
+body.index-body .marketplace-gallery-items .marketplace-gallery-card {
+  display: grid;
+  grid-template-rows: minmax(190px, 1fr) auto;
+  height: auto;
+  max-height: 52dvh;
+  min-height: 0;
+  border: 1px solid #334155;
+  background: #111c30;
+}
+body.index-body .marketplace-gallery-media {
+  display: grid;
+  height: clamp(190px, 38dvh, 360px);
+  min-height: 0;
+  place-items: center;
+  overflow: hidden;
+  background: #080e1a;
+}
+body.index-body .marketplace-gallery-media img,
+body.index-body .marketplace-gallery-media video {
+  display: block;
+  width: 100%;
+  height: 100%;
+  max-height: 42dvh;
+  object-fit: contain;
+}
+body.index-body .marketplace-gallery-items .marketplace-gallery-card figcaption {
+  position: static;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 46px;
+  padding: 10px 12px;
+  background: #111c30;
+  color: #f8fafc;
+  text-shadow: none;
+}
+body.index-body .marketplace-gallery-card figcaption strong {
+  overflow: hidden;
+  font-size: .9rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+body.index-body .marketplace-gallery-card figcaption span {
+  flex: 0 0 auto;
+  padding: 3px 8px;
+  border: 1px solid #43614e;
+  border-radius: 999px;
+  color: #bbf7d0;
+  font-size: .72rem;
+  font-weight: 700;
+}
+body.index-body .marketplace-gallery-product-card figcaption {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px 10px;
+  justify-content: stretch !important;
+  align-items: center;
+}
+body.index-body .marketplace-gallery-product-meta,
+body.index-body .marketplace-gallery-product-actions {
+  grid-column: 1 / -1;
+}
+body.index-body .marketplace-gallery-product-meta {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+body.index-body .marketplace-gallery-product-meta > strong:first-child {
+  color: #f8fafc;
+  font-size: .82rem;
+}
+body.index-body .marketplace-gallery-product-meta .marketplace-gallery-variant {
+  justify-self: start;
+  max-width: 100%;
+  overflow: hidden;
+  border-color: #475569;
+  color: #cbd5e1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+body.index-body .marketplace-gallery-product-meta .marketplace-gallery-price {
+  color: #86efac;
+  font-size: 1rem;
+}
+body.index-body .marketplace-gallery-product-actions {
+  display: flex;
+  gap: 8px;
+}
+body.index-body .marketplace-gallery-product-actions button {
+  flex: 1 1 0;
+  min-height: 38px;
+  padding: 7px 10px;
+  border: 1px solid #64748b;
+  border-radius: 9px;
+  background: #1e293b;
+  color: #f8fafc;
+  font: inherit;
+  font-size: .84rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+body.index-body .marketplace-gallery-product-actions .marketplace-gallery-talk {
+  border-color: #22c55e;
+  color: #86efac;
+}
+body.index-body .marketplace-gallery-product-actions .marketplace-gallery-add {
+  border-color: #16a34a;
+  background: #166534;
+  color: #f0fdf4;
+}
+body.index-body .marketplace-gallery-product-actions button:disabled {
+  cursor: wait;
+  opacity: .65;
+}
+
+/* Match similar product tiles to the clear cards used on business profiles. */
+body.index-body dialog.marketplace-gallery-dialog[open] {
+  border-color: #bbdfc4;
+  border-radius: 14px;
+  background: #f4faf5;
+  color: #14532d;
+}
+body.index-body .marketplace-gallery-dialog::backdrop { backdrop-filter: none; }
+body.index-body .marketplace-gallery-head {
+  border-bottom-color: #cde8d3;
+  background: #f4faf5;
+}
+body.index-body .marketplace-gallery-head h2 { color: #166534; }
+body.index-body .marketplace-gallery-close {
+  border-color: #9bc9a5;
+  background: #fff;
+  color: #15803d;
+}
+body.index-body .marketplace-gallery-items { background: #edf6ef; }
+body.index-body .marketplace-gallery-items .marketplace-gallery-product-card {
+  grid-template-rows: 200px auto;
+  height: auto;
+  max-height: none;
+  overflow: hidden;
+  border-color: #cde8d3;
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 2px 6px rgba(20, 83, 45, .08);
+}
+body.index-body .marketplace-gallery-product-card .marketplace-gallery-media {
+  height: 200px;
+  background: #f8fafc;
+}
+body.index-body .marketplace-gallery-product-card .marketplace-gallery-media img,
+body.index-body .marketplace-gallery-product-card .marketplace-gallery-media video {
+  max-height: 200px;
+  background: #f8fafc;
+  object-fit: cover;
+  object-position: center;
+}
+body.index-body .marketplace-gallery-product-card figcaption {
+  gap: 7px 10px;
+  padding: 10px 12px 12px;
+  background: #fff;
+  color: #166534;
+  text-shadow: none;
+}
+body.index-body .marketplace-gallery-product-card figcaption > strong {
+  color: #166534;
+}
+body.index-body .marketplace-gallery-product-card figcaption > span {
+  border-color: #bbdfc4;
+  color: #15803d;
+}
+body.index-body .marketplace-gallery-product-meta .marketplace-gallery-variant {
+  border-color: #cde8d3;
+  background: #f4faf5;
+  color: #15803d;
+}
+body.index-body .marketplace-gallery-product-meta .marketplace-gallery-price {
+  color: #15803d;
+}
+body.index-body .marketplace-gallery-product-actions button {
+  border-color: #86c997;
+  background: #fff;
+  color: #15803d;
+}
+body.index-body .marketplace-gallery-product-actions .marketplace-gallery-talk,
+body.index-body .marketplace-gallery-product-actions .marketplace-gallery-add {
+  border-color: #6fbd82;
+  background: #fff;
+  color: #15803d;
+}
+body.index-body .marketplace-gallery-product-actions button:hover {
+  background: #edf8ef;
+}
+body.index-body .marketplace-gallery-items .marketplace-gallery-service-card {
+  grid-template-rows: 200px auto;
+  height: auto;
+  max-height: none;
+  overflow: hidden;
+  border-color: #cde8d3;
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 2px 6px rgba(20, 83, 45, .08);
+}
+body.index-body .marketplace-gallery-service-card .marketplace-gallery-media {
+  height: 200px;
+  background: #f8fafc;
+}
+body.index-body .marketplace-gallery-service-card .marketplace-gallery-media img,
+body.index-body .marketplace-gallery-service-card .marketplace-gallery-media video {
+  max-height: 200px;
+  background: #f8fafc;
+  object-fit: cover;
+  object-position: center;
+}
+body.index-body .marketplace-gallery-service-card figcaption {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 7px 10px;
+  justify-content: stretch !important;
+  padding: 10px 12px 12px;
+  background: #fff;
+  color: #166534;
+  text-shadow: none;
+}
+body.index-body .marketplace-gallery-service-card figcaption > strong,
+body.index-body .marketplace-gallery-service-card figcaption > span {
+  color: #166534;
+}
+body.index-body .marketplace-gallery-service-meta,
+body.index-body .marketplace-gallery-service-card .marketplace-gallery-product-actions {
+  grid-column: 1 / -1;
+}
+body.index-body .marketplace-gallery-service-meta {
+  display: grid;
+  gap: 7px;
+}
+body.index-body .marketplace-gallery-service-meta p {
+  display: -webkit-box;
+  margin: 0;
+  overflow: hidden;
+  color: #287443;
+  font-size: .84rem;
+  line-height: 1.4;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
+}
+body.index-body .marketplace-gallery-service-meta .marketplace-gallery-price {
+  color: #15803d;
+  font-size: .95rem;
+}
+body.index-body .marketplace-gallery-service-card .marketplace-gallery-product-actions button {
+  width: 100%;
+  border-color: #6fbd82;
+  background: #fff;
+  color: #15803d;
+}
+body.index-body .marketplace-gallery-service-card .marketplace-gallery-product-actions button:hover {
+  background: #edf8ef;
+}
+/* Keep the full product visible inside its clean white thumbnail frame. */
+body.index-body .marketplace-gallery-product-card .marketplace-gallery-media {
+  background: #fff;
+}
+body.index-body .marketplace-gallery-product-card .marketplace-gallery-media img,
+body.index-body .marketplace-gallery-product-card .marketplace-gallery-media video {
+  padding: 8px;
+  background: #fff;
+  object-fit: contain;
+  object-position: center;
+}
+body.index-body .marketplace-gallery-card > .product-inquiry-card-overlay {
+  top: 8px;
+  right: 8px;
+  width: min(278px, calc(100% - 16px));
+  max-height: calc(100% - 16px);
+}
+body.index-body .marketplace-gallery-more[hidden] { display: none !important; }

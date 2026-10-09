@@ -42,7 +42,7 @@
         wrapper.setAttribute('aria-label', 'Contact options');
         wrapper._contactTrigger = trigger;
         wrapper.append(panel);
-        const host = trigger?.closest('.marketplace-feed-card, .product-card, .related-item, .detail-container');
+        const host = trigger?.closest('.marketplace-feed-card, .product-card, .related-item, .detail-container, .marketplace-gallery-card');
         if (host) {
             host.classList.add('product-inquiry-host');
             trigger.setAttribute('aria-expanded', 'true');
@@ -131,7 +131,7 @@
         return true;
     }
 
-    async function openProductInquiry(productId, trigger = document.activeElement) {
+    async function openProductInquiry(productId, trigger = document.activeElement, selectedVariant = null) {
         const id = Number(productId);
         if (!Number.isSafeInteger(id) || id <= 0) return;
         if (toggleContactOptions(trigger)) return;
@@ -149,6 +149,16 @@
             if (!businessSlug) throw new Error('This business is not available for contact.');
             if (!loadingMenu.isConnected) return;
 
+            const variantLabel = [selectedVariant?.variantName, selectedVariant?.colorCode].filter(Boolean).join(' · ');
+            const productLabel = `${product.name || 'Product'}${variantLabel ? ` (${variantLabel})` : ''}`;
+            const displayedPrice = selectedVariant?.price ?? product.price;
+            const productUrl = new URL(`/product-detail.html?id=${id}&business=${encodeURIComponent(businessSlug)}`, window.location.origin);
+            if (selectedVariant?.variantName) productUrl.searchParams.set('variant', selectedVariant.variantName);
+            if (selectedVariant?.mediaUrl && ['image', 'video'].includes(selectedVariant.mediaKind)) {
+                productUrl.searchParams.set('productMedia', selectedVariant.mediaUrl);
+                productUrl.searchParams.set('productMediaKind', selectedVariant.mediaKind);
+            }
+
             const panel = document.createElement('div');
             panel.className = 'product-inquiry-panel';
             const heading = document.createElement('div');
@@ -157,7 +167,7 @@
             const title = document.createElement('h2');
             title.textContent = "Let's talk";
             const productTitle = document.createElement('p');
-            productTitle.textContent = `${product.name || 'Product'} · ${formatPrice(product.price)}`;
+            productTitle.textContent = `${productLabel} · ${formatPrice(displayedPrice)}`;
             titleWrap.append(title, productTitle);
             const close = document.createElement('button');
             close.type = 'button';
@@ -171,10 +181,10 @@
             heading.append(titleWrap, close);
             panel.appendChild(heading);
 
-            const message = `Can we have a talk about this product please?\nProduct: ${product.name || 'Product'}\nPrice -> ${formatPrice(product.price)}`;
+            const message = `Can we have a talk about this product please?\nProduct: ${productLabel}\nPrice -> ${formatPrice(displayedPrice)}`;
             const preview = document.createElement('p');
             preview.className = 'product-inquiry-preview';
-            preview.textContent = `${message}\nProduct link: ${new URL(`/product-detail.html?id=${id}&business=${encodeURIComponent(businessSlug)}`, window.location.origin).href}`;
+            preview.textContent = `${message}\nProduct link: ${productUrl.href}`;
             panel.appendChild(preview);
 
             const whatsapp = normalisePhone(product.business_whatsapp || product.business_phone || product.business?.whatsapp || product.business?.phone);
@@ -203,8 +213,7 @@
             button.append(icon, copy);
                 button.disabled = option.method !== 'inapp' && !option.phone;
                 button.addEventListener('click', async () => {
-                    const productUrl = new URL(`/product-detail.html?id=${id}&business=${encodeURIComponent(businessSlug)}`, window.location.origin).href;
-                    const externalMessage = `${message}\nView this product: ${productUrl}`;
+                    const externalMessage = `${message}\nView this product: ${productUrl.href}`;
                     if (option.method === 'whatsapp') {
                         closeInlineContactMenu(panel);
                         window.location.assign(`https://wa.me/${option.phone}?text=${encodeURIComponent(externalMessage)}`);
@@ -216,7 +225,11 @@
                         button.disabled = true;
                         hint.textContent = 'Sending your product inquiry…';
                         try {
-                            await sendInAppProductInquiry({ businessSlug, productId: id });
+                            await sendInAppProductInquiry({
+                                businessSlug,
+                                productId: id,
+                                variantId: selectedVariant?.variantId || null
+                            });
                         } catch (error) {
                             button.disabled = false;
                             hint.textContent = error.message || 'Could not start this conversation.';

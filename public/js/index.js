@@ -559,6 +559,7 @@ function setupMarketplacePaneToggles() {
 
   const buttons = { businesses: businessesToggle, feed: feedToggle };
   const shortcuts = document.querySelectorAll('.marketplace-mobile-shortcuts [data-marketplace-pane]');
+  const desktopTabs = document.querySelectorAll('.marketplace-view-tabs [data-marketplace-view]');
   const update = expanded => {
     if (expanded) layout.dataset.expanded = expanded;
     else delete layout.dataset.expanded;
@@ -574,12 +575,13 @@ function setupMarketplacePaneToggles() {
       if (icon) icon.className = isExpanded ? 'fas fa-compress' : pane === 'feed' ? 'fas fa-arrow-right' : 'fas fa-arrow-left';
     });
     shortcuts.forEach(button => button.setAttribute('aria-pressed', String(button.dataset.marketplacePane === expanded)));
+    desktopTabs.forEach(button => button.setAttribute('aria-pressed', String(button.dataset.marketplaceView === expanded)));
   };
   // A pane is always selected on phones so the fixed mobile navigation has
   // a clear active view and cannot leave the user with neither section.
   const mobile = window.matchMedia('(max-width: 900px)');
-  update(mobile.matches ? 'feed' : '');
-  const handleViewportModeChange = event => update(event.matches ? 'feed' : '');
+  update('feed');
+  const handleViewportModeChange = () => update('feed');
   if (mobile.addEventListener) mobile.addEventListener('change', handleViewportModeChange);
   else if (mobile.addListener) mobile.addListener(handleViewportModeChange);
   businessesToggle.addEventListener('click', () => {
@@ -589,6 +591,7 @@ function setupMarketplacePaneToggles() {
     update(!mobile.matches && layout.dataset.expanded === 'feed' ? '' : 'feed');
   });
   shortcuts.forEach(button => button.addEventListener('click', () => update(button.dataset.marketplacePane)));
+  desktopTabs.forEach(button => button.addEventListener('click', () => update(button.dataset.marketplaceView)));
   document.addEventListener('keydown', event => {
     if (event.key === 'Escape' && layout.dataset.expanded) update('businesses');
   });
@@ -803,6 +806,7 @@ function createMarketplaceFeedCard(item) {
   bottomRow.append(price);
   const actions = document.createElement('div');
   actions.className = 'marketplace-feed-actions';
+  let similarAction = null;
   if (item.item_type === 'product') {
     const talk = document.createElement('button');
     talk.type = 'button';
@@ -834,17 +838,18 @@ function createMarketplaceFeedCard(item) {
       }
     });
     actions.append(talk);
-    if (Number(item.media_count) > 0) {
-      const similar = document.createElement('button');
-      similar.type = 'button';
-      similar.className = 'marketplace-feed-similar';
-      similar.textContent = `See similar (${Number(item.media_count)})`;
-      similar.addEventListener('click', () => openMarketplaceServiceGallery(item, similar));
-      actions.append(similar);
-    }
   }
-  bottomRow.append(actions);
+  if (!isCustomerPost && ['product', 'service'].includes(item.item_type)) {
+    const similar = document.createElement('button');
+    similar.type = 'button';
+    similar.className = 'marketplace-feed-similar';
+    similar.textContent = `Similar (${Math.max(0, Number(item.media_count) || 0)})`;
+    similar.addEventListener('click', () => openMarketplaceSimilarGallery(item, similar));
+    similarAction = similar;
+  }
+  topbar.append(actions);
   details.append(bottomRow);
+  if (similarAction) details.append(similarAction);
   }
   if (description.textContent) {
     const fullDescription = description.textContent;
@@ -900,7 +905,7 @@ async function addMarketplaceFeedProductToCart(item, button) {
   }
 }
 
-async function openMarketplaceServiceGallery(item, trigger) {
+async function openMarketplaceSimilarGallery(item, trigger) {
   let dialog = document.getElementById('marketplaceServiceGalleryDialog');
   if (!dialog) {
     dialog = document.createElement('dialog');
@@ -918,7 +923,7 @@ async function openMarketplaceServiceGallery(item, trigger) {
   let hasMore = true;
   let loading = false;
   itemsBox.replaceChildren();
-  heading.textContent = `${item.title || 'Service'} — more photos and videos`;
+  heading.textContent = `${item.title || 'Item'} — Similar options (${Math.max(0, Number(item.media_count) || 0)})`;
   more.hidden = true;
   if (!dialog.open) dialog.showModal();
 
@@ -928,22 +933,140 @@ async function openMarketplaceServiceGallery(item, trigger) {
     more.disabled = true;
     more.textContent = 'Loading…';
     try {
-      const response = await fetch(`/api/businesses/${encodeURIComponent(item.business_slug)}/services/${encodeURIComponent(item.item_id)}/media?page=${page}&limit=8`, { credentials: 'same-origin' });
+      const isProduct = item.item_type === 'product';
+      const endpoint = isProduct
+        ? `/api/products/${encodeURIComponent(item.item_id)}/media`
+        : `/api/businesses/${encodeURIComponent(item.business_slug)}/services/${encodeURIComponent(item.item_id)}/media?page=${page}&limit=8`;
+      const response = await fetch(endpoint, { credentials: 'same-origin' });
       const data = await response.json().catch(() => ({}));
-      if (!response.ok || !data.success) throw new Error(data.error || 'Could not load service photos.');
-      (Array.isArray(data.items) ? data.items : []).forEach(mediaItem => {
+      if (!response.ok || !data.success) throw new Error(data.error || 'Could not load similar media.');
+      (Array.isArray(data.items) ? data.items : []).forEach((mediaItem, index) => {
+        if (!mediaItem || !mediaItem.url || !['image', 'video'].includes(mediaItem.kind)) return;
         const figure = document.createElement('figure');
+        figure.className = `marketplace-gallery-card${item.item_type === 'product' ? ' marketplace-gallery-product-card' : ' marketplace-gallery-service-card'}`;
+        const mediaFrame = document.createElement('div');
+        mediaFrame.className = 'marketplace-gallery-media';
         const media = mediaItem.kind === 'video' ? document.createElement('video') : document.createElement('img');
         media.src = mediaItem.url;
-        if (media.tagName === 'VIDEO') { media.controls = true; media.playsInline = true; media.preload = 'metadata'; }
+        if (media.tagName === 'VIDEO') { media.controls = true; media.playsInline = true; media.preload = 'metadata'; if (mediaItem.poster) media.poster = mediaItem.poster; }
         else { media.alt = mediaItem.caption || item.title || 'Service photo'; media.loading = 'lazy'; }
         const caption = document.createElement('figcaption');
-        caption.textContent = mediaItem.caption || item.title || 'More from this service';
-        figure.append(media, caption);
+        const captionTitle = document.createElement('strong');
+        captionTitle.textContent = item.item_type === 'product'
+          ? (mediaItem.name || item.title || 'Product')
+          : (item.title || mediaItem.caption || `Similar option ${index + 1}`);
+        const captionKind = document.createElement('span');
+        captionKind.textContent = mediaItem.kind === 'video' ? 'Video' : 'Photo';
+        mediaFrame.append(media);
+        if (item.item_type === 'product') {
+          const productMeta = document.createElement('div');
+          productMeta.className = 'marketplace-gallery-product-meta';
+          if (mediaItem.variant_name || mediaItem.color_code) {
+            const variantLabel = document.createElement('span');
+            variantLabel.className = 'marketplace-gallery-variant';
+            variantLabel.textContent = [mediaItem.variant_name, mediaItem.color_code].filter(Boolean).join(' · ');
+            productMeta.append(variantLabel);
+          }
+          const similarPrice = mediaItem.price !== null && mediaItem.price !== undefined && mediaItem.price !== ''
+            ? mediaItem.price
+            : item.price;
+          const price = document.createElement('strong');
+          price.className = 'marketplace-gallery-price';
+          price.textContent = similarPrice !== null && similarPrice !== undefined && similarPrice !== ''
+            ? formatProductPrice(similarPrice)
+            : 'Price unavailable';
+          productMeta.append(price);
+
+          const productActions = document.createElement('div');
+          productActions.className = 'marketplace-gallery-product-actions';
+          const talk = document.createElement('button');
+          talk.type = 'button';
+          talk.className = 'marketplace-gallery-talk';
+          talk.textContent = 'Let’s talk';
+          talk.addEventListener('click', () => {
+            if (typeof window.openProductInquiry === 'function') {
+              window.openProductInquiry(item.item_id, talk, {
+                name: mediaItem.name || item.title,
+                variantId: mediaItem.variant_id,
+                variantName: mediaItem.variant_name,
+                colorCode: mediaItem.color_code,
+                price: similarPrice,
+                mediaUrl: mediaItem.url,
+                mediaKind: mediaItem.kind
+              });
+            } else {
+              window.location.assign(`/product-detail.html?id=${encodeURIComponent(item.item_id)}`);
+            }
+          });
+          const add = document.createElement('button');
+          add.type = 'button';
+          add.className = 'marketplace-gallery-add';
+          add.textContent = 'Add to cart';
+          add.addEventListener('click', async () => {
+            add.disabled = true;
+            try {
+              if (typeof window.addProductToCart !== 'function') throw new Error('Cart is not ready. Please refresh and try again.');
+              const result = await window.addProductToCart(item.item_id, 1, { variantId: mediaItem.variant_id || null });
+              if (result?.authRequired) return;
+              add.textContent = 'Added';
+              if (typeof window.showToast === 'function') window.showToast('Added to cart.', 'success');
+            } catch (error) {
+              if (typeof window.showToast === 'function') window.showToast(error.message || 'Unable to add this product.', 'error');
+            } finally {
+              add.disabled = false;
+            }
+          });
+          productActions.append(talk, add);
+          caption.append(captionTitle, captionKind, productMeta, productActions);
+        } else {
+          const serviceMeta = document.createElement('div');
+          serviceMeta.className = 'marketplace-gallery-service-meta';
+          const description = document.createElement('p');
+          description.textContent = item.description || '';
+          if (description.textContent) serviceMeta.append(description);
+          const servicePrice = document.createElement('strong');
+          servicePrice.className = 'marketplace-gallery-price';
+          if (item.pricing_mode === 'negotiable') {
+            servicePrice.textContent = 'Negotiable';
+          } else {
+            const unitLabels = { per_service: 'per job', per_item: 'per item', per_hour: 'per hour', per_day: 'per day' };
+            const unit = unitLabels[item.price_unit] || '';
+            servicePrice.textContent = item.price !== null && item.price !== undefined && item.price !== ''
+              ? `${formatProductPrice(item.price)}${unit ? ` ${unit}` : ''}`
+              : 'Negotiable';
+          }
+          serviceMeta.append(servicePrice);
+
+          const serviceActions = document.createElement('div');
+          serviceActions.className = 'marketplace-gallery-product-actions';
+          const talk = document.createElement('button');
+          talk.type = 'button';
+          talk.className = 'marketplace-gallery-talk';
+          talk.textContent = 'Let’s talk';
+          talk.addEventListener('click', () => {
+            if (typeof window.openServiceInquiry === 'function') {
+              window.openServiceInquiry(item.item_id, item.business_slug, {
+                url: mediaItem.url,
+                kind: mediaItem.kind
+              }, talk);
+            } else {
+              window.location.assign(`/business/${encodeURIComponent(item.business_slug)}`);
+            }
+          });
+          serviceActions.append(talk);
+          caption.append(captionTitle, captionKind, serviceMeta, serviceActions);
+        }
+        figure.append(mediaFrame, caption);
         itemsBox.append(figure);
       });
+      if (!itemsBox.children.length) {
+        const empty = document.createElement('p');
+        empty.className = 'marketplace-gallery-empty';
+        empty.textContent = 'No similar photos or videos are available yet.';
+        itemsBox.append(empty);
+      }
       page = Number(data.page || page) + 1;
-      hasMore = Boolean(data.hasMore);
+      hasMore = isProduct ? false : Boolean(data.hasMore);
       more.hidden = !hasMore;
       more.textContent = hasMore ? 'Load more photos' : '';
     } catch (error) {
@@ -3238,6 +3361,9 @@ function showLoggedInState(user) {
   if (userBadge) userBadge.textContent = '';
 
   const role = getWorkspaceRole(user);
+  const manageBusinessTrigger = document.getElementById('manageBusinessTrigger');
+  if (manageBusinessTrigger) manageBusinessTrigger.hidden = role !== 'business';
+  document.body.classList.toggle('business-admin-user', role === 'business');
   renderWorkspaceNavigation(role);
   const workspace = document.getElementById('integratedWorkspace');
   const divider = document.getElementById('marketplaceDivider');
@@ -3247,6 +3373,9 @@ function showLoggedInState(user) {
 }
 
 function showGuestState() {
+  document.body.classList.remove('business-admin-user');
+  const manageBusinessTrigger = document.getElementById('manageBusinessTrigger');
+  if (manageBusinessTrigger) manageBusinessTrigger.hidden = true;
   updateCustomerPostTrigger();
   const publicNav = document.getElementById('publicNavTop');
   const loggedInNav = document.getElementById('loggedInNavTop');
@@ -3377,9 +3506,9 @@ function updateWorkspacePresentation(role, section, _subsection) {
       button.classList.toggle('is-active', active);
       button.setAttribute('aria-current', active ? 'page' : 'false');
     });
-    tabs.classList.remove('is-expanded');
+    tabs.classList.toggle('is-expanded', role === 'business');
   }
-  if (menuToggle) menuToggle.setAttribute('aria-expanded', 'false');
+  if (menuToggle) menuToggle.setAttribute('aria-expanded', String(role === 'business'));
 
   document.querySelectorAll('#marketplaceBottomNav button').forEach(button => {
     button.classList.toggle('is-active', button.dataset.section === section);

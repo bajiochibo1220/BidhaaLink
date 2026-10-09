@@ -314,6 +314,92 @@ router.get('/:id/contact', async (req, res) => {
   }
 });
 
+// Public gallery for a product's explicitly configured variant media.
+router.get('/:id/media', async (req, res) => {
+  const id = Number.parseInt(req.params.id, 10);
+  if (!Number.isSafeInteger(id) || id <= 0) {
+    return res.status(400).json({ error: 'Invalid product ID' });
+  }
+  try {
+    const productResult = await pool.query(`
+      SELECT p.id, p.name, p.price, p.media_type, p.image, p.video, p.video_poster_url
+        FROM products p
+        JOIN businesses b ON b.id = p.business_id
+       WHERE p.id = $1 AND p.is_active = TRUE AND b.is_active = TRUE
+       LIMIT 1
+    `, [id]);
+    if (!productResult.rows.length) return res.status(404).json({ error: 'Product not found' });
+
+    const product = productResult.rows[0];
+    // Use raw variant media here: customer-facing variant reads inherit the
+    // parent image/video, which would repeat the primary item for every option.
+    const variants = await variantService.listRawVariants(id);
+    // Some older products keep their primary price on the first active
+    // variant instead of products.price. Reuse that primary price for options
+    // without their own override.
+    const primaryPrice = product.price ?? variants.find(variant =>
+      variant.is_active === true && variant.price !== null && variant.price !== undefined && variant.price !== ''
+    )?.price ?? null;
+    const galleryVariants = variants.filter(variant =>
+      variant.is_active !== false
+      && String(variant.name || '').trim().toLowerCase() !== 'default'
+      && (String(variant.image || '').trim() || String(variant.video || '').trim())
+    );
+    const items = [];
+    if (product.media_type === 'video' && product.image) {
+      items.push({ product_id: id, variant_id: null, name: product.name, price: primaryPrice, kind: 'image', url: product.image, caption: product.name || 'Other product photo' });
+    } else if (product.video) {
+      items.push({
+        product_id: id,
+        variant_id: null,
+        name: product.name,
+        price: primaryPrice,
+        kind: 'video',
+        url: product.video,
+        poster: product.video_poster_url || null,
+        caption: product.name || 'Other product video'
+      });
+    }
+    galleryVariants.forEach(variant => {
+      const variantPrice = variant.price !== null && variant.price !== undefined && variant.price !== ''
+        ? variant.price
+        : primaryPrice;
+      const label = [variant.name, variant.color_code].filter(Boolean).join(' · ');
+      if (String(variant.image || '').trim()) {
+        items.push({
+          product_id: id,
+          variant_id: variant.id,
+          name: product.name,
+          variant_name: variant.name,
+          color_code: variant.color_code,
+          price: variantPrice,
+          kind: 'image',
+          url: variant.image,
+          caption: label || variant.name || 'Product variant'
+        });
+      }
+      if (String(variant.video || '').trim()) {
+        items.push({
+          product_id: id,
+          variant_id: variant.id,
+          name: product.name,
+          variant_name: variant.name,
+          color_code: variant.color_code,
+          price: variantPrice,
+          kind: 'video',
+          url: variant.video,
+          poster: variant.video_poster_url || null,
+          caption: label || variant.name || 'Product variant'
+        });
+      }
+    });
+    return res.json({ success: true, count: galleryVariants.length, items });
+  } catch (error) {
+    console.error('Load product variant media error:', error);
+    return res.status(500).json({ error: 'Could not load product variants.' });
+  }
+});
+
 router.get('/:id/detail', async (req, res) => {
   try {
     const id = parseInt(req.params.id);

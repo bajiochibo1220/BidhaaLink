@@ -78,7 +78,18 @@ router.get('/', async (req, res) => {
                  NULL::text AS service_area,
                  'fixed'::text AS pricing_mode,
                  NULL::text AS price_unit,
-                 0::int AS media_count,
+                 (SELECT COUNT(*)::int
+                    FROM product_variants pv
+                   WHERE pv.product_id = p.id
+                     AND pv.is_active = TRUE
+                     AND LOWER(COALESCE(pv.name, '')) <> 'default'
+                     AND (NULLIF(BTRIM(pv.image), '') IS NOT NULL
+                       OR NULLIF(BTRIM(pv.video), '') IS NOT NULL))
+                   + CASE
+                       WHEN p.media_type = 'video' AND NULLIF(BTRIM(p.image), '') IS NOT NULL THEN 1
+                       WHEN COALESCE(p.media_type, 'image') <> 'video' AND NULLIF(BTRIM(p.video), '') IS NOT NULL THEN 1
+                       ELSE 0
+                     END AS media_count,
                  p.created_at
                  ,concat_ws(' ', to_jsonb(b)->>'location', to_jsonb(b)->>'address', to_jsonb(b)->>'continent', to_jsonb(b)->>'country', to_jsonb(b)->>'county', to_jsonb(b)->>'sub_county', to_jsonb(b)->>'town', to_jsonb(b)->>'ward') AS location_text
             FROM products p
@@ -105,7 +116,11 @@ router.get('/', async (req, res) => {
                  s.service_area,
                  s.pricing_mode::text AS pricing_mode,
                  s.price_unit::text AS price_unit,
-                 GREATEST(jsonb_array_length(s.media) - 1, 0)::int AS media_count,
+                 (SELECT COUNT(*)::int
+                    FROM jsonb_array_elements(s.media) WITH ORDINALITY AS entry(value, ordinality)
+                   WHERE entry.ordinality > 1
+                     AND entry.value->>'kind' IN ('image', 'video')
+                     AND NULLIF(BTRIM(entry.value->>'url'), '') IS NOT NULL) AS media_count,
                  s.created_at
                  ,concat_ws(' ', s.service_area, to_jsonb(b)->>'location', to_jsonb(b)->>'address', to_jsonb(b)->>'continent', to_jsonb(b)->>'country', to_jsonb(b)->>'county', to_jsonb(b)->>'sub_county', to_jsonb(b)->>'town', to_jsonb(b)->>'ward') AS location_text
             FROM business_services s

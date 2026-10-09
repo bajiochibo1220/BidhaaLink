@@ -1,6 +1,7 @@
 const express = require('express');
 const { pool, logError } = require('../config/database');
 const { authMiddleware, customerOnly, businessAdminOnly } = require('../middleware/auth');
+const variantService = require('../services/variantService');
 
 const router = express.Router();
 const DEFAULT_MESSAGE = 'Can we have a talk about this service please?';
@@ -195,6 +196,7 @@ router.post('/customer/conversations', authMiddleware, customerOnly, async (req,
 router.post('/customer/product-conversations', authMiddleware, customerOnly, async (req, res) => {
   const slug = String(req.body?.businessSlug || '').trim().slice(0, 180);
   const productId = validId(req.body?.productId);
+  const variantId = validId(req.body?.variantId);
   if (!slug || !productId) return res.status(400).json({ error: 'Choose a valid product.' });
 
   const client = await pool.connect();
@@ -214,6 +216,15 @@ router.post('/customer/product-conversations', authMiddleware, customerOnly, asy
       return res.status(404).json({ error: 'This product is no longer available.' });
     }
 
+    let selectedVariant = null;
+    if (variantId) {
+      selectedVariant = await variantService.getVariantById(variantId, productId);
+      if (!selectedVariant || selectedVariant.is_active !== true) {
+        await client.query('ROLLBACK');
+        return res.status(404).json({ error: 'This product option is no longer available.' });
+      }
+    }
+
     const existing = await client.query(`
       SELECT id FROM business_service_conversations
        WHERE business_id = $1 AND customer_id = $2 AND product_id = $3
@@ -228,19 +239,28 @@ router.post('/customer/product-conversations', authMiddleware, customerOnly, asy
       conversationId = created.rows[0].id;
     }
 
-    const priceValue = Number(String(product.price || '').replace(/[^0-9.]/g, ''));
+    const sharedPrimaryVariant = selectedVariant && (selectedVariant.price === null || selectedVariant.price === undefined)
+      ? await variantService.getDefaultVariant(productId)
+      : null;
+    const selectedPrice = selectedVariant?.price ?? product.price ?? sharedPrimaryVariant?.price;
+    const variantLabel = [selectedVariant?.name, selectedVariant?.color_code].filter(Boolean).join(' · ');
+    const productLabel = `${product.name}${variantLabel ? ` (${variantLabel})` : ''}`;
+    const priceValue = Number(String(selectedPrice || '').replace(/[^0-9.]/g, ''));
     const priceLabel = Number.isFinite(priceValue)
       ? `Ksh ${priceValue.toLocaleString('en-KE', { maximumFractionDigits: 2 })}`
-      : String(product.price || 'Contact business');
-    const body = `Can we have a talk about this product please?\nProduct: ${product.name}\nPrice -> ${priceLabel}`;
-    const mediaKind = product.media_type === 'video' && product.video ? 'video' : (product.image ? 'image' : null);
-    const mediaUrl = mediaKind === 'video' ? product.video : mediaKind === 'image' ? product.image : null;
+      : String(selectedPrice || 'Contact business');
+    const body = `Can we have a talk about this product please?\nProduct: ${productLabel}\nPrice -> ${priceLabel}`;
+    const variantMediaKind = selectedVariant?.image ? 'image' : selectedVariant?.video ? 'video' : null;
+    const mediaKind = variantMediaKind || (product.media_type === 'video' && product.video ? 'video' : (product.image ? 'image' : null));
+    const mediaUrl = variantMediaKind === 'image' ? selectedVariant.image
+      : variantMediaKind === 'video' ? selectedVariant.video
+        : mediaKind === 'video' ? product.video : mediaKind === 'image' ? product.image : null;
     const inserted = await client.query(`
       INSERT INTO business_service_messages
         (conversation_id, sender_type, sender_id, body, media_url, media_kind, media_caption, read_by_customer, read_by_business)
       VALUES ($1, 'customer', $2, $3, $4, $5, $6, TRUE, FALSE)
       RETURNING id, sender_type, sender_id, body, media_url, media_kind, media_caption, created_at
-    `, [conversationId, req.userId, body, mediaUrl, mediaKind, product.name]);
+    `, [conversationId, req.userId, body, mediaUrl, mediaKind, productLabel]);
     await client.query(
       'UPDATE business_service_conversations SET updated_at = NOW(), last_message_at = NOW(), service_name = $1 WHERE id = $2',
       [`Product: ${product.name}`.slice(0, 180), conversationId]
