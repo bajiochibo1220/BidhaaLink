@@ -7305,3 +7305,17 @@ body.index-body .marketplace-gallery-more[hidden] { display: none !important; }
 @media (prefers-reduced-motion: reduce) {
   body.index-body .marketplace-mobile-shortcuts .marketplace-mobile-assistant i { animation:none !important; }
 }
+
+/* Final phone auth-link colors and sizing override legacy immersive-feed rules. */
+@media (max-width: 900px) {
+  html body.index-body:not(.business-profile-page).marketplace-social-feed-active #publicNavTop #topLoginLink,
+  html body.index-body:not(.business-profile-page).marketplace-social-feed-active #publicNavTop #topRegisterLink,
+  html body.index-body:not(.business-profile-page).marketplace-businesses-active #publicNavTop #topLoginLink,
+  html body.index-body:not(.business-profile-page).marketplace-businesses-active #publicNavTop #topRegisterLink {
+    color:#2563eb !important;
+    font-size:1rem !important;
+    line-height:1.25 !important;
+    font-weight:700 !important;
+    text-decoration:none !important;
+  }
+}

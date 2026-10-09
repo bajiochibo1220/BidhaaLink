@@ -85,7 +85,7 @@
   <!-- Leaflet (Section C.5 — map preview for activated location) -->
 
   <!-- Page-Specific Styles -->
-  <link rel="stylesheet" href="/css/business-admin.css?v=service-chat-inbox-20261009-v4">
+  <link rel="stylesheet" href="/css/business-admin.css?v=service-chat-inbox-20261009-v5">
   <link rel="stylesheet" href="/css/ad-management.css">
   <script>if (new URLSearchParams(window.location.search).get('embedded') === '1') document.documentElement.classList.add('embedded');</script>
 
@@ -612,7 +612,7 @@
     </div>
     <div class="header-right">
       <span id="businessNameDisplay" style="font-weight:600;color:#94a3b8;font-size:0.85rem;"></span>
-      <button class="logout-btn" onclick="logout()">Logout</button>
+      <button class="logout-btn" type="button" aria-label="Logout" onclick="logout()"><span>Logout</span></button>
     </div>
   </div>
 

@@ -2184,3 +2184,23 @@ html.embedded .sidebar { display: none !important; }
   .admin-header .header-right .logout-btn::before,
   .admin-header .header-right .logout-btn::after { content:none !important; display:none !important; }
 }
+
+/* Logout is always a plain text control, including narrow admin headers. */
+html body .admin-header .header-right button.logout-btn {
+  width:auto !important;
+  min-width:0 !important;
+  height:auto !important;
+  overflow:visible !important;
+  padding:6px 8px !important;
+  border:0 !important;
+  border-radius:0 !important;
+  background:transparent !important;
+  color:#fca5a5 !important;
+  font-size:.9rem !important;
+  font-weight:700 !important;
+  line-height:1.2 !important;
+  box-shadow:none !important;
+}
+html body .admin-header .header-right button.logout-btn::before,
+html body .admin-header .header-right button.logout-btn::after { content:none !important; display:none !important; }
+html body .admin-header .header-right button.logout-btn span { display:inline !important; color:inherit !important; font-size:inherit !important; }

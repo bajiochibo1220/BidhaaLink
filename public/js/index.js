@@ -700,21 +700,25 @@ function resolveMarketplaceMediaUrl(value) {
   }
 }
 
-async function getMarketplaceProfileProductMedia(item) {
-  if (item?.item_type !== 'product' || !item.business_slug || !item.item_id) return null;
-  const cacheKey = String(item.business_slug);
+async function getMarketplaceProfileMedia(item) {
+  if (!['product', 'service'].includes(item?.item_type) || !item.business_slug || !item.item_id) return null;
+  const cacheKey = `${item.item_type}:${item.business_slug}`;
   if (!marketplaceFeedProductMediaCache.has(cacheKey)) {
-    const request = fetch(`/api/businesses/${encodeURIComponent(cacheKey)}/products?limit=100&page=1&tab=all`, {
+    const collection = item.item_type === 'service' ? 'services' : 'products';
+    const request = fetch(`/api/businesses/${encodeURIComponent(item.business_slug)}/${collection}?limit=100&page=1&tab=all`, {
       credentials: 'same-origin'
     }).then(response => response.ok ? response.json() : null)
-      .then(data => Array.isArray(data?.products) ? data.products : [])
+      .then(data => Array.isArray(data?.[collection]) ? data[collection] : [])
       .catch(() => []);
     marketplaceFeedProductMediaCache.set(cacheKey, request);
   }
   const products = await marketplaceFeedProductMediaCache.get(cacheKey);
-  const product = products.find(entry => String(entry.id) === String(item.item_id));
-  const url = product?.thumbnail_url || product?.image || product?.video_poster_url || '';
-  return url ? resolveMarketplaceMediaUrl(url) : null;
+  const listing = products.find(entry => String(entry.id) === String(item.item_id));
+  const firstServiceMedia = Array.isArray(listing?.media)
+    ? listing.media.find(entry => entry?.url && ['image', 'video'].includes(entry.kind))
+    : null;
+  const url = listing?.thumbnail_url || listing?.image || listing?.video_poster_url || firstServiceMedia?.poster || firstServiceMedia?.url || '';
+  return url ? { url: resolveMarketplaceMediaUrl(url), kind: listing?.thumbnail_kind || firstServiceMedia?.kind || 'image' } : null;
 }
 
 function createMarketplaceFeedCard(item) {
@@ -723,6 +727,26 @@ function createMarketplaceFeedCard(item) {
   article.className = `marketplace-feed-card marketplace-feed-${isCustomerPost ? 'customer-post' : item.item_type === 'service' ? 'service' : 'product'}`;
   const media = document.createElement('div');
   media.className = 'marketplace-feed-media';
+  let profileMediaRequested = false;
+  const applyProfileMediaFallback = async target => {
+    if (profileMediaRequested || !['product', 'service'].includes(item.item_type)) return;
+    profileMediaRequested = true;
+    const fallback = await getMarketplaceProfileMedia(item);
+    if (!fallback?.url || !target.isConnected) return;
+    const image = document.createElement('img');
+    image.src = fallback.url;
+    image.alt = item.title || 'Business offer';
+    image.loading = 'eager';
+    image.decoding = 'async';
+    image.onerror = () => {
+      image.remove();
+      media.classList.add('marketplace-feed-no-media');
+    };
+    image.addEventListener('load', () => setMediaAspectRatio(image.naturalWidth, image.naturalHeight), { once: true });
+    media.classList.remove('marketplace-feed-no-media');
+    if (target === media) media.replaceChildren(image);
+    else target.replaceWith(image);
+  };
   const setMediaAspectRatio = (width, height) => {
     if (Number.isFinite(width) && Number.isFinite(height) && width > 0 && height > 0) {
       media.style.setProperty('--marketplace-media-ratio', `${width} / ${height}`);
@@ -760,39 +784,14 @@ function createMarketplaceFeedCard(item) {
     video.addEventListener('error', async () => {
       if (video.dataset.triedProfilePoster) return;
       video.dataset.triedProfilePoster = 'true';
-      const fallbackUrl = await getMarketplaceProfileProductMedia(item);
-      if (!fallbackUrl || fallbackUrl === video.src || !video.isConnected) return;
-      const posterImage = document.createElement('img');
-      posterImage.src = fallbackUrl;
-      posterImage.alt = item.title || 'Business offer';
-      posterImage.decoding = 'async';
-      posterImage.loading = 'eager';
-      posterImage.onerror = () => {
-        const identityFallback = resolveMarketplaceMediaUrl(
-          isCustomerPost ? item.customer_profile_image : item.business_logo
-        );
-        if (!posterImage.dataset.triedIdentity && identityFallback && identityFallback !== posterImage.src) {
-          posterImage.dataset.triedIdentity = 'true';
-          posterImage.src = identityFallback;
-          return;
-        }
-        posterImage.remove();
-        media.classList.add('marketplace-feed-no-media');
-        if (!media.querySelector('.marketplace-feed-media-fallback')) {
-          const icon = document.createElement('i');
-          icon.className = 'marketplace-feed-media-fallback fas fa-box-open';
-          icon.setAttribute('aria-hidden', 'true');
-          media.append(icon);
-        }
-      };
-      video.replaceWith(posterImage);
-      marketplaceFeedMediaObserver?.observe(posterImage);
+      await applyProfileMediaFallback(video);
     }, { once: true });
     media.append(video);
     if (video.readyState >= 1) setMediaAspectRatio(video.videoWidth, video.videoHeight);
     marketplaceFeedVideoObserver?.observe(video);
     marketplaceFeedMediaObserver?.observe(video);
     if (initialMediaCount === 0) requestAnimationFrame(() => video.play().catch(() => {}));
+    if (!item.media_url) applyProfileMediaFallback(video);
   } else if (item.media_url) {
     const image = document.createElement('img');
     image.src = resolveMarketplaceMediaUrl(item.media_url);
@@ -806,9 +805,9 @@ function createMarketplaceFeedCard(item) {
     image.onerror = () => {
       if (!image.dataset.triedProfileMedia && item.item_type === 'product' && item.business_slug) {
         image.dataset.triedProfileMedia = 'true';
-        getMarketplaceProfileProductMedia(item).then(profileMediaUrl => {
-          if (profileMediaUrl && profileMediaUrl !== image.src && image.isConnected) {
-            image.src = profileMediaUrl;
+        getMarketplaceProfileMedia(item).then(profileMedia => {
+          if (profileMedia?.url && profileMedia.url !== image.src && image.isConnected) {
+            image.src = profileMedia.url;
             return;
           }
           image.onerror();
@@ -834,6 +833,9 @@ function createMarketplaceFeedCard(item) {
     media.append(image);
     if (image.complete) applyImageAspectRatio();
     marketplaceFeedMediaObserver?.observe(image);
+  } else if (['product', 'service'].includes(item.item_type)) {
+    media.classList.add('marketplace-feed-no-media');
+    applyProfileMediaFallback(media);
   } else {
     media.classList.add('marketplace-feed-no-media');
     const icon = document.createElement('i');
