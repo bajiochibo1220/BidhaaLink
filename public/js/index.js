@@ -559,6 +559,7 @@ function setupMarketplacePaneToggles() {
 
   const buttons = { businesses: businessesToggle, feed: feedToggle };
   const shortcuts = document.querySelectorAll('.marketplace-mobile-shortcuts [data-marketplace-pane]');
+  const assistantShortcut = document.querySelector('.marketplace-mobile-assistant');
   const desktopTabs = document.querySelectorAll('.marketplace-view-tabs [data-marketplace-view]');
   const update = expanded => {
     if (expanded) layout.dataset.expanded = expanded;
@@ -591,6 +592,7 @@ function setupMarketplacePaneToggles() {
     update(!mobile.matches && layout.dataset.expanded === 'feed' ? '' : 'feed');
   });
   shortcuts.forEach(button => button.addEventListener('click', () => update(button.dataset.marketplacePane)));
+  assistantShortcut?.addEventListener('click', () => document.getElementById('blAssistantLauncher')?.click());
   desktopTabs.forEach(button => button.addEventListener('click', () => update(button.dataset.marketplaceView)));
   document.addEventListener('keydown', event => {
     if (event.key === 'Escape' && layout.dataset.expanded) update('businesses');
@@ -688,8 +690,9 @@ function resolveMarketplaceMediaUrl(value) {
     const url = new URL(String(value), window.location.href);
     if (/^(localhost|127(?:\.\d{1,3}){3}|0\.0\.0\.0)$/i.test(url.hostname)) {
       url.hostname = window.location.hostname;
-      if (window.location.port && !url.port) url.port = window.location.port;
+      url.port = window.location.port;
     }
+    if (window.location.protocol === 'https:' && url.protocol === 'http:') url.protocol = 'https:';
     return url.href;
   } catch (_) {
     return String(value);
@@ -748,7 +751,23 @@ function createMarketplaceFeedCard(item) {
     image.loading = initialMediaCount < 3 ? 'eager' : 'lazy';
     image.decoding = 'async';
     if (initialMediaCount < 2) image.fetchPriority = 'high';
-    image.onerror = () => { image.remove(); media.classList.add('marketplace-feed-no-media'); };
+    image.onerror = () => {
+      const fallback = isCustomerPost ? item.customer_profile_image : item.business_logo;
+      const fallbackUrl = resolveMarketplaceMediaUrl(fallback);
+      if (!image.dataset.triedFallback && fallbackUrl && fallbackUrl !== image.src) {
+        image.dataset.triedFallback = 'true';
+        image.src = fallbackUrl;
+        return;
+      }
+      image.remove();
+      media.classList.add('marketplace-feed-no-media');
+      if (!media.querySelector('.marketplace-feed-media-fallback')) {
+        const fallbackIcon = document.createElement('i');
+        fallbackIcon.className = `marketplace-feed-media-fallback fas ${item.item_type === 'service' ? 'fa-handshake' : 'fa-box-open'}`;
+        fallbackIcon.setAttribute('aria-hidden', 'true');
+        media.append(fallbackIcon);
+      }
+    };
     media.append(image);
     if (image.complete) applyImageAspectRatio();
     marketplaceFeedMediaObserver?.observe(image);
