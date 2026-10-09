@@ -869,7 +869,6 @@ html.embedded .sidebar { display: none !important; }
     color: transparent !important;
     font-size: 0 !important;
   }
-  .admin-header .header-right .logout-btn::before { content: '\f2f5'; font-family: 'Font Awesome 6 Free'; font-weight: 900; color: #fff; font-size: 16px; }
   .embedded-sidebar-toggle { background: #176b42 !important; border-radius: 10px !important; }
   .sidebar { background: #14532d !important; }
   .sidebar .sidebar-menu .menu-item.active { background: #176b42 !important; }
@@ -2167,7 +2166,6 @@ html.embedded .sidebar { display: none !important; }
   .admin-header .header-right { gap:5px !important; }
   .admin-header .header-right #businessNameDisplay { max-width:100px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:.7rem !important; color:#315e3a !important; }
   .admin-header .header-right .logout-btn { width:38px; min-width:38px; height:38px; overflow:hidden; padding:0 !important; border-radius:10px !important; background:#176b42 !important; color:transparent !important; font-size:0 !important; }
-  .admin-header .header-right .logout-btn::before { content:'\f2f5'; font-family:'Font Awesome 6 Free'; font-weight:900; color:#fff; font-size:16px; }
   .embedded-sidebar-toggle { background:#176b42 !important; border-radius:10px !important; }
   .sidebar { background:#14532d !important; }
   .sidebar .sidebar-menu .menu-item.active { background:#176b42 !important; }
@@ -2183,5 +2181,6 @@ html.embedded .sidebar { display: none !important; }
     font-size:.82rem !important;
     font-weight:700;
   }
-  .admin-header .header-right .logout-btn::before { content:none !important; display:none !important; }
+  .admin-header .header-right .logout-btn::before,
+  .admin-header .header-right .logout-btn::after { content:none !important; display:none !important; }
 }

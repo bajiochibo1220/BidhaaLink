@@ -118,7 +118,6 @@ router.get('/', async (req, res) => {
                 FROM product_variants pv
                WHERE pv.product_id = p.id
                  AND pv.is_active = TRUE
-                 AND LOWER(COALESCE(pv.name, '')) <> 'default'
                  AND (NULLIF(BTRIM(pv.image), '') IS NOT NULL
                    OR NULLIF(BTRIM(pv.video_poster_url), '') IS NOT NULL
                    OR NULLIF(BTRIM(pv.video), '') IS NOT NULL)

@@ -7259,4 +7259,49 @@ body.index-body .marketplace-gallery-more[hidden] { display: none !important; }
     border:0 !important;
     border-radius:0 !important;
   }
+  body.index-body:not(.business-profile-page) #topLoginLink,
+  body.index-body:not(.business-profile-page) #topRegisterLink {
+    color:#2563eb !important;
+    font-size:1rem !important;
+    line-height:1.2 !important;
+    font-weight:700 !important;
+  }
+  body.index-body:not(.business-profile-page) .marketplace-social-layout[data-expanded="feed"] .marketplace-pane-search .search-wrapper {
+    border:1px solid #9ca3af !important;
+    border-radius:999px !important;
+    overflow:hidden !important;
+  }
+  body.index-body:not(.business-profile-page) .marketplace-social-layout[data-expanded="businesses"] .marketplace-pane-search .search-wrapper {
+    border-radius:999px !important;
+    overflow:hidden !important;
+  }
+  body.index-body:not(.business-profile-page) .marketplace-social-layout[data-expanded="businesses"] #businessSearch {
+    border-radius:999px 0 0 999px !important;
+  }
+  body.index-body:not(.business-profile-page) .marketplace-social-layout[data-expanded="businesses"] .search-submit-btn {
+    border-radius:0 999px 999px 0 !important;
+  }
+  body.index-body:not(.business-profile-page) .marketplace-social-layout[data-expanded="feed"] #marketplaceFeedSearch {
+    border-radius:999px 0 0 999px !important;
+  }
+  body.index-body:not(.business-profile-page) .marketplace-social-layout[data-expanded="feed"] .search-submit-btn {
+    border-radius:0 999px 999px 0 !important;
+  }
+  body.index-body:not(.business-profile-page) .marketplace-social-layout[data-expanded="feed"] .marketplace-feed-refresh {
+    border-radius:50% !important;
+    background:transparent !important;
+  }
+  body.index-body:not(.business-profile-page) .marketplace-mobile-shortcuts .marketplace-mobile-assistant i {
+    animation:marketplace-ai-blink 1.25s ease-in-out infinite;
+    transform-origin:center;
+  }
+}
+
+@keyframes marketplace-ai-blink {
+  0%, 100% { opacity:.48; transform:scale(.88); filter:drop-shadow(0 0 0 transparent); }
+  50% { opacity:1; transform:scale(1.12); filter:drop-shadow(0 0 7px rgba(85,200,120,.9)); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body.index-body .marketplace-mobile-shortcuts .marketplace-mobile-assistant i { animation:none !important; }
 }
