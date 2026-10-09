@@ -7,7 +7,7 @@
 
   <link rel="stylesheet" href="/style.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-  <link rel="stylesheet" href="/css/account.css?v=customer-social-profile-20261007-v1">
+  <link rel="stylesheet" href="/css/account.css?v=customer-social-profile-20261009-v2">
   <script>
     if (new URLSearchParams(window.location.search).get('embedded') === '1') {
       document.documentElement.classList.add('embedded');
@@ -448,7 +448,7 @@
       }
     }
   </style>
-  <link rel="stylesheet" href="/css/assistant.css">
+  <link rel="stylesheet" href="/css/assistant.css?v=assistant-mobile-icon-20261009-v3">
 </head>
 <body>
 
@@ -470,7 +470,7 @@
     <div class="user-info">
       <span class="user-name"><i class="fas fa-user-circle"></i> <span id="headerUserName">Customer</span></span>
       <span class="user-phone"><i class="fas fa-phone"></i> <span id="headerUserPhone">—</span></span>
-      <button type="button" class="header-logout-btn" onclick="logout()" aria-label="Logout">
+      <button type="button" class="header-logout-btn" onclick="logout()" aria-label="Logout" title="Logout">
         <i class="fas fa-sign-out-alt"></i> Logout
       </button>
     </div>
@@ -486,20 +486,20 @@
     </button>
 
     <button class="nav-item active" data-section="home" onclick="navigateToAccount('home')">
-      <i class="fas fa-home"></i> Home
+      <i class="fas fa-home" aria-hidden="true"></i><span>Home</span>
     </button>
 
     <button class="nav-item" data-section="orders" onclick="navigateToAccount('orders')">
-      <i class="fas fa-box"></i> Orders
+      <i class="fas fa-box" aria-hidden="true"></i><span>Orders</span>
       <span class="badge" id="orderBadgeNav">0</span>
     </button>
 
     <button class="nav-item" data-section="profile" onclick="navigateToAccount('profile')">
-      <i class="fas fa-user"></i> Profile
+      <i class="fas fa-user" aria-hidden="true"></i><span>Profile</span>
     </button>
 
     <button class="nav-item messages" data-section="messages" onclick="navigateToAccount('messages')">
-      <i class="fas fa-envelope"></i> Messages
+      <i class="fas fa-envelope" aria-hidden="true"></i><span>Messages</span>
       <span class="badge orange" id="messageBadgeNav">0</span>
     </button>
   </nav>

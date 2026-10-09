@@ -843,6 +843,38 @@ html.embedded .sidebar { display: none !important; }
    ============================================================ */
 .sidebar .sidebar-menu .menu-item { position: relative; }
 
+@media (max-width: 768px) {
+  .admin-body { background: #e8f2e9; }
+  .admin-header {
+    min-height: 52px;
+    padding: 7px 10px !important;
+    background: #b8d9bd !important;
+    color: #14532d !important;
+    box-shadow: 0 2px 8px rgba(20, 83, 45, .12) !important;
+  }
+  .admin-header .header-left { gap: 7px !important; }
+  .admin-header .header-left .hamburger { color: #176b42 !important; font-size: 1.15rem !important; }
+  .admin-header h1 { color: #14532d !important; font-size: .9rem !important; }
+  .admin-header h1 i { color: #176b42 !important; }
+  .admin-header .header-right { gap: 5px !important; }
+  .admin-header .header-right #businessNameDisplay { max-width: 100px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .7rem !important; color: #315e3a !important; }
+  .admin-header .header-right .logout-btn {
+    width: 38px;
+    min-width: 38px;
+    height: 38px;
+    overflow: hidden;
+    padding: 0 !important;
+    border-radius: 10px !important;
+    background: #176b42 !important;
+    color: transparent !important;
+    font-size: 0 !important;
+  }
+  .admin-header .header-right .logout-btn::before { content: '\f2f5'; font-family: 'Font Awesome 6 Free'; font-weight: 900; color: #fff; font-size: 16px; }
+  .embedded-sidebar-toggle { background: #176b42 !important; border-radius: 10px !important; }
+  .sidebar { background: #14532d !important; }
+  .sidebar .sidebar-menu .menu-item.active { background: #176b42 !important; }
+}
+
 @media (max-width: 600px) {
   .sidebar .sidebar-menu .menu-item {
     min-height: 46px;
@@ -2122,4 +2154,21 @@ html.embedded .sidebar { display: none !important; }
   .service-chat-reply-form > button {
     align-self: flex-end;
   }
+}
+
+/* Final phone header treatment for the standalone business workspace. */
+@media (max-width: 768px) {
+  .admin-body { background:#e8f2e9; }
+  .admin-header { min-height:52px; padding:7px 10px !important; background:#b8d9bd !important; color:#14532d !important; box-shadow:0 2px 8px rgba(20,83,45,.12) !important; }
+  .admin-header .header-left { gap:7px !important; }
+  .admin-header .header-left .hamburger { color:#176b42 !important; font-size:1.15rem !important; }
+  .admin-header h1 { color:#14532d !important; font-size:.9rem !important; }
+  .admin-header h1 i { color:#176b42 !important; }
+  .admin-header .header-right { gap:5px !important; }
+  .admin-header .header-right #businessNameDisplay { max-width:100px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:.7rem !important; color:#315e3a !important; }
+  .admin-header .header-right .logout-btn { width:38px; min-width:38px; height:38px; overflow:hidden; padding:0 !important; border-radius:10px !important; background:#176b42 !important; color:transparent !important; font-size:0 !important; }
+  .admin-header .header-right .logout-btn::before { content:'\f2f5'; font-family:'Font Awesome 6 Free'; font-weight:900; color:#fff; font-size:16px; }
+  .embedded-sidebar-toggle { background:#176b42 !important; border-radius:10px !important; }
+  .sidebar { background:#14532d !important; }
+  .sidebar .sidebar-menu .menu-item.active { background:#176b42 !important; }
 }

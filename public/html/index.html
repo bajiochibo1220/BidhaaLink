@@ -23,10 +23,10 @@
 
   <!-- Page-Specific Styles -->
   <link rel="stylesheet" href="/css/index.css">
-<link rel="stylesheet" href="/css/marketplace.css?v=mobile-marketplace-workspace-20261008-v51">
+<link rel="stylesheet" href="/css/marketplace.css?v=mobile-marketplace-workspace-20261009-v52">
   <link rel="stylesheet" href="/css/product-inquiry.css?v=card-contact-menu-20261008-v3">
   <link rel="stylesheet" href="/css/pwa.css">
-  <link rel="stylesheet" href="/css/assistant.css?v=assistant-layout-20261008-v2">
+  <link rel="stylesheet" href="/css/assistant.css?v=assistant-mobile-icon-20261009-v3">
 </head>
 <body class="index-body">
 
@@ -89,19 +89,19 @@
       <div class="top-bar-right" id="topBarRight">
         <!-- PUBLIC NAV (Guest) -->
         <div id="publicNavTop" style="display:flex;gap:8px;align-items:center;">
-          <a href="#" id="topLoginLink" onclick="openAuthModal('login'); return false;" class="auth-btn" style="color:#2563eb;font-weight:700;font-size:0.75rem;">
+          <a href="#" id="topLoginLink" aria-label="Login" title="Login" onclick="openAuthModal('login'); return false;" class="auth-btn" style="color:#2563eb;font-weight:700;font-size:0.75rem;">
             <i class="fas fa-sign-in-alt"></i> Login
           </a>
-          <a href="#" id="topRegisterLink" onclick="openAuthModal('register'); return false;" class="auth-btn" style="background:transparent;color:#2563eb;padding:0;border-radius:0;font-weight:700;font-size:0.75rem;text-decoration:none;">
+          <a href="#" id="topRegisterLink" aria-label="Register" title="Register" onclick="openAuthModal('register'); return false;" class="auth-btn" style="background:transparent;color:#2563eb;padding:0;border-radius:0;font-weight:700;font-size:0.75rem;text-decoration:none;">
             <i class="fas fa-user-plus"></i> Register
           </a>
           <a href="/admin.html" class="auth-btn admin-access-dot" aria-label="Super Admin sign in" title="Super Admin sign in"><span aria-hidden="true"></span></a>
         </div>
         <!-- LOGGED IN NAV -->
         <div id="loggedInNavTop" style="display:none;gap:8px;align-items:center;">
-          <button class="manage-business-trigger" id="manageBusinessTrigger" type="button" onclick="openDashboardPanel('dashboard')"><i class="fas fa-store"></i> Manage your business</button>
+          <button class="manage-business-trigger" id="manageBusinessTrigger" type="button" aria-label="Manage your business" title="Manage your business" onclick="openDashboardPanel('dashboard')"><i class="fas fa-store"></i><span>Manage your business</span></button>
           <span class="user-badge" id="userBadge">👤 User</span>
-          <button class="logout-btn" onclick="handleLogout()">
+          <button class="logout-btn" aria-label="Logout" title="Logout" onclick="handleLogout()">
             <i class="fas fa-sign-out-alt"></i> Logout
           </button>
         </div>
@@ -297,8 +297,8 @@
         </dialog>
       </section>
       <nav class="marketplace-mobile-shortcuts" aria-label="Marketplace sections">
-        <button type="button" data-marketplace-pane="feed" aria-label="Show social feed"><i class="fas fa-film" aria-hidden="true"></i> Social feed</button>
-        <button type="button" data-marketplace-pane="businesses" aria-label="Show business listings"><i class="fas fa-store" aria-hidden="true"></i> Businesses</button>
+        <button type="button" data-marketplace-pane="feed" aria-label="Show social feed" title="Social feed"><i class="fas fa-film" aria-hidden="true"></i><span>Social</span></button>
+        <button type="button" data-marketplace-pane="businesses" aria-label="Show business listings" title="Businesses"><i class="fas fa-store" aria-hidden="true"></i><span>Businesses</span></button>
       </nav>
       </div>
 
@@ -594,7 +594,7 @@
 <script src="/js/cart-store.js?v=unified-cart-20261006-v1"></script>
 <script src="/js/cookie-auth-client.js"></script>
 <script src="/js/navigation.js"></script>
-<script src="/js/index.js?v=mobile-marketplace-workspace-20261008-v23"></script>
+<script src="/js/index.js?v=mobile-marketplace-workspace-20261009-v24"></script>
 <script src="/js/product-inquiry.js?v=card-contact-menu-20261008-v8"></script>
 <script src="/js/category-blocks.js"></script>
 <script src="/js/legal.js"></script>

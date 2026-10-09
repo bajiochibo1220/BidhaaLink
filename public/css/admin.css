@@ -1735,3 +1735,16 @@
 #messagesSection[hidden] {
     display: none !important;
 }
+
+/* Compact super-admin navigation using the marketplace sage and deep green. */
+@media (max-width: 640px) {
+  .admin-header { min-height: 54px; padding: 7px 12px !important; gap: 8px; background: #b8d9bd !important; color: #14532d !important; }
+  .admin-header .header-left { min-width: 0; }
+  .admin-header h1 { margin: 0; color: #14532d !important; font-size: .9rem !important; white-space: nowrap; }
+  .admin-header h1 i { color: #176b42 !important; }
+  .admin-header nav { flex: 0 0 auto; flex-wrap: nowrap !important; gap: 4px !important; }
+  .admin-header nav a { display: inline-flex; width: 38px; height: 38px; align-items: center; justify-content: center; padding: 0; border-radius: 10px; color: #14532d !important; font-size: 0 !important; }
+  .admin-header nav a i { font-size: 16px; }
+  .admin-header nav a span { display: none !important; }
+  .admin-header nav a:hover { background: #176b42; color: #fff !important; }
+}

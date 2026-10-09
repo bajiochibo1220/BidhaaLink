@@ -1876,3 +1876,25 @@ html.embedded .modal-overlay {
 .customer-profile-photo-row [hidden] { display: none !important; }
 .customer-profile-photo-row > div { display: grid; gap: 5px; }
 .customer-profile-photo-row small { color: #64748b; font-size: .75rem; }
+
+/* A compact customer header and four icon destinations on narrow screens. */
+@media (max-width: 768px) {
+  .account-top-header { min-height:54px; padding:7px 12px !important; flex-direction:row !important; align-items:center !important; text-align:left !important; gap:8px !important; background:#b8d9bd !important; color:#14532d !important; border-radius:0 !important; }
+  .account-top-header .brand { justify-content:flex-start !important; font-size:.92rem !important; color:#14532d; }
+  .account-top-header .brand span { color:#14532d !important; }
+  .account-top-header .user-info { min-width:0; flex-wrap:nowrap !important; justify-content:flex-end !important; gap:8px !important; }
+  .account-top-header .user-info .user-name,
+  .account-top-header .user-info .user-phone { display:none !important; }
+  .account-top-header .header-logout-btn { width:38px !important; min-width:38px; height:38px; padding:0 !important; border:0; border-radius:10px; background:#176b42; color:#fff; font-size:0; }
+  .account-top-header .header-logout-btn i { font-size:16px; }
+  .account-nav-horizontal { position:sticky; top:0; z-index:30; justify-content:space-around; padding:5px 8px !important; gap:5px !important; overflow:visible !important; background:#e8f2e9 !important; border-color:#b8d9bd !important; }
+  .account-nav-horizontal .hamburger-mobile { display:none !important; }
+  .account-nav-horizontal .nav-item { position:relative; display:inline-flex; flex:1 1 0; min-width:42px; min-height:42px; align-items:center; justify-content:center; padding:7px !important; border-radius:11px; color:#315e3a !important; font-size:0 !important; }
+  .account-nav-horizontal .nav-item.active { background:#176b42 !important; color:#fff !important; }
+  .account-nav-horizontal .nav-item i { font-size:18px !important; }
+  .account-nav-horizontal .nav-item > span:not(.badge) { display:none !important; }
+  .account-nav-horizontal .nav-item .badge { position:absolute; top:1px; right:5px; display:none; margin:0; font-size:10px; }
+  .account-nav-horizontal .nav-item .badge.show { display:inline-flex; }
+  .account-nav-horizontal .nav-item.messages { color:#315e3a !important; }
+  .account-nav-horizontal .nav-item.messages.active { color:#fff !important; }
+}

@@ -50,3 +50,32 @@ body.business-profile-page #blAssistantPanel {
   right:22px;
   bottom:82px;
 }
+
+/* Compact animated AI shortcut on phones; keep the full name in its accessible label. */
+@media (max-width: 520px) {
+  #blAssistantLauncher {
+    right: max(14px, env(safe-area-inset-right)) !important;
+    bottom: calc(70px + env(safe-area-inset-bottom)) !important;
+    width: 48px;
+    height: 48px;
+    padding: 0 !important;
+    justify-content: center;
+    gap: 0 !important;
+    border: 2px solid #b8d9bd;
+    background: #176b42 !important;
+    box-shadow: 0 5px 18px #0f172a45;
+  }
+  #blAssistantLauncher .bl-assistant-prompt { display: none !important; }
+  #blAssistantLauncher > i { font-size: 19px !important; }
+  #blAssistantLauncher .bl-assistant-pulse {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    width: 8px;
+    height: 8px;
+    background: #bbf7d0;
+  }
+  #blAssistantPanel { right: 10px !important; bottom: calc(128px + env(safe-area-inset-bottom)) !important; }
+  body.business-profile-page #blAssistantLauncher { bottom: max(16px, env(safe-area-inset-bottom)) !important; }
+  body.business-profile-page #blAssistantPanel { bottom: calc(72px + env(safe-area-inset-bottom)) !important; }
+}

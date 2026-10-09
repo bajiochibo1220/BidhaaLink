@@ -264,3 +264,14 @@
 .location-box a:hover {
   text-decoration: underline;
 }
+
+/* Match the super-admin mobile controls to the marketplace sage/green palette. */
+@media (max-width: 640px) {
+  .admin-header { min-height: 54px; padding: 7px 12px !important; gap: 8px; background: #b8d9bd !important; color: #14532d !important; }
+  .admin-header h1 { margin: 0; color: #14532d !important; font-size: .9rem !important; white-space: nowrap; }
+  .admin-header > div:last-child { flex-wrap: nowrap !important; gap: 4px !important; }
+  .admin-header > div:last-child a { display: inline-flex; width: 38px; height: 38px; align-items: center; justify-content: center; border-radius: 10px; color: #14532d !important; font-size: 0; }
+  .admin-header > div:last-child a i { font-size: 16px; }
+  .admin-header > div:last-child a span { display: none; }
+  .admin-header > div:last-child a:hover { background: #176b42; color: #fff !important; }
+}

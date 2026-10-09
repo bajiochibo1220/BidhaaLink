@@ -679,6 +679,23 @@ function createMarketplaceFeedSeed() {
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
 }
 
+// Uploaded media may have been saved with a developer's localhost URL. On a
+// phone, localhost means the phone itself, so keep the path and use the host
+// that served the marketplace page instead.
+function resolveMarketplaceMediaUrl(value) {
+  if (!value) return '';
+  try {
+    const url = new URL(String(value), window.location.href);
+    if (/^(localhost|127(?:\.\d{1,3}){3}|0\.0\.0\.0)$/i.test(url.hostname)) {
+      url.hostname = window.location.hostname;
+      if (window.location.port && !url.port) url.port = window.location.port;
+    }
+    return url.href;
+  } catch (_) {
+    return String(value);
+  }
+}
+
 function createMarketplaceFeedCard(item) {
   const isCustomerPost = item.item_type === 'customer_post';
   const article = document.createElement('article');
@@ -707,8 +724,8 @@ function createMarketplaceFeedCard(item) {
   media.addEventListener('pointercancel', () => { swipeStart = null; }, { passive: true });
   if (item.media_kind === 'video' && item.media_url) {
     const video = document.createElement('video');
-    video.src = item.media_url;
-    if (item.media_poster_url) video.poster = item.media_poster_url;
+    video.src = resolveMarketplaceMediaUrl(item.media_url);
+    if (item.media_poster_url) video.poster = resolveMarketplaceMediaUrl(item.media_poster_url);
     video.muted = true;
     video.loop = true;
     video.playsInline = true;
@@ -723,7 +740,7 @@ function createMarketplaceFeedCard(item) {
     marketplaceFeedMediaObserver?.observe(video);
   } else if (item.media_url) {
     const image = document.createElement('img');
-    image.src = item.media_url;
+    image.src = resolveMarketplaceMediaUrl(item.media_url);
     image.alt = item.title || 'Business offer';
     const applyImageAspectRatio = () => setMediaAspectRatio(image.naturalWidth, image.naturalHeight);
     image.addEventListener('load', applyImageAspectRatio, { once: true });
@@ -750,7 +767,7 @@ function createMarketplaceFeedCard(item) {
   top.className = 'marketplace-feed-business';
   const logo = document.createElement('img');
   const identityImage = isCustomerPost ? item.customer_profile_image : item.business_logo;
-  if (identityImage) logo.src = identityImage;
+  if (identityImage) logo.src = resolveMarketplaceMediaUrl(identityImage);
   else logo.hidden = true;
   logo.alt = '';
   const identityName = document.createElement(isCustomerPost ? 'span' : 'a');
@@ -764,7 +781,7 @@ function createMarketplaceFeedCard(item) {
     logo.onerror = () => { logo.hidden = true; initials.hidden = false; };
     top.append(logo, initials, identityName);
   } else {
-    logo.src = identityImage || '/images/default-business.png';
+    logo.src = resolveMarketplaceMediaUrl(identityImage || '/images/default-business.png');
     logo.onerror = () => { logo.hidden = true; };
     identityName.href = `/business/${encodeURIComponent(item.business_slug || '')}`;
     identityName.textContent = item.business_name || 'Business';
@@ -3418,7 +3435,9 @@ function renderWorkspaceNavigation(role) {
     button.type = 'button';
     button.className = 'workspace-tab';
     button.dataset.section = tab.id;
-    button.innerHTML = `<i class="fas ${tab.icon}"></i> ${tab.label}`;
+    button.setAttribute('aria-label', tab.label);
+    button.title = tab.label;
+    button.innerHTML = `<i class="fas ${tab.icon}" aria-hidden="true"></i><span>${tab.label}</span>`;
     button.addEventListener('click', () => toggleDashboardPanel(tab.id));
     tabs.appendChild(button);
   });

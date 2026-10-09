@@ -6937,3 +6937,158 @@ body.index-body .marketplace-gallery-card > .product-inquiry-card-overlay {
   max-height: calc(100% - 16px);
 }
 body.index-body .marketplace-gallery-more[hidden] { display: none !important; }
+
+/* Phone layout: compact sage header, icon navigation and a correctly-sized feed. */
+@media (max-width: 900px) {
+  body.index-body.workspace-active .workspace-tabs {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    gap: 5px !important;
+    padding: 7px !important;
+    overflow-x: auto !important;
+    overscroll-behavior-x: contain;
+    background: #e8f2e9 !important;
+    border-color: #b8d9bd !important;
+  }
+  body.index-body.workspace-active .workspace-tab {
+    position: relative;
+    flex: 0 0 46px !important;
+    min-width: 46px !important;
+    min-height: 44px !important;
+    justify-content: center;
+    padding: 8px !important;
+    border: 1px solid #b8d9bd !important;
+    border-radius: 11px !important;
+    background: #f8fcf8 !important;
+    color: #315e3a !important;
+    font-size: 0 !important;
+  }
+  body.index-body.workspace-active .workspace-tab i { margin: 0 !important; font-size: 17px !important; }
+  body.index-body.workspace-active .workspace-tab span { display: none !important; }
+  body.index-body.workspace-active .workspace-tab.is-active { background: #176b42 !important; border-color: #176b42 !important; color: #fff !important; }
+  body.index-body.workspace-active .workspace-menu-toggle {
+    width: 40px;
+    height: 40px;
+    overflow: hidden;
+    padding: 0 !important;
+    font-size: 0 !important;
+    background: #176b42 !important;
+    color: #fff !important;
+  }
+  body.index-body.workspace-active .workspace-menu-toggle i { font-size: 17px; }
+  body.index-body:not(.business-profile-page) .top-bar {
+    min-height: 54px !important;
+    height: 54px !important;
+    box-sizing: border-box;
+    padding: 5px 10px !important;
+    gap: 8px !important;
+    background: #b8d9bd !important;
+    border: 0 !important;
+    box-shadow: none !important;
+  }
+  body.index-body:not(.business-profile-page) .top-bar > div:first-child { gap: 7px !important; }
+  body.index-body:not(.business-profile-page) .top-bar .hamburger { display: none !important; }
+  body.index-body:not(.business-profile-page) .brand img { width: 28px; height: 28px; }
+  body.index-body:not(.business-profile-page) #shopNameTop { font-size: 1rem; }
+  body.index-body:not(.business-profile-page) .top-bar-right { margin-left: auto !important; }
+  body.index-body:not(.business-profile-page) #publicNavTop,
+  body.index-body:not(.business-profile-page) #loggedInNavTop { gap: 8px !important; }
+  body.index-body:not(.business-profile-page) #topLoginLink,
+  body.index-body:not(.business-profile-page) #topRegisterLink,
+  body.index-body:not(.business-profile-page) #manageBusinessTrigger,
+  body.index-body:not(.business-profile-page) #loggedInNavTop .logout-btn {
+    min-width: 36px;
+    min-height: 36px;
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+    padding: 6px !important;
+    border: 0 !important;
+    border-radius: 10px !important;
+    background: transparent !important;
+    color: #14532d !important;
+    font-size: 0 !important;
+    text-decoration: none !important;
+  }
+  body.index-body:not(.business-profile-page) #manageBusinessTrigger { background: #176b42 !important; color: #fff !important; }
+  body.index-body:not(.business-profile-page) #topLoginLink i,
+  body.index-body:not(.business-profile-page) #topRegisterLink i,
+  body.index-body:not(.business-profile-page) #manageBusinessTrigger i,
+  body.index-body:not(.business-profile-page) #loggedInNavTop .logout-btn i { display: inline-block !important; margin: 0 !important; font-size: 16px !important; }
+  body.index-body:not(.business-profile-page) #manageBusinessTrigger span,
+  body.index-body:not(.business-profile-page) #loggedInNavTop .user-badge,
+  body.index-body:not(.business-profile-page) .admin-access-dot { display: none !important; }
+  body.index-body:not(.business-profile-page) .marketplace-mobile-shortcuts {
+    right: max(12px, env(safe-area-inset-right));
+    bottom: max(10px, env(safe-area-inset-bottom));
+    left: max(12px, env(safe-area-inset-left));
+    z-index: 1201;
+    width: min(330px, calc(100% - 24px));
+    padding: 5px;
+    gap: 5px;
+    border: 1px solid #a5c9aa;
+    border-radius: 18px;
+    background: rgba(184, 217, 189, .97);
+    box-shadow: 0 8px 24px rgba(20, 83, 45, .22);
+  }
+  body.index-body:not(.business-profile-page) .marketplace-mobile-shortcuts button {
+    display: flex;
+    min-height: 42px;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    border-radius: 13px;
+    color: #14532d;
+    font-size: .78rem;
+  }
+  body.index-body:not(.business-profile-page) .marketplace-mobile-shortcuts button[aria-pressed="true"] {
+    background: #176b42 !important;
+    color: #fff !important;
+  }
+  body.index-body:not(.business-profile-page) .marketplace-social-layout[data-expanded] {
+    top: 54px !important;
+    bottom: 0 !important;
+    background: #e8d8b5 !important;
+  }
+  body.index-body:not(.business-profile-page) .marketplace-social-layout[data-expanded="feed"] > .marketplace-feed {
+    padding-bottom: calc(68px + env(safe-area-inset-bottom)) !important;
+    background: #000 !important;
+  }
+  body.index-body:not(.business-profile-page) .marketplace-social-layout[data-expanded="feed"] .marketplace-feed-scroll {
+    padding-bottom: 8px !important;
+    background: #000 !important;
+  }
+  body.index-body:not(.business-profile-page) .marketplace-social-layout[data-expanded="feed"] .marketplace-feed-card {
+    min-height: calc(100svh - 122px) !important;
+    height: calc(100svh - 122px) !important;
+    max-height: none !important;
+    padding-bottom: 12px !important;
+    background: #000 !important;
+  }
+  body.index-body:not(.business-profile-page) .marketplace-feed-card > .marketplace-feed-media {
+    position: absolute !important;
+    inset: 0 !important;
+    width: auto !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    aspect-ratio: auto !important;
+    background: #000 !important;
+  }
+  body.index-body:not(.business-profile-page) .marketplace-feed-card > .marketplace-feed-media > img,
+  body.index-body:not(.business-profile-page) .marketplace-feed-card > .marketplace-feed-media > video {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: contain !important;
+    object-position: center !important;
+  }
+  body.index-body:not(.business-profile-page) .marketplace-social-layout[data-expanded="businesses"] > .marketplace-business-rail {
+    padding: 8px 8px calc(76px + env(safe-area-inset-bottom)) !important;
+    background: #e8d8b5 !important;
+  }
+  body.index-body:not(.business-profile-page) .marketplace-social-layout[data-expanded="businesses"] .business-grid {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 270px), 1fr)) !important;
+    justify-items: center;
+  }
+}

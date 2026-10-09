@@ -12,11 +12,11 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
   <!-- Page-Specific Styles -->
-  <link rel="stylesheet" href="/css/admin-orders.css">
+  <link rel="stylesheet" href="/css/admin-orders.css?v=mobile-superadmin-20261009-v2">
 
   <!-- Socket.IO -->
   <script src="/socket.io/socket.io.js"></script>
-  <link rel="stylesheet" href="/css/assistant.css">
+  <link rel="stylesheet" href="/css/assistant.css?v=assistant-mobile-icon-20261009-v3">
 </head>
 <body>
 
@@ -24,10 +24,10 @@
 <div class="admin-header">
   <h1 style="font-size:1.2rem;">🔐 Admin Panel</h1>
   <div style="display:flex; gap:10px; flex-wrap:wrap;">
-    <a href="/admin.html">Dashboard</a>
-    <a href="/admin-orders.html" style="color:#feca57;">Orders</a>
-    <a href="/">Shop</a>
-    <a href="#" onclick="logoutAdmin()" style="color:#ef4444;">Logout</a>
+    <a href="/admin.html" aria-label="Dashboard" title="Dashboard"><i class="fas fa-chart-pie" aria-hidden="true"></i><span>Dashboard</span></a>
+    <a href="/admin-orders.html" aria-label="Orders" title="Orders"><i class="fas fa-box" aria-hidden="true"></i><span>Orders</span></a>
+    <a href="/" aria-label="Marketplace" title="Marketplace"><i class="fas fa-store" aria-hidden="true"></i><span>Marketplace</span></a>
+    <a href="#" aria-label="Logout" title="Logout" onclick="logoutAdmin()"><i class="fas fa-sign-out-alt" aria-hidden="true"></i><span>Logout</span></a>
   </div>
 </div>
 
