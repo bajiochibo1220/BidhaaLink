@@ -843,6 +843,27 @@ html.embedded .sidebar { display: none !important; }
    ============================================================ */
 .sidebar .sidebar-menu .menu-item { position: relative; }
 
+@media (max-width: 600px) {
+  .sidebar .sidebar-menu .menu-item {
+    min-height: 46px;
+    padding: 9px 18px;
+    gap: 0;
+  }
+  .sidebar .sidebar-menu .menu-item-label { display: none; }
+  .sidebar .sidebar-menu .menu-item i {
+    width: 100%;
+    font-size: 1.2rem;
+  }
+  .sidebar .sidebar-menu .menu-item .badge {
+    position: absolute;
+    top: 3px;
+    right: 14px;
+    min-width: 18px;
+    padding: 1px 5px;
+    text-align: center;
+  }
+}
+
 .menu-red-dot {
   display: inline-block;
   width: 8px;

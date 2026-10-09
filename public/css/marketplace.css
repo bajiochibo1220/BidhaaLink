@@ -6616,6 +6616,18 @@ body.index-body #publicNavTop .admin-access-dot { margin-left: 2px; }
 
 /* Make the view tabs and guest links easier to read without changing their layout. */
 body.index-body:not(.business-profile-page) .marketplace-view-tabs button { font-size: 1rem !important; }
+@media (max-width: 600px) {
+  body.index-body:not(.business-profile-page) .marketplace-view-tabs button {
+    gap: 0 !important;
+    font-size: 1.35rem !important;
+  }
+  body.index-body:not(.business-profile-page) .marketplace-view-tabs button span {
+    display: none !important;
+  }
+  body.index-body:not(.business-profile-page) .marketplace-view-tabs button i {
+    margin: 0 !important;
+  }
+}
 body.index-body #publicNavTop #topLoginLink,
 body.index-body #publicNavTop #topRegisterLink {
   font-size: .9rem !important;
