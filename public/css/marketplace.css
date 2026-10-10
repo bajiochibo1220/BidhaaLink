@@ -7396,3 +7396,39 @@ body.index-body .marketplace-gallery-more[hidden] { display: none !important; }
   html body.index-body.marketplace-social-feed-active .marketplace-feed-shade { z-index:2 !important; }
   html body.index-body.marketplace-social-feed-active .marketplace-feed-details { z-index:3 !important; }
 }
+
+/* Phone feed cards keep media and expanded copy in the same swipe target. */
+@media (max-width: 900px) {
+  html body.index-body.marketplace-social-feed-active .marketplace-feed-card > .marketplace-feed-media {
+    inset:0 !important;
+  }
+  html body.index-body.marketplace-social-feed-active .marketplace-feed-shade {
+    position:absolute !important;
+    inset:0 !important;
+    display:flex !important;
+    flex-direction:column !important;
+    justify-content:flex-end !important;
+    padding:0 !important;
+    pointer-events:none !important;
+  }
+  html body.index-body.marketplace-social-feed-active .marketplace-feed-topbar {
+    pointer-events:auto !important;
+  }
+  html body.index-body.marketplace-social-feed-active .marketplace-feed-details {
+    position:relative !important;
+    inset:auto !important;
+    flex:0 0 auto !important;
+    width:100% !important;
+    max-height:none !important;
+    margin-top:auto !important;
+    overflow:visible !important;
+    background:linear-gradient(to bottom, transparent, rgb(0 0 0 / 82%) 24%, #000 100%) !important;
+    touch-action:pan-y !important;
+  }
+  html body.index-body.marketplace-social-feed-active .marketplace-feed-description-row.is-expanded .marketplace-feed-description {
+    max-height:none !important;
+    overflow:visible !important;
+    white-space:pre-line !important;
+    touch-action:pan-y !important;
+  }
+}
