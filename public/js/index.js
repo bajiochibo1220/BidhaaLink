@@ -823,7 +823,6 @@ function createMarketplaceFeedCard(item) {
     video.controls = window.matchMedia('(max-width: 900px)').matches;
     const initialMediaCount = document.querySelectorAll('#marketplaceFeedList .marketplace-feed-card').length;
     video.preload = initialMediaCount < 2 || video.controls ? 'auto' : 'metadata';
-    video.src = resolveMarketplaceMediaUrl(item.media_url);
     video.setAttribute('aria-label', `${item.title || 'Offer'} video`);
     video.addEventListener('loadedmetadata', () => setMediaAspectRatio(video.videoWidth, video.videoHeight), { once: true });
     video.addEventListener('error', async () => {
@@ -841,6 +840,9 @@ function createMarketplaceFeedCard(item) {
       }, 8000);
     }
     media.append(video);
+    // Attach error/load handlers and connect the element before starting the
+    // request. Fast mobile failures can otherwise fire before `onerror` exists.
+    video.src = resolveMarketplaceMediaUrl(item.media_url);
     if (video.preload === 'auto') video.load();
     if (video.readyState >= 1) setMediaAspectRatio(video.videoWidth, video.videoHeight);
     marketplaceFeedVideoObserver?.observe(video);
@@ -849,7 +851,6 @@ function createMarketplaceFeedCard(item) {
     if (!item.media_url) applyProfileMediaFallback(video);
   } else if (item.media_url) {
     const image = document.createElement('img');
-    image.src = resolveMarketplaceMediaUrl(item.media_url);
     image.alt = item.title || 'Business offer';
     const applyImageAspectRatio = () => setMediaAspectRatio(image.naturalWidth, image.naturalHeight);
     image.addEventListener('load', applyImageAspectRatio, { once: true });
@@ -883,6 +884,9 @@ function createMarketplaceFeedCard(item) {
       }
     };
     media.append(image);
+    // Register handlers and attach before assigning src so cached or quickly
+    // rejected URLs cannot fail before the mobile fallback is listening.
+    image.src = resolveMarketplaceMediaUrl(item.media_url);
     if (image.complete) applyImageAspectRatio();
     marketplaceFeedMediaObserver?.observe(image);
   } else if (['product', 'service', 'customer_post'].includes(item.item_type)) {
