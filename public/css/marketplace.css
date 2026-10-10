@@ -7345,6 +7345,30 @@ body.index-body .marketplace-gallery-more[hidden] { display: none !important; }
   body.index-body .marketplace-mobile-shortcuts .marketplace-mobile-assistant i { animation:none !important; }
 }
 
+/* Final phone swipe handling: every part of a feed card can scroll vertically. */
+@media (max-width: 900px) {
+  html body.index-body.marketplace-social-feed-active #marketplaceFeedScroll,
+  html body.index-body.marketplace-social-feed-active .marketplace-feed-card,
+  html body.index-body.marketplace-social-feed-active .marketplace-feed-shade,
+  html body.index-body.marketplace-social-feed-active .marketplace-feed-media,
+  html body.index-body.marketplace-social-feed-active .marketplace-feed-media img,
+  html body.index-body.marketplace-social-feed-active .marketplace-feed-media video,
+  html body.index-body.marketplace-social-feed-active .marketplace-feed-topbar,
+  html body.index-body.marketplace-social-feed-active .marketplace-feed-details,
+  html body.index-body.marketplace-social-feed-active .marketplace-feed-description-row,
+  html body.index-body.marketplace-social-feed-active .marketplace-feed-description {
+    touch-action: pan-y !important;
+  }
+  html body.index-body.marketplace-social-feed-active .marketplace-feed-details,
+  html body.index-body.marketplace-social-feed-active .marketplace-feed-description {
+    overscroll-behavior-y: auto !important;
+  }
+  html body.index-body.marketplace-social-feed-active .marketplace-feed-description-row.is-expanded .marketplace-feed-description {
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+}
+
 /* Phone social feed: media and copy share one full-card surface. */
 @media (max-width: 900px) {
   html body.index-body.marketplace-social-feed-active .marketplace-feed-card {
@@ -7526,5 +7550,31 @@ body.index-body .marketplace-gallery-more[hidden] { display: none !important; }
     overflow:visible !important;
     white-space:pre-line !important;
     touch-action:none !important;
+  }
+}
+
+/* Final phone swipe handling: let vertical gestures start anywhere on a card. */
+@media (max-width: 900px) {
+  html body.index-body.marketplace-social-feed-active #marketplaceFeedScroll,
+  html body.index-body.marketplace-social-feed-active .marketplace-feed-card,
+  html body.index-body.marketplace-social-feed-active .marketplace-feed-shade,
+  html body.index-body.marketplace-social-feed-active .marketplace-feed-media,
+  html body.index-body.marketplace-social-feed-active .marketplace-feed-media img,
+  html body.index-body.marketplace-social-feed-active .marketplace-feed-media video,
+  html body.index-body.marketplace-social-feed-active .marketplace-feed-topbar,
+  html body.index-body.marketplace-social-feed-active .marketplace-feed-details,
+  html body.index-body.marketplace-social-feed-active .marketplace-feed-description-row,
+  html body.index-body.marketplace-social-feed-active .marketplace-feed-description {
+    touch-action: pan-y !important;
+  }
+  html body.index-body.marketplace-social-feed-active .marketplace-feed-details,
+  html body.index-body.marketplace-social-feed-active .marketplace-feed-description {
+    overscroll-behavior-y: auto !important;
+  }
+  html body.index-body.marketplace-social-feed-active .marketplace-feed-description-row.is-expanded .marketplace-feed-description {
+    max-height: min(38dvh, 440px) !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    touch-action: pan-y !important;
   }
 }

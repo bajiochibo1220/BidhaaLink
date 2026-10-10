@@ -993,25 +993,6 @@ function createMarketplaceFeedCard(item) {
       more.textContent = expanded ? 'Less' : 'More';
       more.setAttribute('aria-expanded', String(expanded));
     });
-    // On touch screens, route a vertical drag that starts on expanded copy to
-    // the feed scroller. This keeps the copy readable without making it a
-    // nested scroll area that traps the user's swipe.
-    let descriptionDragY = null;
-    description.addEventListener('pointerdown', event => {
-      if (event.pointerType !== 'touch' || !descriptionRow.classList.contains('is-expanded')) return;
-      descriptionDragY = event.clientY;
-      description.setPointerCapture?.(event.pointerId);
-    });
-    description.addEventListener('pointermove', event => {
-      if (descriptionDragY === null || event.pointerType !== 'touch') return;
-      const deltaY = event.clientY - descriptionDragY;
-      descriptionDragY = event.clientY;
-      const feedScroll = document.getElementById('marketplaceFeedScroll');
-      if (feedScroll && deltaY) feedScroll.scrollTop -= deltaY;
-    });
-    const stopDescriptionDrag = () => { descriptionDragY = null; };
-    description.addEventListener('pointerup', stopDescriptionDrag);
-    description.addEventListener('pointercancel', stopDescriptionDrag);
     descriptionRow.append(more);
     details.append(descriptionRow);
   }
