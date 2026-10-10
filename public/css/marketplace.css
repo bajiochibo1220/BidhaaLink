@@ -7710,25 +7710,28 @@ body.index-body .marketplace-gallery-more[hidden] { display: none !important; }
   }
 }
 
-/* Last-resort phone feed stacking: the media is the card surface, while the
-   shade is transparent and only the details panel paints its text gradient. */
+/* Phone feed uses normal grid rows instead of overlapping full-card layers.
+   This keeps media visible even when older shade/overlay rules are present. */
 @media (max-width: 900px) {
   html body.index-body:not(.business-profile-page).marketplace-social-feed-active
     .marketplace-social-layout[data-expanded="feed"] .marketplace-feed-card {
-    position: relative !important;
-    isolation: isolate !important;
-    overflow: hidden !important;
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    grid-template-rows: auto minmax(0, 1fr) auto !important;
+    align-items: stretch !important;
   }
   html body.index-body:not(.business-profile-page).marketplace-social-feed-active
     .marketplace-social-layout[data-expanded="feed"] .marketplace-feed-card > .marketplace-feed-media {
-    position: absolute !important;
-    inset: 0 !important;
-    z-index: 0 !important;
-    display: block !important;
-    width: auto !important;
-    height: auto !important;
-    visibility: visible !important;
-    opacity: 1 !important;
+    position: relative !important;
+    grid-column: 1 !important;
+    grid-row: 2 !important;
+    inset: auto !important;
+    width: 100% !important;
+    height: 100% !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+    background: #000 !important;
   }
   html body.index-body:not(.business-profile-page).marketplace-social-feed-active
     .marketplace-social-layout[data-expanded="feed"] .marketplace-feed-card > .marketplace-feed-media > img,
@@ -7736,26 +7739,45 @@ body.index-body .marketplace-gallery-more[hidden] { display: none !important; }
     .marketplace-social-layout[data-expanded="feed"] .marketplace-feed-card > .marketplace-feed-media > video {
     position: absolute !important;
     inset: 0 !important;
-    z-index: 1 !important;
-    display: block !important;
     width: 100% !important;
     height: 100% !important;
-    visibility: visible !important;
-    opacity: 1 !important;
+    max-width: 100% !important;
+    max-height: 100% !important;
     object-fit: contain !important;
-    object-position: center !important;
   }
   html body.index-body:not(.business-profile-page).marketplace-social-feed-active
     .marketplace-social-layout[data-expanded="feed"] .marketplace-feed-card > .marketplace-feed-shade {
-    position: absolute !important;
-    inset: 0 !important;
-    z-index: 2 !important;
+    position: static !important;
+    grid-column: 1 !important;
+    grid-row: 1 / 4 !important;
+    display: contents !important;
+    inset: auto !important;
     background: transparent !important;
     background-image: none !important;
     pointer-events: none !important;
   }
   html body.index-body:not(.business-profile-page).marketplace-social-feed-active
+    .marketplace-social-layout[data-expanded="feed"] .marketplace-feed-card .marketplace-feed-topbar {
+    position: relative !important;
+    grid-column: 1 !important;
+    grid-row: 1 !important;
+    inset: auto !important;
+    z-index: 2 !important;
+    min-width: 0 !important;
+    padding: 8px 12px !important;
+  }
+  html body.index-body:not(.business-profile-page).marketplace-social-feed-active
     .marketplace-social-layout[data-expanded="feed"] .marketplace-feed-card .marketplace-feed-details {
-    z-index: 3 !important;
+    position: relative !important;
+    grid-column: 1 !important;
+    grid-row: 3 !important;
+    inset: auto !important;
+    z-index: 2 !important;
+    width: 100% !important;
+    max-width: none !important;
+    max-height: none !important;
+    margin: 0 !important;
+    overflow: visible !important;
+    background: #000 !important;
   }
 }
