@@ -436,7 +436,8 @@ function setupMarketplaceFeed() {
     marketplaceFeedVideoObserver = new IntersectionObserver(entries => {
       entries.forEach(entry => {
         const video = entry.target;
-        if (entry.isIntersecting && entry.intersectionRatio >= 0.65) video.play().catch(() => {});
+        const playThreshold = window.matchMedia('(max-width: 900px)').matches ? 0.2 : 0.65;
+        if (entry.isIntersecting && entry.intersectionRatio >= playThreshold) video.play().catch(() => {});
         else video.pause();
       });
     }, { root: scroll, rootMargin: '0px', threshold: [0, 0.65] });
@@ -776,16 +777,20 @@ function createMarketplaceFeedCard(item) {
   media.addEventListener('pointercancel', () => { swipeStart = null; }, { passive: true });
   if (item.media_kind === 'video' && item.media_url) {
     const video = document.createElement('video');
-    video.src = resolveMarketplaceMediaUrl(item.media_url);
     const videoFallback = item.media_poster_url || (isCustomerPost ? item.customer_profile_image : item.business_logo);
     if (videoFallback) video.poster = resolveMarketplaceMediaUrl(videoFallback);
     video.muted = true;
     video.loop = true;
     video.playsInline = true;
+    video.setAttribute('playsinline', '');
+    video.setAttribute('webkit-playsinline', '');
     video.autoplay = true;
-    video.controls = false;
+    // Mobile browsers may block autoplay. Native controls keep each video
+    // playable with a tap while muted inline autoplay is attempted.
+    video.controls = window.matchMedia('(max-width: 900px)').matches;
     const initialMediaCount = document.querySelectorAll('#marketplaceFeedList .marketplace-feed-card').length;
-    video.preload = initialMediaCount < 2 || window.matchMedia('(max-width: 900px)').matches ? 'auto' : 'metadata';
+    video.preload = initialMediaCount < 2 || video.controls ? 'auto' : 'metadata';
+    video.src = resolveMarketplaceMediaUrl(item.media_url);
     video.setAttribute('aria-label', `${item.title || 'Offer'} video`);
     video.addEventListener('loadedmetadata', () => setMediaAspectRatio(video.videoWidth, video.videoHeight), { once: true });
     video.addEventListener('error', async () => {
@@ -794,6 +799,7 @@ function createMarketplaceFeedCard(item) {
       await applyProfileMediaFallback(video);
     }, { once: true });
     media.append(video);
+    if (video.preload === 'auto') video.load();
     if (video.readyState >= 1) setMediaAspectRatio(video.videoWidth, video.videoHeight);
     marketplaceFeedVideoObserver?.observe(video);
     marketplaceFeedMediaObserver?.observe(video);
@@ -844,7 +850,7 @@ function createMarketplaceFeedCard(item) {
     media.append(icon);
   }
 
-  if (window.matchMedia('(max-width: 900px)').matches && ['product', 'service', 'customer_post'].includes(item.item_type)) {
+  if (window.matchMedia('(max-width: 900px)').matches && item.media_kind !== 'video' && ['product', 'service', 'customer_post'].includes(item.item_type)) {
     window.setTimeout(() => {
       if (!media.isConnected) return;
       const current = media.querySelector('img, video');

@@ -7345,6 +7345,97 @@ body.index-body .marketplace-gallery-more[hidden] { display: none !important; }
   body.index-body .marketplace-mobile-shortcuts .marketplace-mobile-assistant i { animation:none !important; }
 }
 
+/* Phone social feed: media and copy share one full-card surface. */
+@media (max-width: 900px) {
+  html body.index-body.marketplace-social-feed-active .marketplace-feed-card {
+    position: relative !important;
+    overflow: hidden !important;
+    background: #000 !important;
+  }
+  html body.index-body.marketplace-social-feed-active .marketplace-feed-card > .marketplace-feed-media {
+    position: absolute !important;
+    inset: 0 !important;
+    z-index: 0 !important;
+    display: block !important;
+    width: auto !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    background: #000 !important;
+  }
+  html body.index-body.marketplace-social-feed-active .marketplace-feed-card > .marketplace-feed-media > img,
+  html body.index-body.marketplace-social-feed-active .marketplace-feed-card > .marketplace-feed-media > video {
+    position: absolute !important;
+    inset: 0 !important;
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    width: 100% !important;
+    height: 100% !important;
+    max-width: 100% !important;
+    max-height: 100% !important;
+    object-fit: contain !important;
+    object-position: center !important;
+  }
+  html body.index-body.marketplace-social-feed-active .marketplace-feed-card > .marketplace-feed-shade {
+    position: absolute !important;
+    inset: 0 !important;
+    z-index: 1 !important;
+    display: block !important;
+    padding: 0 !important;
+    pointer-events: none !important;
+  }
+  html body.index-body.marketplace-social-feed-active .marketplace-feed-card .marketplace-feed-topbar {
+    z-index: 2 !important;
+    pointer-events: auto !important;
+  }
+  html body.index-body.marketplace-social-feed-active .marketplace-feed-card .marketplace-feed-details {
+    position: absolute !important;
+    inset: auto 0 0 !important;
+    z-index: 3 !important;
+    display: block !important;
+    box-sizing: border-box !important;
+    width: 100% !important;
+    max-height: 72% !important;
+    margin: 0 !important;
+    padding: 12px 16px max(14px, env(safe-area-inset-bottom)) !important;
+    overflow-y: auto !important;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+    background: linear-gradient(to bottom, rgb(0 0 0 / 68%), #000 26%) !important;
+    pointer-events: auto !important;
+  }
+  html body.index-body.marketplace-social-feed-active .marketplace-feed-description-row {
+    display: flex !important;
+    align-items: flex-end !important;
+    width: 100% !important;
+    margin-top: 6px !important;
+    padding: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+  html body.index-body.marketplace-social-feed-active .marketplace-feed-description-row .marketplace-feed-description {
+    max-width: min(78%, calc(100% - 54px)) !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    color: #fff !important;
+    background: transparent !important;
+  }
+  html body.index-body.marketplace-social-feed-active .marketplace-feed-description-row.is-expanded {
+    display: block !important;
+  }
+  html body.index-body.marketplace-social-feed-active .marketplace-feed-description-row.is-expanded .marketplace-feed-description {
+    max-width: 100% !important;
+    max-height: min(38dvh, 440px) !important;
+    overflow-y: auto !important;
+    white-space: pre-line !important;
+    overflow-wrap: anywhere;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
 /* Final phone auth-link colors and sizing override legacy immersive-feed rules. */
 @media (max-width: 900px) {
   html body.index-body:not(.business-profile-page).marketplace-social-feed-active #publicNavTop #topLoginLink,
