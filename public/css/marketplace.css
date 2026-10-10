@@ -7530,6 +7530,10 @@ body.index-body .marketplace-gallery-more[hidden] { display: none !important; }
     justify-content:flex-end !important;
     padding:0 !important;
     pointer-events:none !important;
+    /* Older mobile rules set this full-card layer to opaque black. Keep the
+       media visible; the details panel owns the bottom readability gradient. */
+    background:transparent !important;
+    background-image:none !important;
   }
   html body.index-body.marketplace-social-feed-active .marketplace-feed-topbar {
     pointer-events:auto !important;
