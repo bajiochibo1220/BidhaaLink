@@ -748,6 +748,7 @@ function createMarketplaceFeedCard(item) {
   const applyProfileMediaFallback = async target => {
     if (profileMediaRequested || !['product', 'service', 'customer_post'].includes(item.item_type)) return;
     profileMediaRequested = true;
+    let replacedFailedMedia = false;
     let fallbackUrls = [];
     try {
       fallbackUrls = await getMarketplaceProfileMedia(item);
@@ -760,27 +761,32 @@ function createMarketplaceFeedCard(item) {
       .filter(url => url && url !== failedUrl && !attemptedFallbackUrls.has(url));
 
     for (const url of urls) {
-      if (!target.isConnected) return;
+      if (!media.isConnected) return;
       attemptedFallbackUrls.add(url);
       const image = document.createElement('img');
       image.alt = item.title || 'Business offer';
       image.loading = 'eager';
       image.decoding = 'async';
+      if (target === media) media.append(image);
+      else if (!replacedFailedMedia && target.isConnected) target.replaceWith(image);
+      else media.replaceChildren(image);
+      replacedFailedMedia = true;
       const loaded = await new Promise(resolve => {
         image.onload = () => resolve(true);
         image.onerror = () => resolve(false);
         image.src = url;
       });
-      if (!loaded) continue;
+      if (!loaded) {
+        image.remove();
+        continue;
+      }
       setMediaAspectRatio(image.naturalWidth, image.naturalHeight);
       media.classList.remove('marketplace-feed-no-media');
-      if (target === media) media.replaceChildren(image);
-      else if (target.isConnected) target.replaceWith(image);
       return;
     }
 
-    if (target.isConnected && !media.querySelector('.marketplace-feed-media-fallback')) {
-      if (target !== media) target.remove();
+    if (media.isConnected && !media.querySelector('.marketplace-feed-media-fallback')) {
+      if (!replacedFailedMedia && target !== media && target.isConnected) target.remove();
       media.classList.add('marketplace-feed-no-media');
       const fallbackIcon = document.createElement('i');
       fallbackIcon.className = `marketplace-feed-media-fallback fas ${item.item_type === 'service' ? 'fa-handshake' : 'fa-box-open'}`;
@@ -840,14 +846,19 @@ function createMarketplaceFeedCard(item) {
       }, 8000);
     }
     media.append(video);
-    // Attach error/load handlers and connect the element before starting the
-    // request. Fast mobile failures can otherwise fire before `onerror` exists.
-    video.src = resolveMarketplaceMediaUrl(item.media_url);
-    if (video.preload === 'auto') video.load();
-    if (video.readyState >= 1) setMediaAspectRatio(video.videoWidth, video.videoHeight);
-    marketplaceFeedVideoObserver?.observe(video);
-    marketplaceFeedMediaObserver?.observe(video);
-    if (initialMediaCount === 0) requestAnimationFrame(() => video.play().catch(() => {}));
+    const videoUrl = resolveMarketplaceMediaUrl(item.media_url);
+    // The feed cards are built while detached. Start media only after the
+    // completed card has been inserted; mobile browsers can defer requests
+    // attached to detached elements, leaving a black card without an error.
+    requestAnimationFrame(() => {
+      if (!video.isConnected) return;
+      video.src = videoUrl;
+      if (video.preload === 'auto') video.load();
+      if (video.readyState >= 1) setMediaAspectRatio(video.videoWidth, video.videoHeight);
+      marketplaceFeedVideoObserver?.observe(video);
+      marketplaceFeedMediaObserver?.observe(video);
+      if (initialMediaCount === 0) video.play().catch(() => {});
+    });
     if (!item.media_url) applyProfileMediaFallback(video);
   } else if (item.media_url) {
     const image = document.createElement('img');
@@ -884,11 +895,15 @@ function createMarketplaceFeedCard(item) {
       }
     };
     media.append(image);
-    // Register handlers and attach before assigning src so cached or quickly
-    // rejected URLs cannot fail before the mobile fallback is listening.
-    image.src = resolveMarketplaceMediaUrl(item.media_url);
-    if (image.complete) applyImageAspectRatio();
-    marketplaceFeedMediaObserver?.observe(image);
+    const imageUrl = resolveMarketplaceMediaUrl(item.media_url);
+    // Assign after the card reaches the document so phone browsers don't
+    // defer or discard requests made while the feed card is detached.
+    requestAnimationFrame(() => {
+      if (!image.isConnected) return;
+      image.src = imageUrl;
+      if (image.complete) applyImageAspectRatio();
+      marketplaceFeedMediaObserver?.observe(image);
+    });
   } else if (['product', 'service', 'customer_post'].includes(item.item_type)) {
     media.classList.add('marketplace-feed-no-media');
     applyProfileMediaFallback(media);
@@ -1114,8 +1129,8 @@ async function openMarketplaceSimilarGallery(item, trigger) {
         const mediaFrame = document.createElement('div');
         mediaFrame.className = 'marketplace-gallery-media';
         const media = mediaItem.kind === 'video' ? document.createElement('video') : document.createElement('img');
-        media.src = mediaItem.url;
-        if (media.tagName === 'VIDEO') { media.controls = true; media.playsInline = true; media.preload = 'metadata'; if (mediaItem.poster) media.poster = mediaItem.poster; }
+        const mediaUrl = resolveMarketplaceMediaUrl(mediaItem.url);
+        if (media.tagName === 'VIDEO') { media.controls = true; media.playsInline = true; media.preload = 'metadata'; }
         else { media.alt = mediaItem.caption || item.title || 'Service photo'; media.loading = 'lazy'; }
         const caption = document.createElement('figcaption');
         const captionTitle = document.createElement('strong');
@@ -1225,6 +1240,10 @@ async function openMarketplaceSimilarGallery(item, trigger) {
         }
         figure.append(mediaFrame, caption);
         itemsBox.append(figure);
+        // Start gallery media after its card is attached, matching the main
+        // feed path for mobile browsers that defer detached media requests.
+        if (mediaItem.kind === 'video' && mediaItem.poster) media.poster = resolveMarketplaceMediaUrl(mediaItem.poster);
+        media.src = mediaUrl;
       });
       if (!itemsBox.children.length) {
         const empty = document.createElement('p');

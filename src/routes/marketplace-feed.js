@@ -66,22 +66,24 @@ router.get('/', async (req, res) => {
                  p.description,
                  p.price::text AS price,
                  CASE
-                   WHEN p.media_type = 'video' AND NULLIF(BTRIM(p.video), '') IS NOT NULL THEN p.video
-                   ELSE COALESCE(NULLIF(BTRIM(p.image), ''), NULLIF(BTRIM(p.video_poster_url), ''),
-                                 primary_variant.media_url, NULLIF(BTRIM(p.video), ''),
+                   WHEN p.media_type = 'video' AND COALESCE(NULLIF(BTRIM(p.video), ''), NULLIF(BTRIM(p.videos->>0), '')) IS NOT NULL
+                     THEN COALESCE(NULLIF(BTRIM(p.video), ''), NULLIF(BTRIM(p.videos->>0), ''))
+                   ELSE COALESCE(NULLIF(BTRIM(p.image), ''), NULLIF(BTRIM(p.images->>0), ''), NULLIF(BTRIM(p.video_poster_url), ''),
+                                 primary_variant.media_url, NULLIF(BTRIM(p.video), ''), NULLIF(BTRIM(p.videos->>0), ''),
                                  NULLIF(BTRIM(b.heroImage), ''), NULLIF(BTRIM(b.logo), ''))
                  END AS media_url,
                  CASE
-                   WHEN p.media_type = 'video' THEN NULLIF(BTRIM(p.video_poster_url), '')
+                   WHEN p.media_type = 'video' THEN COALESCE(NULLIF(BTRIM(p.video_poster_url), ''), NULLIF(BTRIM(p.image), ''), NULLIF(BTRIM(p.images->>0), ''))
                    WHEN primary_variant.media_kind = 'video' THEN primary_variant.poster_url
                    ELSE NULL
                  END AS media_poster_url,
                  CASE
-                   WHEN p.media_type = 'video' AND NULLIF(BTRIM(p.video), '') IS NOT NULL THEN 'video'
+                   WHEN p.media_type = 'video' AND COALESCE(NULLIF(BTRIM(p.video), ''), NULLIF(BTRIM(p.videos->>0), '')) IS NOT NULL THEN 'video'
                    WHEN NULLIF(BTRIM(p.image), '') IS NOT NULL
+                     OR NULLIF(BTRIM(p.images->>0), '') IS NOT NULL
                      OR NULLIF(BTRIM(p.video_poster_url), '') IS NOT NULL THEN 'image'
                    WHEN primary_variant.media_url IS NOT NULL THEN primary_variant.media_kind
-                   WHEN NULLIF(BTRIM(p.video), '') IS NOT NULL THEN 'video'
+                   WHEN COALESCE(NULLIF(BTRIM(p.video), ''), NULLIF(BTRIM(p.videos->>0), '')) IS NOT NULL THEN 'video'
                    WHEN COALESCE(NULLIF(BTRIM(b.heroImage), ''), NULLIF(BTRIM(b.logo), '')) IS NOT NULL THEN 'image'
                    ELSE 'none'
                  END AS media_kind,
@@ -94,11 +96,21 @@ router.get('/', async (req, res) => {
                      AND pv.is_active = TRUE
                      AND (NULLIF(BTRIM(pv.image), '') IS NOT NULL
                        OR NULLIF(BTRIM(pv.video), '') IS NOT NULL))
-                   + CASE
-                       WHEN p.media_type = 'video' AND NULLIF(BTRIM(p.image), '') IS NOT NULL THEN 1
-                       WHEN COALESCE(p.media_type, 'image') <> 'video' AND NULLIF(BTRIM(p.video), '') IS NOT NULL THEN 1
-                       ELSE 0
-                     END AS media_count,
+                   + (
+                       SELECT COUNT(DISTINCT NULLIF(BTRIM(extra.url), ''))::int
+                         FROM (
+                           SELECT jsonb_array_elements_text(COALESCE(p.images, '[]'::jsonb)) AS url
+                           UNION ALL SELECT p.image
+                           UNION ALL SELECT jsonb_array_elements_text(COALESCE(p.videos, '[]'::jsonb)) AS url
+                           UNION ALL SELECT p.video
+                         ) AS extra
+                        WHERE NULLIF(BTRIM(extra.url), '') IS NOT NULL
+                          AND extra.url <> COALESCE(
+                            CASE WHEN p.media_type = 'video' THEN NULLIF(BTRIM(p.video), '') ELSE NULLIF(BTRIM(p.image), '') END,
+                            CASE WHEN p.media_type = 'video' THEN NULLIF(BTRIM(p.videos->>0), '') ELSE NULLIF(BTRIM(p.images->>0), '') END,
+                            ''
+                          )
+                     ) AS media_count,
                  p.created_at
                  ,concat_ws(' ', to_jsonb(b)->>'location', to_jsonb(b)->>'address', to_jsonb(b)->>'continent', to_jsonb(b)->>'country', to_jsonb(b)->>'county', to_jsonb(b)->>'sub_county', to_jsonb(b)->>'town', to_jsonb(b)->>'ward') AS location_text
             FROM products p

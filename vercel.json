@@ -21,6 +21,10 @@
       "destination": "https://my-business-website-api.onrender.com/socket.io/:path*"
     },
     {
+      "source": "/uploads/:path*",
+      "destination": "https://my-business-website-api.onrender.com/uploads/:path*"
+    },
+    {
       "source": "/business/:slug/:rest*",
       "destination": "/html/business-profile.html"
     },

@@ -322,7 +322,8 @@ router.get('/:id/media', async (req, res) => {
   }
   try {
     const productResult = await pool.query(`
-      SELECT p.id, p.name, p.price, p.media_type, p.image, p.video, p.video_poster_url
+      SELECT p.id, p.name, p.price, p.media_type, p.image, p.video, p.video_poster_url,
+             p.images, p.videos
         FROM products p
         JOIN businesses b ON b.id = p.business_id
        WHERE p.id = $1 AND p.is_active = TRUE AND b.is_active = TRUE
@@ -346,10 +347,45 @@ router.get('/:id/media', async (req, res) => {
       && (String(variant.image || '').trim() || String(variant.video || '').trim())
     );
     const items = [];
+    const appendUniqueMedia = item => {
+      if (!item?.url || items.some(existing => existing.url === item.url)) return;
+      items.push(item);
+    };
+    const imageList = Array.isArray(product.images) ? product.images : [];
+    const videoList = Array.isArray(product.videos) ? product.videos : [];
+    imageList.forEach((entry, index) => {
+      const url = typeof entry === 'string' ? entry : entry?.url;
+      if (url && url !== product.image) {
+        appendUniqueMedia({
+          product_id: id,
+          variant_id: null,
+          name: product.name,
+          price: primaryPrice,
+          kind: 'image',
+          url,
+          caption: product.name || `Product photo ${index + 1}`
+        });
+      }
+    });
+    videoList.forEach((entry, index) => {
+      const url = typeof entry === 'string' ? entry : entry?.url;
+      if (url && url !== product.video) {
+        appendUniqueMedia({
+          product_id: id,
+          variant_id: null,
+          name: product.name,
+          price: primaryPrice,
+          kind: 'video',
+          url,
+          poster: typeof entry === 'object' ? entry.poster || null : null,
+          caption: product.name || `Product video ${index + 1}`
+        });
+      }
+    });
     if (product.media_type === 'video' && product.image) {
-      items.push({ product_id: id, variant_id: null, name: product.name, price: primaryPrice, kind: 'image', url: product.image, caption: product.name || 'Other product photo' });
+      appendUniqueMedia({ product_id: id, variant_id: null, name: product.name, price: primaryPrice, kind: 'image', url: product.image, caption: product.name || 'Other product photo' });
     } else if (product.video) {
-      items.push({
+      appendUniqueMedia({
         product_id: id,
         variant_id: null,
         name: product.name,
@@ -366,7 +402,7 @@ router.get('/:id/media', async (req, res) => {
         : primaryPrice;
       const label = [variant.name, variant.color_code].filter(Boolean).join(' · ');
       if (String(variant.image || '').trim()) {
-        items.push({
+        appendUniqueMedia({
           product_id: id,
           variant_id: variant.id,
           name: product.name,
@@ -379,7 +415,7 @@ router.get('/:id/media', async (req, res) => {
         });
       }
       if (String(variant.video || '').trim()) {
-        items.push({
+        appendUniqueMedia({
           product_id: id,
           variant_id: variant.id,
           name: product.name,
@@ -393,7 +429,7 @@ router.get('/:id/media', async (req, res) => {
         });
       }
     });
-    return res.json({ success: true, count: galleryVariants.length, items });
+    return res.json({ success: true, count: items.length, items });
   } catch (error) {
     console.error('Load product variant media error:', error);
     return res.status(500).json({ error: 'Could not load product variants.' });
