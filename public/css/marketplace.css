@@ -7656,11 +7656,21 @@ body.index-body .marketplace-gallery-more[hidden] { display: none !important; }
     border: 0 !important;
     background: #000 !important;
   }
+  /* Let the feed run right down to the shortened bottom icon bar. */
+  html body.index-body:not(.business-profile-page).marketplace-social-feed-active .marketplace-social-layout[data-expanded="feed"] {
+    bottom: calc(env(safe-area-inset-bottom) + 44px) !important;
+    background: #000 !important;
+  }
+  /* Keep a visible hairline between the search strip, feed, and bottom bar. */
+  html body.index-body:not(.business-profile-page).marketplace-social-feed-active .marketplace-social-heading-cell:not(.marketplace-social-business-heading)::after {
+    height: 1px;
+    background: rgba(255,255,255,.62);
+  }
   html body.index-body:not(.business-profile-page).marketplace-social-feed-active .marketplace-mobile-shortcuts {
     min-height: calc(44px + env(safe-area-inset-bottom)) !important;
     padding: 2px 10px calc(2px + env(safe-area-inset-bottom)) !important;
     border: 0 !important;
-    border-top: .5px solid rgba(255,255,255,.24) !important;
+    border-top: 1px solid rgba(255,255,255,.62) !important;
     box-shadow: none !important;
   }
   html body.index-body:not(.business-profile-page).marketplace-social-feed-active .marketplace-mobile-shortcuts button {
@@ -7677,8 +7687,8 @@ body.index-body .marketplace-gallery-more[hidden] { display: none !important; }
     right: 0;
     bottom: 0;
     left: 0;
-    height: .5px;
-    background: rgba(255,255,255,.24);
+    height: 1px;
+    background: rgba(255,255,255,.62);
     content: '';
     pointer-events: none;
   }
