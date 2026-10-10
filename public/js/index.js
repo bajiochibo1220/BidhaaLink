@@ -812,9 +812,12 @@ function createMarketplaceFeedCard(item) {
     const applyImageAspectRatio = () => setMediaAspectRatio(image.naturalWidth, image.naturalHeight);
     image.addEventListener('load', applyImageAspectRatio, { once: true });
     const initialMediaCount = document.querySelectorAll('#marketplaceFeedList .marketplace-feed-card').length;
-    image.loading = initialMediaCount < 3 ? 'eager' : 'lazy';
+    const isPhoneFeed = window.matchMedia('(max-width: 900px)').matches;
+    // The phone feed is a single focused viewport; eagerly request its page
+    // of images so a scroll-root/observer quirk cannot leave cards blank.
+    image.loading = isPhoneFeed || initialMediaCount < 3 ? 'eager' : 'lazy';
     image.decoding = 'async';
-    if (initialMediaCount < 2) image.fetchPriority = 'high';
+    if (isPhoneFeed || initialMediaCount < 2) image.fetchPriority = 'high';
     image.onerror = async () => {
       if (!image.dataset.triedProfileMedia && ['product', 'service', 'customer_post'].includes(item.item_type)) {
         image.dataset.triedProfileMedia = 'true';
