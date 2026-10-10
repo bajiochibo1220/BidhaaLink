@@ -7147,6 +7147,47 @@ body.index-body .marketplace-gallery-more[hidden] { display: none !important; }
   body.index-body:not(.business-profile-page) .marketplace-social-layout[data-expanded="feed"] .marketplace-feed-media video {
     display:block !important; visibility:visible !important; opacity:1 !important;
   }
+  /* Keep the mobile feed as one full-bleed media card. The details are an
+     overlay anchored to its bottom edge, so expanding More grows upward. */
+  body.index-body:not(.business-profile-page) .marketplace-social-layout[data-expanded="feed"] .marketplace-feed-card > .marketplace-feed-media {
+    inset:0 !important;
+    z-index:0 !important;
+    min-height:0 !important;
+    background:#000 !important;
+  }
+  body.index-body:not(.business-profile-page) .marketplace-social-layout[data-expanded="feed"] .marketplace-feed-card > .marketplace-feed-shade {
+    position:absolute !important;
+    inset:0 !important;
+    display:block !important;
+    z-index:1 !important;
+    background:transparent !important;
+    pointer-events:none;
+  }
+  body.index-body:not(.business-profile-page) .marketplace-social-layout[data-expanded="feed"] .marketplace-feed-card .marketplace-feed-topbar {
+    z-index:2 !important;
+  }
+  body.index-body:not(.business-profile-page) .marketplace-social-layout[data-expanded="feed"] .marketplace-feed-card .marketplace-feed-details {
+    position:absolute !important;
+    inset:auto 0 0 !important;
+    z-index:1 !important;
+    box-sizing:border-box !important;
+    width:100% !important;
+    height:auto !important;
+    max-height:72% !important;
+    margin:0 !important;
+    padding:12px 16px max(14px, env(safe-area-inset-bottom)) !important;
+    overflow-y:auto !important;
+    overscroll-behavior:contain;
+    -webkit-overflow-scrolling:touch;
+    background:linear-gradient(to bottom, rgb(0 0 0 / 68%), #000 26%) !important;
+  }
+  body.index-body:not(.business-profile-page) .marketplace-social-layout[data-expanded="feed"] .marketplace-feed-card .marketplace-feed-description-row.is-expanded .marketplace-feed-description {
+    max-height:min(35dvh, 420px) !important;
+    overflow-y:auto !important;
+    white-space:pre-line !important;
+    overflow-wrap:anywhere;
+    -webkit-overflow-scrolling:touch;
+  }
   body.index-body:not(.business-profile-page) .marketplace-social-layout[data-expanded="feed"] .marketplace-feed-no-media {
     display:grid !important;
     place-items:center;
