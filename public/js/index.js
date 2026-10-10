@@ -704,9 +704,9 @@ function resolveMarketplaceMediaUrl(value) {
 async function getMarketplaceProfileMedia(item) {
   if (item?.item_type === 'customer_post') {
     const customerUrl = item.media_poster_url || item.customer_profile_image;
-    return customerUrl ? { url: resolveMarketplaceMediaUrl(customerUrl), kind: 'image' } : null;
+    return customerUrl ? [resolveMarketplaceMediaUrl(customerUrl)] : [];
   }
-  if (!['product', 'service'].includes(item?.item_type) || !item.business_slug || !item.item_id) return null;
+  if (!['product', 'service'].includes(item?.item_type) || !item.business_slug || !item.item_id) return [];
   const cacheKey = `${item.item_type}:${item.business_slug}`;
   if (!marketplaceFeedProductMediaCache.has(cacheKey)) {
     const collection = item.item_type === 'service' ? 'services' : 'products';
@@ -719,11 +719,22 @@ async function getMarketplaceProfileMedia(item) {
   }
   const products = await marketplaceFeedProductMediaCache.get(cacheKey);
   const listing = products.find(entry => String(entry.id) === String(item.item_id));
-  const firstServiceMedia = Array.isArray(listing?.media)
-    ? listing.media.find(entry => entry?.url && ['image', 'video'].includes(entry.kind))
-    : null;
-  const url = listing?.thumbnail_url || listing?.image || listing?.video_poster_url || firstServiceMedia?.poster || firstServiceMedia?.url || '';
-  return url ? { url: resolveMarketplaceMediaUrl(url), kind: listing?.thumbnail_kind || firstServiceMedia?.kind || 'image' } : null;
+  const serviceMedia = Array.isArray(listing?.media) ? listing.media : [];
+  const variantMedia = (Array.isArray(listing?.variants) ? listing.variants : [])
+    .flatMap(variant => [variant?.image, variant?.video_poster_url]);
+  const urls = [
+    listing?.thumbnail_url,
+    listing?.image,
+    listing?.video_poster_url,
+    ...serviceMedia.flatMap(entry => [
+      entry?.poster,
+      entry?.kind === 'image' ? entry.url : null
+    ]),
+    ...variantMedia,
+    item.media_poster_url,
+    item.business_logo
+  ].filter(value => typeof value === 'string' && value.trim());
+  return [...new Set(urls.map(resolveMarketplaceMediaUrl))];
 }
 
 function createMarketplaceFeedCard(item) {
@@ -733,27 +744,49 @@ function createMarketplaceFeedCard(item) {
   const media = document.createElement('div');
   media.className = 'marketplace-feed-media';
   let profileMediaRequested = false;
+  const attemptedFallbackUrls = new Set();
   const applyProfileMediaFallback = async target => {
     if (profileMediaRequested || !['product', 'service', 'customer_post'].includes(item.item_type)) return;
     profileMediaRequested = true;
-    const profileMedia = await getMarketplaceProfileMedia(item);
-    const fallbackUrl = profileMedia?.url || resolveMarketplaceMediaUrl(
+    let fallbackUrls = [];
+    try {
+      fallbackUrls = await getMarketplaceProfileMedia(item);
+    } catch (_) {}
+    const failedUrl = target instanceof HTMLImageElement ? target.currentSrc || target.src : '';
+    const urls = [...new Set([
+      ...fallbackUrls,
       item.item_type === 'customer_post' ? item.customer_profile_image : item.business_logo
-    );
-    if (!fallbackUrl || !target.isConnected) return;
-    const image = document.createElement('img');
-    image.src = fallbackUrl;
-    image.alt = item.title || 'Business offer';
-    image.loading = 'eager';
-    image.decoding = 'async';
-    image.onerror = () => {
-      image.remove();
+    ].filter(Boolean).map(resolveMarketplaceMediaUrl))]
+      .filter(url => url && url !== failedUrl && !attemptedFallbackUrls.has(url));
+
+    for (const url of urls) {
+      if (!target.isConnected) return;
+      attemptedFallbackUrls.add(url);
+      const image = document.createElement('img');
+      image.alt = item.title || 'Business offer';
+      image.loading = 'eager';
+      image.decoding = 'async';
+      const loaded = await new Promise(resolve => {
+        image.onload = () => resolve(true);
+        image.onerror = () => resolve(false);
+        image.src = url;
+      });
+      if (!loaded) continue;
+      setMediaAspectRatio(image.naturalWidth, image.naturalHeight);
+      media.classList.remove('marketplace-feed-no-media');
+      if (target === media) media.replaceChildren(image);
+      else if (target.isConnected) target.replaceWith(image);
+      return;
+    }
+
+    if (target.isConnected && !media.querySelector('.marketplace-feed-media-fallback')) {
+      if (target !== media) target.remove();
       media.classList.add('marketplace-feed-no-media');
-    };
-    image.addEventListener('load', () => setMediaAspectRatio(image.naturalWidth, image.naturalHeight), { once: true });
-    media.classList.remove('marketplace-feed-no-media');
-    if (target === media) media.replaceChildren(image);
-    else target.replaceWith(image);
+      const fallbackIcon = document.createElement('i');
+      fallbackIcon.className = `marketplace-feed-media-fallback fas ${item.item_type === 'service' ? 'fa-handshake' : 'fa-box-open'}`;
+      fallbackIcon.setAttribute('aria-hidden', 'true');
+      media.append(fallbackIcon);
+    }
   };
   const setMediaAspectRatio = (width, height) => {
     if (Number.isFinite(width) && Number.isFinite(height) && width > 0 && height > 0) {
@@ -798,6 +831,15 @@ function createMarketplaceFeedCard(item) {
       video.dataset.triedProfilePoster = 'true';
       await applyProfileMediaFallback(video);
     }, { once: true });
+    if (window.matchMedia('(max-width: 900px)').matches) {
+      window.setTimeout(() => {
+        if (!video.isConnected || video.dataset.triedProfilePoster) return;
+        if (video.readyState < 2 || video.videoWidth < 1) {
+          video.dataset.triedProfilePoster = 'true';
+          applyProfileMediaFallback(video);
+        }
+      }, 8000);
+    }
     media.append(video);
     if (video.preload === 'auto') video.load();
     if (video.readyState >= 1) setMediaAspectRatio(video.videoWidth, video.videoHeight);
