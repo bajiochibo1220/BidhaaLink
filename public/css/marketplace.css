@@ -7399,6 +7399,11 @@ body.index-body .marketplace-gallery-more[hidden] { display: none !important; }
 
 /* Phone feed cards keep media and expanded copy in the same swipe target. */
 @media (max-width: 900px) {
+  html body.index-body.marketplace-social-feed-active #marketplaceFeedScroll {
+    overflow-y:auto !important;
+    touch-action:pan-y !important;
+    -webkit-overflow-scrolling:touch !important;
+  }
   html body.index-body.marketplace-social-feed-active .marketplace-feed-card > .marketplace-feed-media {
     inset:0 !important;
   }
@@ -7429,6 +7434,6 @@ body.index-body .marketplace-gallery-more[hidden] { display: none !important; }
     max-height:none !important;
     overflow:visible !important;
     white-space:pre-line !important;
-    touch-action:pan-y !important;
+    touch-action:none !important;
   }
 }
