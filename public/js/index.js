@@ -1131,7 +1131,37 @@ async function openMarketplaceSimilarGallery(item, trigger) {
         const media = mediaItem.kind === 'video' ? document.createElement('video') : document.createElement('img');
         const mediaUrl = resolveMarketplaceMediaUrl(mediaItem.url);
         if (media.tagName === 'VIDEO') { media.controls = true; media.playsInline = true; media.preload = 'metadata'; }
-        else { media.alt = mediaItem.caption || item.title || 'Service photo'; media.loading = 'lazy'; }
+        else {
+          media.alt = mediaItem.caption || item.title || 'Product or service photo';
+          // This gallery is limited and scrolls inside a dialog. Eagerly
+          // request its images so mobile browsers do not strand them unloaded.
+          media.loading = 'eager';
+          if (index < 4) media.fetchPriority = 'high';
+        }
+        const showMediaFallback = failedMedia => {
+          (failedMedia || media).remove();
+          if (mediaFrame.querySelector('.marketplace-gallery-media-fallback')) return;
+          const fallback = document.createElement('div');
+          fallback.className = 'marketplace-gallery-media-fallback';
+          fallback.textContent = 'Media could not be loaded';
+          mediaFrame.append(fallback);
+        };
+        if (media.tagName === 'IMG') {
+          media.addEventListener('error', () => showMediaFallback(media), { once: true });
+        } else {
+          media.addEventListener('error', () => {
+            const posterUrl = mediaItem.poster ? resolveMarketplaceMediaUrl(mediaItem.poster) : '';
+            if (!posterUrl) {
+              showMediaFallback();
+              return;
+            }
+            const poster = document.createElement('img');
+            poster.alt = mediaItem.caption || item.title || 'Video poster';
+            poster.addEventListener('error', () => showMediaFallback(poster), { once: true });
+            media.replaceWith(poster);
+            poster.src = posterUrl;
+          }, { once: true });
+        }
         const caption = document.createElement('figcaption');
         const captionTitle = document.createElement('strong');
         captionTitle.textContent = item.item_type === 'product'
@@ -1143,11 +1173,24 @@ async function openMarketplaceSimilarGallery(item, trigger) {
         if (item.item_type === 'product') {
           const productMeta = document.createElement('div');
           productMeta.className = 'marketplace-gallery-product-meta';
-          if (mediaItem.variant_name || mediaItem.color_code) {
+          if (mediaItem.variant_name) {
             const variantLabel = document.createElement('span');
             variantLabel.className = 'marketplace-gallery-variant';
-            variantLabel.textContent = [mediaItem.variant_name, mediaItem.color_code].filter(Boolean).join(' · ');
+            variantLabel.textContent = mediaItem.variant_name;
             productMeta.append(variantLabel);
+          }
+          if (mediaItem.color_code) {
+            const colorLabel = document.createElement('span');
+            colorLabel.className = 'marketplace-gallery-color';
+            const swatch = document.createElement('i');
+            swatch.className = 'marketplace-gallery-color-swatch';
+            swatch.setAttribute('aria-hidden', 'true');
+            const colorValue = String(mediaItem.color_code).trim();
+            if (window.CSS?.supports?.('color', colorValue)) swatch.style.backgroundColor = colorValue;
+            const colorName = document.createElement('span');
+            colorName.textContent = colorValue;
+            colorLabel.append(swatch, colorName);
+            productMeta.append(colorLabel);
           }
           const similarPrice = mediaItem.price !== null && mediaItem.price !== undefined && mediaItem.price !== ''
             ? mediaItem.price
@@ -1203,19 +1246,16 @@ async function openMarketplaceSimilarGallery(item, trigger) {
         } else {
           const serviceMeta = document.createElement('div');
           serviceMeta.className = 'marketplace-gallery-service-meta';
-          const description = document.createElement('p');
-          description.textContent = item.description || '';
-          if (description.textContent) serviceMeta.append(description);
           const servicePrice = document.createElement('strong');
           servicePrice.className = 'marketplace-gallery-price';
           if (item.pricing_mode === 'negotiable') {
             servicePrice.textContent = 'Negotiable';
           } else {
             const unitLabels = { per_service: 'per job', per_item: 'per item', per_hour: 'per hour', per_day: 'per day' };
-            const unit = unitLabels[item.price_unit] || '';
+            const unit = unitLabels[item.price_unit] || unitLabels.per_service;
             servicePrice.textContent = item.price !== null && item.price !== undefined && item.price !== ''
               ? `${formatProductPrice(item.price)}${unit ? ` ${unit}` : ''}`
-              : 'Negotiable';
+              : 'Price unavailable';
           }
           serviceMeta.append(servicePrice);
 
@@ -1236,7 +1276,8 @@ async function openMarketplaceSimilarGallery(item, trigger) {
             }
           });
           serviceActions.append(talk);
-          caption.append(captionTitle, captionKind, serviceMeta, serviceActions);
+          caption.append(captionTitle, captionKind, serviceMeta);
+          if (item.pricing_mode === 'negotiable') caption.append(serviceActions);
         }
         figure.append(mediaFrame, caption);
         itemsBox.append(figure);
